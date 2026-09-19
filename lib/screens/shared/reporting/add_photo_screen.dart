@@ -13,10 +13,16 @@ import 'review_report_screen.dart';
 typedef ReportPhotoPicker = Future<String?> Function(bool useCamera);
 
 class AddPhotoScreen extends StatefulWidget {
-  const AddPhotoScreen({required this.draft, this.pickPhoto, super.key});
+  const AddPhotoScreen({
+    required this.draft,
+    this.pickPhoto,
+    this.returnToReview = false,
+    super.key,
+  });
 
   final ReportDraft draft;
   final ReportPhotoPicker? pickPhoto;
+  final bool returnToReview;
 
   @override
   State<AddPhotoScreen> createState() => _AddPhotoScreenState();
@@ -99,11 +105,14 @@ class _AddPhotoScreenState extends State<AddPhotoScreen> {
   }
 
   void _continue() {
+    final updatedDraft = widget.draft.copyWith(photoPath: _photoPath);
+    if (widget.returnToReview) {
+      Navigator.of(context).pop(updatedDraft);
+      return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ReviewReportScreen(
-          draft: widget.draft.copyWith(photoPath: _photoPath),
-        ),
+        builder: (_) => ReviewReportScreen(draft: updatedDraft),
       ),
     );
   }

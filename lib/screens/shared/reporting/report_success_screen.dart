@@ -1,24 +1,31 @@
 import 'package:flutter/material.dart';
 
 import 'package:responda/core/theme/app_colors.dart';
+import 'package:responda/core/connectivity/connectivity_gate.dart';
 import 'package:responda/core/widgets/responda_bottom_navigation.dart';
 import 'package:responda/core/widgets/responda_button.dart';
 import 'package:responda/features/reporting/domain/models/report_draft.dart';
-import 'package:responda/screens/online/main_shell.dart';
+import 'package:responda/features/reporting/domain/models/report_flow_mode.dart';
 
 class ReportSuccessScreen extends StatelessWidget {
   const ReportSuccessScreen({
     required this.draft,
     required this.submittedAt,
+    this.flowMode = ReportFlowMode.online,
+    this.reportId,
+    this.smsComposerOpened = false,
     super.key,
   });
 
   final ReportDraft draft;
   final DateTime submittedAt;
+  final ReportFlowMode flowMode;
+  final String? reportId;
+  final bool smsComposerOpened;
 
   @override
   Widget build(BuildContext context) {
-    final reportId = _reportId(submittedAt);
+    final visibleReportId = reportId ?? _reportId(submittedAt);
 
     return Scaffold(
       body: SafeArea(
@@ -38,17 +45,23 @@ class ReportSuccessScreen extends StatelessWidget {
                     gaplessPlayback: true,
                   ),
                   const SizedBox(height: 18),
-                  const Text(
-                    'REPORT SENT',
+                  Text(
+                    flowMode.isOffline ? 'REPORT SAVED' : 'REPORT SENT',
                     style: TextStyle(
-                      color: AppColors.success,
+                      color: flowMode.isOffline
+                          ? AppColors.warning
+                          : AppColors.success,
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
-                    'Your report has been sent to MDRRMO Pantukan for verification.',
+                  Text(
+                    flowMode.isOffline
+                        ? smsComposerOpened
+                              ? 'A copy is saved on this phone and your SMS draft was prepared for MDRRMO.'
+                              : 'Your report is saved, but the phone SMS app could not be opened.'
+                        : 'Your report has been sent to MDRRMO Pantukan for verification.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: AppColors.textSecondary,
@@ -58,7 +71,7 @@ class ReportSuccessScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   _ReportCard(
-                    title: reportId,
+                    title: visibleReportId,
                     body:
                         '${draft.incidentType.label} · ${draft.locationTitle}\n'
                         '${_dateAndTime(submittedAt)}',
@@ -68,13 +81,15 @@ class ReportSuccessScreen extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.brandSoft,
+                      color: flowMode.isOffline
+                          ? AppColors.warningSoft
+                          : AppColors.brandSoft,
                       borderRadius: BorderRadius.circular(18),
                     ),
-                    child: const Column(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        const Text(
                           'Important',
                           style: TextStyle(
                             color: AppColors.brand,
@@ -82,10 +97,14 @@ class ReportSuccessScreen extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Text(
-                          'Report received does not mean a rescue team has already been dispatched.',
-                          style: TextStyle(
+                          flowMode.isOffline
+                              ? smsComposerOpened
+                                    ? 'The app cannot confirm that an SMS was sent. Review the prepared message and tap Send in Messages.'
+                                    : 'Your report is still safe on this device. Open it from My Reports and try the SMS handoff again.'
+                              : 'Report received does not mean a rescue team has already been dispatched.',
+                          style: const TextStyle(
                             color: AppColors.textPrimary,
                             fontSize: 13,
                             height: 18 / 13,
@@ -96,7 +115,9 @@ class ReportSuccessScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
                   RespondaButton(
-                    label: 'View Report Status',
+                    label: flowMode.isOffline
+                        ? 'View Saved Report'
+                        : 'View Report Status',
                     onPressed: () =>
                         _openShell(context, RespondaNavItem.reports),
                   ),
@@ -117,7 +138,9 @@ class ReportSuccessScreen extends StatelessWidget {
 
   static void _openShell(BuildContext context, RespondaNavItem item) {
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute<void>(builder: (_) => MainShell(initialItem: item)),
+      MaterialPageRoute<void>(
+        builder: (_) => ConnectivityGate(initialItem: item),
+      ),
       (_) => false,
     );
   }

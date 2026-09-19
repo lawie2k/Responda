@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:responda/core/location/device_location_service.dart';
 import 'package:responda/core/widgets/responda_bottom_navigation.dart';
 import 'package:responda/features/onboarding/presentation/screens/language_selection_screen.dart';
 import 'package:responda/features/reporting/domain/models/incident_type.dart';
 import 'package:responda/features/reporting/domain/models/report_draft.dart';
 import 'package:responda/screens/online/main_shell.dart';
-import 'package:responda/screens/online/reporting/add_photo_screen.dart';
-import 'package:responda/screens/online/reporting/incident_location_screen.dart';
-import 'package:responda/screens/online/reporting/incident_type_screen.dart';
-import 'package:responda/screens/online/reporting/report_details_screen.dart';
-import 'package:responda/screens/online/reporting/report_success_screen.dart';
-import 'package:responda/screens/online/reporting/review_report_screen.dart';
-import 'package:responda/screens/online/reporting/submitting_report_screen.dart';
+import 'package:responda/screens/shared/reporting/add_photo_screen.dart';
+import 'package:responda/screens/shared/reporting/incident_location_screen.dart';
+import 'package:responda/screens/shared/reporting/incident_type_screen.dart';
+import 'package:responda/screens/shared/reporting/report_details_screen.dart';
+import 'package:responda/screens/shared/reporting/report_success_screen.dart';
+import 'package:responda/screens/shared/reporting/review_report_screen.dart';
+import 'package:responda/screens/shared/reporting/submitting_report_screen.dart';
 
 void main() {
   const completeDraft = ReportDraft(
@@ -29,6 +30,7 @@ void main() {
 
   setUp(() {
     TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
   });
 
   Future<void> pumpPhoneScreen(WidgetTester tester, Widget screen) async {
@@ -130,6 +132,22 @@ void main() {
     );
     expect(locationScreen.draft.incidentType, IncidentType.accident);
     expect(IncidentType.accident.apiValue, 'road_accident');
+  });
+
+  testWidgets('quick incident uses drowning instead of other', (tester) async {
+    await pumpPhoneScreen(tester, const MainShell());
+
+    expect(find.text('Drowning'), findsOneWidget);
+    expect(find.text('Other'), findsNothing);
+
+    await tester.tap(find.text('Drowning'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    final locationScreen = tester.widget<IncidentLocationScreen>(
+      find.byType(IncidentLocationScreen),
+    );
+    expect(locationScreen.draft.incidentType, IncidentType.drowning);
   });
 
   testWidgets('requires every reporting step before continuing', (

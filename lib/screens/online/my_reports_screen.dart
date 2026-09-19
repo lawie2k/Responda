@@ -1,11 +1,22 @@
 import 'package:flutter/material.dart';
 
 import 'package:responda/core/theme/app_colors.dart';
+import 'package:responda/features/reporting/data/offline_report_store.dart';
+import 'package:responda/features/reporting/data/online_report_store.dart';
+
+import 'report_status_screen.dart';
 
 enum ReportFilter { active, resolved, saved }
 
 class MyReportsScreen extends StatefulWidget {
-  const MyReportsScreen({super.key});
+  const MyReportsScreen({
+    this.onlineStore = const OnlineReportStore(),
+    this.offlineStore = const OfflineReportStore(),
+    super.key,
+  });
+
+  final OnlineReportStore onlineStore;
+  final OfflineReportStore offlineStore;
 
   @override
   State<MyReportsScreen> createState() => _MyReportsScreenState();
@@ -13,6 +24,7 @@ class MyReportsScreen extends StatefulWidget {
 
 class _MyReportsScreenState extends State<MyReportsScreen> {
   ReportFilter _filter = ReportFilter.active;
+  late Future<_ReportsSnapshot> _reports = _loadReports();
 
   @override
   Widget build(BuildContext context) {
@@ -21,85 +33,178 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 390),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _ReportsHeader(
-                  activeCount: _filter == ReportFilter.active ? 2 : 0,
+          child: FutureBuilder<_ReportsSnapshot>(
+            future: _reports,
+            builder: (context, snapshot) {
+              final reports = snapshot.data ?? const _ReportsSnapshot();
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _ReportsHeader(activeCount: reports.online.length),
+                    const SizedBox(height: 12),
+                    _FilterTabs(
+                      selected: _filter,
+                      onSelected: (filter) => setState(() => _filter = filter),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: _refresh,
+                        child: ListView(
+                          key: const Key('report_cards_scroll_view'),
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.only(bottom: 24),
+                          children:
+                              snapshot.connectionState != ConnectionState.done
+                              ? const [_LoadingReports()]
+                              : _contentForFilter(reports),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                _FilterTabs(
-                  selected: _filter,
-                  onSelected: (filter) => setState(() => _filter = filter),
-                ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: ListView(
-                    key: const Key('report_cards_scroll_view'),
-                    padding: const EdgeInsets.only(bottom: 24),
-                    children: _contentForFilter(),
-                  ),
-                ),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-  List<Widget> _contentForFilter() {
+  Future<_ReportsSnapshot> _loadReports() async {
+    final online = widget.onlineStore.loadAll();
+    final offline = widget.offlineStore.loadAll();
+    return _ReportsSnapshot(online: await online, offline: await offline);
+  }
+
+  Future<void> _refresh() async {
+    final load = _loadReports();
+    setState(() => _reports = load);
+    await load;
+  }
+
+  List<Widget> _contentForFilter(_ReportsSnapshot reports) {
     return switch (_filter) {
-      ReportFilter.active => const [
-        _ReportCard(
-          id: 'RSP-2026-00872',
-          title: 'Road Accident',
-          meta: 'Kingking Highway  •  Today, 9:41 AM',
-          status: 'FOR VERIFICATION',
-          statusColor: AppColors.warning,
-          statusBackground: AppColors.warningSoft,
-          action: 'View report status',
-        ),
-        SizedBox(height: 12),
-        _ReportCard(
-          id: 'RSP-2026-00791',
-          title: 'Flood',
-          meta: 'Barangay Magnaga  •  29 Aug, 5:20 PM',
-          status: 'TEAM DISPATCHED',
-          statusColor: AppColors.success,
-          statusBackground: AppColors.successSoft,
-          action: 'View response progress',
-        ),
-      ],
+      ReportFilter.active =>
+        reports.online.isEmpty
+            ? const [
+                _EmptyReports(
+                  title: 'No active reports',
+                  message: 'Reports submitted online will appear here.',
+                ),
+              ]
+            : [
+                for (var index = 0; index < reports.online.length; index++) ...[
+                  _ReportCard.online(
+                    report: reports.online[index],
+                    onTap: () => _openStatus(reports.online[index]),
+                  ),
+                  if (index != reports.online.length - 1)
+                    const SizedBox(height: 12),
+                ],
+              ],
       ReportFilter.resolved => const [
-        _ReportCard(
-          id: 'RSP-2026-00643',
-          title: 'Road Obstruction',
-          meta: 'Poblacion  •  26 Aug, 3:15 PM',
-          status: 'RESOLVED',
-          statusColor: AppColors.success,
-          statusBackground: AppColors.successSoft,
-          action: 'View report summary',
+        _EmptyReports(
+          title: 'No resolved reports',
+          message: 'Completed reports will be moved here.',
         ),
       ],
-      ReportFilter.saved => const [
-        _SavedHeader(),
-        SizedBox(height: 8),
-        _ReportCard(
-          id: 'LOCAL-0041',
-          title: 'Road Accident',
-          meta: 'Kingking  •  Waiting for connection',
-          status: 'NOT SENT',
-          statusColor: AppColors.warning,
-          statusBackground: AppColors.warningSoft,
-          action: 'Open saved report',
-          offline: true,
-        ),
-      ],
+      ReportFilter.saved =>
+        reports.offline.isEmpty
+            ? const [
+                _SavedHeader(count: 0),
+                SizedBox(height: 8),
+                _EmptyReports(
+                  title: 'No saved reports',
+                  message: 'Reports saved while offline will appear here.',
+                ),
+              ]
+            : [
+                _SavedHeader(count: reports.offline.length),
+                const SizedBox(height: 8),
+                for (
+                  var index = 0;
+                  index < reports.offline.length;
+                  index++
+                ) ...[
+                  _ReportCard.offline(
+                    report: reports.offline[index],
+                    onTap: () => _showOfflineReport(reports.offline[index]),
+                  ),
+                  if (index != reports.offline.length - 1)
+                    const SizedBox(height: 12),
+                ],
+              ],
     };
   }
+
+  void _openStatus(SavedOnlineReport report) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ReportStatusScreen(report: report),
+      ),
+    );
+  }
+
+  void _showOfflineReport(SavedOfflineReport report) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                report.draft.incidentType.label,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${report.id}\n${report.draft.coordinates}\n${report.draft.description}',
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 13,
+                  height: 19 / 13,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.warningSoft,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: const Text(
+                  'Saved on this phone · Not yet sent',
+                  style: TextStyle(
+                    color: AppColors.warning,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReportsSnapshot {
+  const _ReportsSnapshot({this.online = const [], this.offline = const []});
+
+  final List<SavedOnlineReport> online;
+  final List<SavedOfflineReport> offline;
 }
 
 class _ReportsHeader extends StatelessWidget {
@@ -233,8 +338,43 @@ class _ReportCard extends StatelessWidget {
     required this.statusColor,
     required this.statusBackground,
     required this.action,
+    required this.onTap,
     this.offline = false,
   });
+
+  factory _ReportCard.online({
+    required SavedOnlineReport report,
+    required VoidCallback onTap,
+  }) {
+    return _ReportCard(
+      id: report.id,
+      title: report.draft.incidentType.label,
+      meta:
+          '${report.draft.locationTitle}  •  ${_dateAndTime(report.submittedAt)}',
+      status: report.status.label,
+      statusColor: AppColors.warning,
+      statusBackground: AppColors.warningSoft,
+      action: 'View report status',
+      onTap: onTap,
+    );
+  }
+
+  factory _ReportCard.offline({
+    required SavedOfflineReport report,
+    required VoidCallback onTap,
+  }) {
+    return _ReportCard(
+      id: report.id,
+      title: report.draft.incidentType.label,
+      meta: '${report.draft.locationTitle}  •  ${_dateAndTime(report.savedAt)}',
+      status: 'NOT SENT',
+      statusColor: AppColors.warning,
+      statusBackground: AppColors.warningSoft,
+      action: 'Open saved report',
+      onTap: onTap,
+      offline: true,
+    );
+  }
 
   final String id;
   final String title;
@@ -243,6 +383,7 @@ class _ReportCard extends StatelessWidget {
   final Color statusColor;
   final Color statusBackground;
   final String action;
+  final VoidCallback onTap;
   final bool offline;
 
   @override
@@ -303,7 +444,8 @@ class _ReportCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           InkWell(
-            onTap: () {},
+            key: ValueKey('report_action_$id'),
+            onTap: onTap,
             borderRadius: BorderRadius.circular(12),
             child: Container(
               height: 38,
@@ -382,13 +524,15 @@ class _StatusBadge extends StatelessWidget {
 }
 
 class _SavedHeader extends StatelessWidget {
-  const _SavedHeader();
+  const _SavedHeader({required this.count});
+
+  final int count;
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       children: [
-        Expanded(
+        const Expanded(
           child: Text(
             'SAVED OFFLINE',
             style: TextStyle(
@@ -399,10 +543,92 @@ class _SavedHeader extends StatelessWidget {
           ),
         ),
         Text(
-          '1 report',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 10),
+          '$count ${count == 1 ? 'report' : 'reports'}',
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 10),
         ),
       ],
     );
   }
+}
+
+class _EmptyReports extends StatelessWidget {
+  const _EmptyReports({required this.title, required this.message});
+
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 52, horizontal: 20),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.description_outlined,
+            color: AppColors.textSecondary,
+            size: 44,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+              height: 17 / 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LoadingReports extends StatelessWidget {
+  const _LoadingReports();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.only(top: 72),
+      child: Center(child: CircularProgressIndicator(color: AppColors.brand)),
+    );
+  }
+}
+
+String _dateAndTime(DateTime time) {
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  final now = DateTime.now();
+  final sameDay =
+      now.year == time.year && now.month == time.month && now.day == time.day;
+  final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
+  final minute = time.minute.toString().padLeft(2, '0');
+  final period = time.hour < 12 ? 'AM' : 'PM';
+  final date = sameDay
+      ? 'Today'
+      : '${time.day} ${months[time.month - 1]} ${time.year}';
+  return '$date, $hour:$minute $period';
 }

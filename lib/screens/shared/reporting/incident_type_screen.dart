@@ -6,13 +6,19 @@ import 'package:responda/core/widgets/report_step_scaffold.dart';
 import 'package:responda/core/widgets/responda_button.dart';
 import 'package:responda/features/reporting/domain/models/incident_type.dart';
 import 'package:responda/features/reporting/domain/models/report_draft.dart';
+import 'package:responda/features/reporting/domain/models/report_flow_mode.dart';
 
 import 'incident_location_screen.dart';
 
 class IncidentTypeScreen extends StatefulWidget {
-  const IncidentTypeScreen({this.initialType, super.key});
+  const IncidentTypeScreen({
+    this.initialType,
+    this.flowMode = ReportFlowMode.online,
+    super.key,
+  });
 
   final IncidentType? initialType;
+  final ReportFlowMode flowMode;
 
   @override
   State<IncidentTypeScreen> createState() => _IncidentTypeScreenState();
@@ -58,6 +64,7 @@ class _IncidentTypeScreenState extends State<IncidentTypeScreen> {
     return ReportStepScaffold(
       title: 'What happened?',
       step: 1,
+      totalSteps: widget.flowMode.totalFormSteps,
       children: [
         const Text(
           'Choose the incident that best matches the situation.',
@@ -85,6 +92,7 @@ class _IncidentTypeScreenState extends State<IncidentTypeScreen> {
                     MaterialPageRoute<void>(
                       builder: (_) => IncidentLocationScreen(
                         draft: ReportDraft(incidentType: _selectedType!),
+                        flowMode: widget.flowMode,
                       ),
                     ),
                   );

@@ -3,19 +3,32 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'package:responda/core/theme/app_colors.dart';
+import 'package:responda/features/reporting/data/offline_report_store.dart';
+import 'package:responda/features/reporting/data/offline_sms_handoff.dart';
+import 'package:responda/features/reporting/data/online_report_store.dart';
 import 'package:responda/features/reporting/domain/models/report_draft.dart';
+import 'package:responda/features/reporting/domain/models/report_flow_mode.dart';
 
 import 'report_success_screen.dart';
 
 class SubmittingReportScreen extends StatefulWidget {
   const SubmittingReportScreen({
     required this.draft,
+    this.flowMode = ReportFlowMode.online,
     this.submitReport,
+    this.saveOfflineReport,
+    this.openSmsComposer,
+    this.saveOnlineReport,
     super.key,
   });
 
   final ReportDraft draft;
+  final ReportFlowMode flowMode;
   final Future<void> Function(ReportDraft draft)? submitReport;
+  final Future<SavedOfflineReport> Function(ReportDraft draft)?
+  saveOfflineReport;
+  final Future<bool> Function(SavedOfflineReport report)? openSmsComposer;
+  final Future<SavedOnlineReport> Function(ReportDraft draft)? saveOnlineReport;
 
   @override
   State<SubmittingReportScreen> createState() => _SubmittingReportScreenState();
@@ -64,8 +77,10 @@ class _SubmittingReportScreenState extends State<SubmittingReportScreen> {
                       ),
                     ),
                     const SizedBox(height: 30),
-                    const Text(
-                      'Sending your report to MDRRMO…',
+                    Text(
+                      widget.flowMode.isOffline
+                          ? 'Saving report and preparing SMS…'
+                          : 'Sending your report to MDRRMO…',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: AppColors.textPrimary,
@@ -75,8 +90,10 @@ class _SubmittingReportScreenState extends State<SubmittingReportScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    const Text(
-                      'Please keep Responda open while submission completes.',
+                    Text(
+                      widget.flowMode.isOffline
+                          ? 'Your report will stay available even without internet.'
+                          : 'Please keep Responda open while submission completes.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: AppColors.textSecondary,
@@ -90,11 +107,13 @@ class _SubmittingReportScreenState extends State<SubmittingReportScreen> {
                       complete: _completedSteps >= 1,
                     ),
                     _SubmissionStep(
-                      label: 'Checking location',
+                      label: 'Checking GPS coordinates',
                       complete: _completedSteps >= 2,
                     ),
                     _SubmissionStep(
-                      label: 'Sending securely',
+                      label: widget.flowMode.isOffline
+                          ? 'Opening your phone SMS app'
+                          : 'Sending securely',
                       complete: _completedSteps >= 3,
                     ),
                   ],
@@ -116,11 +135,29 @@ class _SubmittingReportScreenState extends State<SubmittingReportScreen> {
       }),
     );
 
-    final submit = widget.submitReport;
-    if (submit != null) {
-      await submit(widget.draft);
+    SavedOfflineReport? savedReport;
+    SavedOnlineReport? onlineReport;
+    var smsComposerOpened = false;
+    if (widget.flowMode.isOffline) {
+      final save = widget.saveOfflineReport ?? const OfflineReportStore().save;
+      savedReport = await save(widget.draft);
+      try {
+        final openSms =
+            widget.openSmsComposer ?? OfflineSmsHandoff().openComposer;
+        smsComposerOpened = await openSms(savedReport);
+      } catch (_) {
+        smsComposerOpened = false;
+      }
     } else {
-      await Future<void>.delayed(const Duration(milliseconds: 1300));
+      final submit = widget.submitReport;
+      if (submit != null) {
+        await submit(widget.draft);
+      } else {
+        await Future<void>.delayed(const Duration(milliseconds: 1300));
+      }
+      final saveOnline =
+          widget.saveOnlineReport ?? const OnlineReportStore().save;
+      onlineReport = await saveOnline(widget.draft);
     }
 
     if (!mounted) {
@@ -136,7 +173,13 @@ class _SubmittingReportScreenState extends State<SubmittingReportScreen> {
           MaterialPageRoute<void>(
             builder: (_) => ReportSuccessScreen(
               draft: widget.draft,
-              submittedAt: DateTime.now(),
+              submittedAt:
+                  savedReport?.savedAt ??
+                  onlineReport?.submittedAt ??
+                  DateTime.now(),
+              flowMode: widget.flowMode,
+              reportId: savedReport?.id ?? onlineReport?.id,
+              smsComposerOpened: smsComposerOpened,
             ),
           ),
         );
@@ -171,12 +214,18 @@ class _SubmissionStep extends StatelessWidget {
                 : null,
           ),
           const SizedBox(width: 10),
-          Text(
-            label,
-            style: TextStyle(
-              color: complete ? AppColors.textPrimary : AppColors.textSecondary,
-              fontSize: 14,
-              fontWeight: complete ? FontWeight.w600 : FontWeight.w500,
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: complete
+                    ? AppColors.textPrimary
+                    : AppColors.textSecondary,
+                fontSize: 14,
+                fontWeight: complete ? FontWeight.w600 : FontWeight.w500,
+              ),
             ),
           ),
         ],

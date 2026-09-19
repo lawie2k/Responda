@@ -8,18 +8,40 @@ import 'package:responda/core/theme/app_colors.dart';
 import 'package:responda/core/widgets/responda_button.dart';
 import 'package:responda/features/reporting/domain/models/incident_type.dart';
 import 'package:responda/features/reporting/domain/models/report_draft.dart';
+import 'package:responda/features/reporting/domain/models/report_flow_mode.dart';
 
-import 'reporting/incident_location_screen.dart';
-import 'reporting/incident_type_screen.dart';
+import '../offline/offline_sms_gateway_screen.dart';
+import '../shared/reporting/incident_location_screen.dart';
+import '../shared/reporting/incident_type_screen.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({this.flowMode = ReportFlowMode.online, super.key});
+
+  final ReportFlowMode flowMode;
 
   static const _incidentTypes = [
-    ('Accident', 'assets/icons/incident_accident.svg', 34.0, 27.0),
-    ('Flood', 'assets/icons/incident_flood.svg', 35.0, 28.0),
-    ('Fire', 'assets/icons/incident_fire.svg', 20.0, 27.0),
-    ('Other', 'assets/icons/incident_other.svg', 24.0, 24.0),
+    (
+      IncidentType.accident,
+      'Accident',
+      'assets/icons/incident_accident.svg',
+      34.0,
+      27.0,
+    ),
+    (
+      IncidentType.flood,
+      'Flood',
+      'assets/icons/incident_flood.svg',
+      35.0,
+      28.0,
+    ),
+    (IncidentType.fire, 'Fire', 'assets/icons/incident_fire.svg', 20.0, 27.0),
+    (
+      IncidentType.drowning,
+      'Drowning',
+      'assets/icons/report_drowning.svg',
+      28.0,
+      23.0,
+    ),
   ];
 
   @override
@@ -35,7 +57,7 @@ class HomeScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _Header(),
+                _Header(isOffline: flowMode.isOffline),
                 const SizedBox(height: 14),
                 _EmergencyHero(onReport: () => _openReport(context)),
                 const SizedBox(height: 14),
@@ -54,19 +76,12 @@ class HomeScreen extends StatelessWidget {
                   children: _incidentTypes
                       .map(
                         (item) => _IncidentCard(
-                          label: item.$1,
-                          asset: item.$2,
-                          iconWidth: item.$3,
-                          iconHeight: item.$4,
-                          onTap: () => _openReport(
-                            context,
-                            initialType: switch (item.$1) {
-                              'Accident' => IncidentType.accident,
-                              'Flood' => IncidentType.flood,
-                              'Fire' => IncidentType.fire,
-                              _ => IncidentType.other,
-                            },
-                          ),
+                          label: item.$2,
+                          asset: item.$3,
+                          iconWidth: item.$4,
+                          iconHeight: item.$5,
+                          onTap: () =>
+                              _openReport(context, initialType: item.$1),
                         ),
                       )
                       .toList(),
@@ -82,12 +97,22 @@ class HomeScreen extends StatelessWidget {
   }
 
   void _openReport(BuildContext context, {IncidentType? initialType}) {
+    if (flowMode.isOffline) {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => OfflineSmsGatewayScreen(initialType: initialType),
+        ),
+      );
+      return;
+    }
+
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => initialType == null
-            ? const IncidentTypeScreen()
+            ? IncidentTypeScreen(flowMode: flowMode)
             : IncidentLocationScreen(
                 draft: ReportDraft(incidentType: initialType),
+                flowMode: flowMode,
               ),
       ),
     );
@@ -95,7 +120,9 @@ class HomeScreen extends StatelessWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header();
+  const _Header({required this.isOffline});
+
+  final bool isOffline;
 
   @override
   Widget build(BuildContext context) {
@@ -134,21 +161,28 @@ class _Header extends StatelessWidget {
             height: 28,
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: AppColors.successSoft,
+              color: isOffline ? AppColors.warningSoft : AppColors.successSoft,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Row(
               children: [
-                SvgPicture.asset(
-                  'assets/icons/online_dot.svg',
-                  width: 7,
-                  height: 7,
-                ),
+                if (isOffline)
+                  const Icon(
+                    Icons.cloud_off_rounded,
+                    color: AppColors.warning,
+                    size: 13,
+                  )
+                else
+                  SvgPicture.asset(
+                    'assets/icons/online_dot.svg',
+                    width: 7,
+                    height: 7,
+                  ),
                 const SizedBox(width: 6),
-                const Text(
-                  'Online',
+                Text(
+                  isOffline ? 'Offline' : 'Online',
                   style: TextStyle(
-                    color: AppColors.success,
+                    color: isOffline ? AppColors.warning : AppColors.success,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     height: 17 / 12,

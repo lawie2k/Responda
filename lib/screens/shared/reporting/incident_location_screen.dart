@@ -9,6 +9,7 @@ import 'package:responda/core/theme/app_colors.dart';
 import 'package:responda/core/widgets/report_step_scaffold.dart';
 import 'package:responda/core/widgets/responda_button.dart';
 import 'package:responda/features/reporting/domain/models/report_draft.dart';
+import 'package:responda/features/reporting/domain/models/report_flow_mode.dart';
 
 import 'report_details_screen.dart';
 
@@ -17,12 +18,16 @@ typedef ReportLocationLoader = Future<DeviceLocationData> Function();
 class IncidentLocationScreen extends StatefulWidget {
   const IncidentLocationScreen({
     required this.draft,
+    this.flowMode = ReportFlowMode.online,
     this.loadLocation,
+    this.returnToReview = false,
     super.key,
   });
 
   final ReportDraft draft;
+  final ReportFlowMode flowMode;
   final ReportLocationLoader? loadLocation;
+  final bool returnToReview;
 
   @override
   State<IncidentLocationScreen> createState() => _IncidentLocationScreenState();
@@ -101,20 +106,28 @@ class _IncidentLocationScreenState extends State<IncidentLocationScreen> {
     return ReportStepScaffold(
       title: 'Incident Location',
       step: 2,
+      totalSteps: widget.flowMode.totalFormSteps,
       children: [
+        if (widget.flowMode.isOffline)
+          const _MessageCard(
+            title: 'GPS works without internet',
+            message: 'RESPONDA will save the coordinates from your phone. No online map is needed.',
+            color: AppColors.warningSoft,
+          ),
         _LocationTag(
           isLoading: _isLoading,
           hasLocation: location != null,
           gpsDisabled: _gpsDisabled,
         ),
-        _GpsMapPreview(
-          controller: _mapController,
-          gpsLocation: _gpsLocation,
-          selectedLocation: location,
-          gpsDisabled: _gpsDisabled,
-          onMapReady: _handleMapReady,
-          onPointChanged: _selectMapPoint,
-        ),
+        if (!widget.flowMode.isOffline)
+          _GpsMapPreview(
+            controller: _mapController,
+            gpsLocation: _gpsLocation,
+            selectedLocation: location,
+            gpsDisabled: _gpsDisabled,
+            onMapReady: _handleMapReady,
+            onPointChanged: _selectMapPoint,
+          ),
         if (_gpsDisabled)
           const _MessageCard(
             title: 'Allow GPS',
@@ -154,34 +167,36 @@ class _IncidentLocationScreenState extends State<IncidentLocationScreen> {
             ),
           ],
         ),
-        TextField(
-          controller: _landmarkController,
-          focusNode: _landmarkFocus,
-          textInputAction: TextInputAction.done,
-          decoration: InputDecoration(
-            labelText: 'Landmark',
-            hintText: 'e.g. Kingking Highway',
-            filled: true,
-            fillColor: AppColors.surface,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppColors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppColors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppColors.brand, width: 2),
+        if (!widget.flowMode.isOffline) ...[
+          TextField(
+            controller: _landmarkController,
+            focusNode: _landmarkFocus,
+            textInputAction: TextInputAction.done,
+            decoration: InputDecoration(
+              labelText: 'Landmark',
+              hintText: 'e.g. Kingking Highway',
+              filled: true,
+              fillColor: AppColors.surface,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: AppColors.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: AppColors.border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: AppColors.brand, width: 2),
+              ),
             ),
           ),
-        ),
-        RespondaButton(
-          label: 'Enter Landmark Manually',
-          style: RespondaButtonStyle.secondary,
-          onPressed: () => _landmarkFocus.requestFocus(),
-        ),
+          RespondaButton(
+            label: 'Enter Landmark Manually',
+            style: RespondaButtonStyle.secondary,
+            onPressed: () => _landmarkFocus.requestFocus(),
+          ),
+        ],
       ],
     );
   }
@@ -278,9 +293,15 @@ class _IncidentLocationScreenState extends State<IncidentLocationScreen> {
       landmark: _landmarkController.text.trim(),
     );
 
+    if (widget.returnToReview) {
+      Navigator.of(context).pop(draft);
+      return;
+    }
+
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ReportDetailsScreen(draft: draft),
+        builder: (_) =>
+            ReportDetailsScreen(draft: draft, flowMode: widget.flowMode),
       ),
     );
   }

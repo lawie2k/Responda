@@ -6,13 +6,22 @@ import 'package:responda/core/widgets/report_step_scaffold.dart';
 import 'package:responda/core/widgets/responda_button.dart';
 import 'package:responda/features/reporting/domain/models/incident_type.dart';
 import 'package:responda/features/reporting/domain/models/report_draft.dart';
+import 'package:responda/features/reporting/domain/models/report_flow_mode.dart';
 
 import 'add_photo_screen.dart';
+import 'review_report_screen.dart';
 
 class ReportDetailsScreen extends StatefulWidget {
-  const ReportDetailsScreen({required this.draft, super.key});
+  const ReportDetailsScreen({
+    required this.draft,
+    this.flowMode = ReportFlowMode.online,
+    this.returnToReview = false,
+    super.key,
+  });
 
   final ReportDraft draft;
+  final ReportFlowMode flowMode;
+  final bool returnToReview;
 
   @override
   State<ReportDetailsScreen> createState() => _ReportDetailsScreenState();
@@ -50,6 +59,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
     return ReportStepScaffold(
       title: 'Quick Details',
       step: 3,
+      totalSteps: widget.flowMode.totalFormSteps,
       children: [
         _SelectedIncident(incidentType: widget.draft.incidentType),
         const Text(
@@ -111,16 +121,24 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
           label: 'Continue',
           onPressed: _isComplete
               ? () {
+                  final completedDraft = widget.draft.copyWith(
+                    description: _descriptionController.text.trim(),
+                    morePeople: _morePeople,
+                    additionalAssistance: _additionalAssistance,
+                    stillDangerous: _stillDangerous,
+                  );
+                  if (widget.returnToReview) {
+                    Navigator.of(context).pop(completedDraft);
+                    return;
+                  }
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                      builder: (_) => AddPhotoScreen(
-                        draft: widget.draft.copyWith(
-                          description: _descriptionController.text.trim(),
-                          morePeople: _morePeople,
-                          additionalAssistance: _additionalAssistance,
-                          stillDangerous: _stillDangerous,
-                        ),
-                      ),
+                      builder: (_) => widget.flowMode.isOffline
+                          ? ReviewReportScreen(
+                              draft: completedDraft,
+                              flowMode: widget.flowMode,
+                            )
+                          : AddPhotoScreen(draft: completedDraft),
                     ),
                   );
                 }

@@ -6,7 +6,7 @@ import 'package:responda/core/location/gps_preference_scope.dart';
 import 'package:responda/features/reporting/domain/models/incident_type.dart';
 import 'package:responda/features/reporting/domain/models/report_draft.dart';
 import 'package:responda/screens/online/main_shell.dart';
-import 'package:responda/screens/online/reporting/incident_location_screen.dart';
+import 'package:responda/screens/shared/reporting/incident_location_screen.dart';
 
 void main() {
   test('loads and saves the Allow GPS preference', () async {

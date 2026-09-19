@@ -6,6 +6,8 @@
   unavailable, including local drafts and SMS fallback.
 - `outside_pantukan/` is reserved for service-area guidance and report review
   when a detected location is outside Pantukan.
+- `shared/reporting/` contains the reporting screens reused by online and
+  offline mode. `ReportFlowMode` changes only the steps each mode needs.
 
 Reusable widgets, theme tokens, localization, navigation, and device services
 belong in `lib/core`. Reporting domain models stay in
