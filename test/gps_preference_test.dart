@@ -22,6 +22,11 @@ void main() {
     final restartedController = GpsPreferenceController(store: store);
     await restartedController.load();
     expect(restartedController.allowGps, isTrue);
+
+    await restartedController.setAllowGps(false);
+    await restartedController.resetPreference();
+    expect(restartedController.allowGps, isTrue);
+    expect(store.allowGps, isNull);
   });
 
   testWidgets('home shows Allow GPS without requesting a location when off', (
@@ -96,6 +101,11 @@ class _MemoryGpsPreferenceStore implements GpsPreferenceStore {
   _MemoryGpsPreferenceStore(this.allowGps);
 
   bool? allowGps;
+
+  @override
+  Future<void> clearAllowGps() async {
+    allowGps = null;
+  }
 
   @override
   Future<bool?> readAllowGps() async => allowGps;

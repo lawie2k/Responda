@@ -6,7 +6,9 @@ import 'package:responda/core/location/device_location_service.dart';
 import 'package:responda/core/location/gps_preference_controller.dart';
 import 'package:responda/core/location/gps_preference_scope.dart';
 import 'package:responda/core/theme/app_colors.dart';
-import 'package:responda/features/identity/presentation/account_scope.dart';
+import 'package:responda/core/widgets/responda_button.dart';
+import 'package:responda/features/onboarding/presentation/account_scope.dart';
+import 'package:responda/features/onboarding/presentation/screens/language_selection_screen.dart';
 
 import 'account_management_screen.dart';
 
@@ -22,6 +24,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _offlineDraftsEnabled = true;
   bool _allowGps = true;
   bool _updatingGps = false;
+  bool _resettingTestData = false;
   AppLanguage _language = AppLanguage.english;
   GpsPreferenceController? _gpsPreferenceController;
 
@@ -72,6 +75,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _SettingsCard(
                   children: [
                     _SettingsTile(
+                      key: const Key('language_settings_tile'),
                       icon: Icons.language_rounded,
                       title: 'Language',
                       subtitle: 'Language used throughout the app',
@@ -100,21 +104,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
                 const SizedBox(height: 18),
-                const _SectionLabel('REPORTING & SAFETY'),
-                const SizedBox(height: 8),
-                _SettingsCard(
-                  children: [
-                    _SwitchTile(
-                      icon: Icons.save_outlined,
-                      title: 'Save drafts offline',
-                      subtitle: 'Keep unfinished reports on this device',
-                      value: _offlineDraftsEnabled,
-                      onChanged: (value) =>
-                          setState(() => _offlineDraftsEnabled = value),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
                 const _SectionLabel('PRIVACY & DATA'),
                 const SizedBox(height: 8),
                 const _SettingsCard(
@@ -137,6 +126,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const _SectionLabel('ABOUT'),
                 const SizedBox(height: 8),
                 const _AboutCard(),
+                const SizedBox(height: 18),
+                const _SectionLabel('TESTING'),
+                const SizedBox(height: 8),
+                _SettingsCard(
+                  children: [
+                    _SettingsTile(
+                      key: const Key('reset_test_onboarding_tile'),
+                      icon: Icons.restart_alt_rounded,
+                      title: 'Reset verification & setup',
+                      subtitle: 'Clear identity verification, language, and GPS choice',
+                      destructive: true,
+                      onTap: _resettingTestData ? null : _confirmTestReset,
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -152,6 +156,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _showLanguagePicker() async {
+    final languageController = AppLanguageScope.maybeOf(context);
     final selected = await showModalBottomSheet<AppLanguage>(
       context: context,
       backgroundColor: AppColors.surface,
@@ -163,7 +168,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     setState(() => _language = selected);
-    await AppLanguageScope.maybeOf(context)?.selectLanguage(selected);
+    await languageController?.selectLanguage(selected);
   }
 
   Future<void> _setAllowGps(bool value) async {
@@ -191,7 +196,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
+          content: LocalizedText(
             'Location permission was not allowed in your phone settings.',
           ),
         ),
@@ -205,6 +210,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
     await _gpsPreferenceController?.setAllowGps(true);
   }
+
+  Future<void> _confirmTestReset() async {
+    final accountController = AccountScope.maybeOf(context);
+    final languageController = AppLanguageScope.maybeOf(context);
+    final gpsController = GpsPreferenceScope.maybeOf(context);
+    final navigator = Navigator.of(context);
+
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => const _TestResetSheet(),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    setState(() => _resettingTestData = true);
+    await Future.wait([
+      if (accountController != null) accountController.clearLocalSession(),
+      if (languageController != null) languageController.resetSelection(),
+      if (gpsController != null) gpsController.resetPreference(),
+    ]);
+    if (!mounted) {
+      return;
+    }
+
+    navigator.pushAndRemoveUntil(
+      MaterialPageRoute<void>(builder: (_) => const LanguageSelectionScreen()),
+      (_) => false,
+    );
+  }
 }
 
 class _SettingsHeader extends StatelessWidget {
@@ -215,7 +253,7 @@ class _SettingsHeader extends StatelessWidget {
     return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        LocalizedText(
           'Settings',
           style: TextStyle(
             color: AppColors.textPrimary,
@@ -237,7 +275,7 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
+    return LocalizedText(
       label,
       style: const TextStyle(
         color: AppColors.textSecondary,
@@ -282,6 +320,7 @@ class _SettingsTile extends StatelessWidget {
     this.value,
     this.destructive = false,
     this.onTap,
+    super.key,
   });
 
   final IconData icon;
@@ -307,7 +346,7 @@ class _SettingsTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  LocalizedText(
                     title,
                     style: TextStyle(
                       color: destructive
@@ -318,7 +357,7 @@ class _SettingsTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
+                  LocalizedText(
                     subtitle,
                     style: const TextStyle(
                       color: AppColors.textSecondary,
@@ -332,7 +371,7 @@ class _SettingsTile extends StatelessWidget {
               const SizedBox(width: 8),
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 100),
-                child: Text(
+                child: LocalizedText(
                   value!,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -358,6 +397,70 @@ class _SettingsTile extends StatelessWidget {
   }
 }
 
+class _TestResetSheet extends StatelessWidget {
+  const _TestResetSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 58,
+              height: 58,
+              decoration: const BoxDecoration(
+                color: AppColors.dangerSoft,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.restart_alt_rounded,
+                color: AppColors.danger,
+                size: 30,
+              ),
+            ),
+            const SizedBox(height: 14),
+            const LocalizedText(
+              'Reset test data?',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 21,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const LocalizedText(
+              'This clears the saved identity verification, selected language, and RESPONDA GPS preference. Saved reports will not be deleted.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+                height: 19 / 13,
+              ),
+            ),
+            const SizedBox(height: 18),
+            RespondaButton(
+              key: const Key('confirm_test_reset_button'),
+              label: 'Reset and start over',
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+            const SizedBox(height: 8),
+            RespondaButton(
+              label: 'Cancel',
+              style: RespondaButtonStyle.ghost,
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _LanguagePicker extends StatelessWidget {
   const _LanguagePicker({required this.selectedLanguage});
 
@@ -373,7 +476,7 @@ class _LanguagePicker extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            const LocalizedText(
               'Choose language',
               style: TextStyle(
                 color: AppColors.textPrimary,
@@ -421,7 +524,7 @@ class _LanguageOption extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: Text(
+                child: LocalizedText(
                   language.displayName,
                   style: TextStyle(
                     color: selected ? AppColors.brand : AppColors.textPrimary,
@@ -472,7 +575,7 @@ class _SwitchTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                LocalizedText(
                   title,
                   style: const TextStyle(
                     color: AppColors.textPrimary,
@@ -481,7 +584,7 @@ class _SwitchTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
+                LocalizedText(
                   subtitle,
                   style: const TextStyle(
                     color: AppColors.textSecondary,
@@ -568,7 +671,7 @@ class _AboutCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                LocalizedText(
                   'RESPONDA',
                   style: TextStyle(
                     color: AppColors.surface,
@@ -577,14 +680,14 @@ class _AboutCard extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 2),
-                Text(
+                LocalizedText(
                   'Pantukan MDRRMO',
                   style: TextStyle(color: Color(0xFFF7DDE1), fontSize: 12),
                 ),
               ],
             ),
           ),
-          const Text(
+          const LocalizedText(
             'Version 1.0.0',
             style: TextStyle(color: Color(0xFFF7DDE1), fontSize: 12),
           ),

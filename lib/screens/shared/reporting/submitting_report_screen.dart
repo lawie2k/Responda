@@ -37,11 +37,15 @@ class SubmittingReportScreen extends StatefulWidget {
 class _SubmittingReportScreenState extends State<SubmittingReportScreen> {
   final _timers = <Timer>[];
   int _completedSteps = 1;
+  bool _submissionStarted = false;
 
   @override
-  void initState() {
-    super.initState();
-    _beginSubmission();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_submissionStarted) {
+      _submissionStarted = true;
+      _beginSubmission();
+    }
   }
 
   @override
@@ -77,7 +81,7 @@ class _SubmittingReportScreenState extends State<SubmittingReportScreen> {
                       ),
                     ),
                     const SizedBox(height: 30),
-                    Text(
+                    LocalizedText(
                       widget.flowMode.isOffline
                           ? 'Saving report and preparing SMS…'
                           : 'Sending your report to MDRRMO…',
@@ -90,7 +94,7 @@ class _SubmittingReportScreenState extends State<SubmittingReportScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Text(
+                    LocalizedText(
                       widget.flowMode.isOffline
                           ? 'Your report will stay available even without internet.'
                           : 'Please keep Responda open while submission completes.',
@@ -127,6 +131,7 @@ class _SubmittingReportScreenState extends State<SubmittingReportScreen> {
   }
 
   Future<void> _beginSubmission() async {
+    final appStrings = context.strings;
     _timers.add(
       Timer(const Duration(milliseconds: 650), () {
         if (mounted) {
@@ -143,7 +148,8 @@ class _SubmittingReportScreenState extends State<SubmittingReportScreen> {
       savedReport = await save(widget.draft);
       try {
         final openSms =
-            widget.openSmsComposer ?? OfflineSmsHandoff().openComposer;
+            widget.openSmsComposer ??
+            OfflineSmsHandoff(strings: appStrings).openComposer;
         smsComposerOpened = await openSms(savedReport);
       } catch (_) {
         smsComposerOpened = false;
@@ -215,7 +221,7 @@ class _SubmissionStep extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
+            child: LocalizedText(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

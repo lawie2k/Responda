@@ -88,7 +88,7 @@ class _SplashContent extends StatelessWidget {
           filterQuality: FilterQuality.high,
         ),
         SizedBox(height: 18),
-        Text(
+        LocalizedText(
           'RESPONDA',
           style: TextStyle(
             color: AppColors.brand,

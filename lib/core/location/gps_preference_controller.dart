@@ -5,6 +5,8 @@ abstract interface class GpsPreferenceStore {
   Future<bool?> readAllowGps();
 
   Future<void> writeAllowGps(bool value);
+
+  Future<void> clearAllowGps();
 }
 
 class SharedPreferencesGpsPreferenceStore implements GpsPreferenceStore {
@@ -24,6 +26,9 @@ class SharedPreferencesGpsPreferenceStore implements GpsPreferenceStore {
   @override
   Future<void> writeAllowGps(bool value) =>
       _client.setBool(_allowGpsKey, value);
+
+  @override
+  Future<void> clearAllowGps() => _client.remove(_allowGpsKey);
 }
 
 class GpsPreferenceController extends ChangeNotifier {
@@ -61,5 +66,15 @@ class GpsPreferenceController extends ChangeNotifier {
       notifyListeners();
     }
     await _store.writeAllowGps(value);
+  }
+
+  Future<void> resetPreference() async {
+    final changed = !_allowGps;
+    _allowGps = true;
+    _isLoaded = true;
+    if (changed) {
+      notifyListeners();
+    }
+    await _store.clearAllowGps();
   }
 }

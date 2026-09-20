@@ -116,7 +116,7 @@ class _StatusHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          const Text(
+          const LocalizedText(
             'Report Status',
             style: TextStyle(
               color: AppColors.textPrimary,
@@ -175,7 +175,7 @@ class _StatusHero extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 6),
-                          Text(
+                          LocalizedText(
                             report.status.label,
                             style: const TextStyle(
                               color: AppColors.warning,
@@ -191,7 +191,7 @@ class _StatusHero extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Flexible(
-                child: Text(
+                child: LocalizedText(
                   report.id,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -206,7 +206,7 @@ class _StatusHero extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Text(
+          LocalizedText(
             report.status.headline,
             style: const TextStyle(
               color: AppColors.surface,
@@ -215,7 +215,7 @@ class _StatusHero extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 7),
-          Text(
+          LocalizedText(
             report.status.description,
             style: const TextStyle(color: Color(0xFFF6DDE1), fontSize: 12),
           ),
@@ -230,8 +230,11 @@ class _StatusHero extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: Text(
-                    '${report.status.stage} OF 7 STAGES',
+                  child: LocalizedText(
+                    context.tr(
+                      '{stage} OF 7 STAGES',
+                      values: {'stage': report.status.stage},
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -243,8 +246,15 @@ class _StatusHero extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Flexible(
-                  child: Text(
-                    'Updated ${_clockTime(report.submittedAt.add(const Duration(minutes: 2)))}',
+                  child: LocalizedText(
+                    context.tr(
+                      'Updated {time}',
+                      values: {
+                        'time': _clockTime(
+                          report.submittedAt.add(const Duration(minutes: 2)),
+                        ),
+                      },
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.right,
@@ -298,7 +308,7 @@ class _ReportJourney extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          const LocalizedText(
             'REPORT JOURNEY',
             style: TextStyle(
               color: AppColors.textSecondary,
@@ -382,7 +392,7 @@ class _JourneyStage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                LocalizedText(
                   title,
                   style: TextStyle(
                     color: state == _StageState.pending
@@ -393,7 +403,7 @@ class _JourneyStage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 1),
-                Text(
+                LocalizedText(
                   subtitle,
                   style: const TextStyle(
                     color: AppColors.textSecondary,
@@ -416,7 +426,7 @@ class _JourneyStage extends StatelessWidget {
                 children: [
                   Icon(Icons.circle, color: AppColors.brand, size: 7),
                   SizedBox(width: 5),
-                  Text(
+                  LocalizedText(
                     'NOW',
                     style: TextStyle(
                       color: AppColors.brand,
@@ -443,7 +453,7 @@ class _ContactCard extends StatelessWidget {
       onTap: () {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
+            content: LocalizedText(
               'MDRRMO may call to confirm the incident, location, or assistance needed.',
             ),
           ),
@@ -472,7 +482,7 @@ class _ContactCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  LocalizedText(
                     'MDRRMO may contact you',
                     style: TextStyle(
                       color: AppColors.info,
@@ -481,7 +491,7 @@ class _ContactCard extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 3),
-                  Text(
+                  LocalizedText(
                     'Tap to see what to expect during verification.',
                     style: TextStyle(
                       color: AppColors.textSecondary,

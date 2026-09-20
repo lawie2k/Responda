@@ -61,7 +61,7 @@ class _ReviewReportScreenState extends State<ReviewReportScreen> {
                   ),
                 ),
                 const SizedBox(width: 6),
-                Text(
+                LocalizedText(
                   _draft.incidentType.label,
                   style: const TextStyle(
                     color: AppColors.brand,
@@ -91,7 +91,8 @@ class _ReviewReportScreenState extends State<ReviewReportScreen> {
             children: [
               _SummaryRow(
                 label: 'Location',
-                value: '${_draft.locationTitle}\n${_draft.coordinates}',
+                value:
+                    '${context.tr(_draft.locationTitle)}\n${context.tr(_draft.coordinates)}',
                 editKey: const Key('review_edit_location'),
                 onEdit: _editLocation,
               ),
@@ -105,21 +106,21 @@ class _ReviewReportScreenState extends State<ReviewReportScreen> {
               const Divider(height: 18, color: AppColors.border),
               _SummaryRow(
                 label: 'More people',
-                value: _yesNo(_draft.morePeople),
+                value: context.tr(_yesNo(_draft.morePeople)),
                 editKey: const Key('review_edit_more_people'),
                 onEdit: _editDetails,
               ),
               const Divider(height: 18, color: AppColors.border),
               _SummaryRow(
                 label: 'Assistance',
-                value: _yesNo(_draft.additionalAssistance),
+                value: context.tr(_yesNo(_draft.additionalAssistance)),
                 editKey: const Key('review_edit_assistance'),
                 onEdit: _editDetails,
               ),
               const Divider(height: 18, color: AppColors.border),
               _SummaryRow(
                 label: 'Still dangerous',
-                value: _yesNo(_draft.stillDangerous),
+                value: context.tr(_yesNo(_draft.stillDangerous)),
                 editKey: const Key('review_edit_danger'),
                 onEdit: _editDetails,
               ),
@@ -127,7 +128,9 @@ class _ReviewReportScreenState extends State<ReviewReportScreen> {
                 const Divider(height: 18, color: AppColors.border),
                 _SummaryRow(
                   label: 'Photo',
-                  value: _draft.photoPath == null ? 'Not attached' : 'Attached',
+                  value: context.tr(
+                    _draft.photoPath == null ? 'Not attached' : 'Attached',
+                  ),
                   editKey: const Key('review_edit_photo'),
                   onEdit: _editPhoto,
                 ),
@@ -135,7 +138,7 @@ class _ReviewReportScreenState extends State<ReviewReportScreen> {
             ],
           ),
         ),
-        Text(
+        LocalizedText(
           widget.flowMode.isOffline
               ? 'This report will be saved on this phone. It has not reached MDRRMO yet.'
               : 'Please make sure the information is as accurate as possible.',
@@ -234,7 +237,7 @@ class _OfflineSmsHandoffCard extends StatelessWidget {
               Icon(Icons.sms_outlined, color: AppColors.brand, size: 22),
               SizedBox(width: 9),
               Expanded(
-                child: Text(
+                child: LocalizedText(
                   'Offline SMS handoff',
                   style: TextStyle(
                     color: AppColors.textPrimary,
@@ -246,7 +249,7 @@ class _OfflineSmsHandoffCard extends StatelessWidget {
             ],
           ),
           SizedBox(height: 9),
-          Text(
+          LocalizedText(
             'A copy will be saved on this phone, then Messages will open for 09476236516 with your report already filled in.',
             style: TextStyle(
               color: AppColors.textPrimary,
@@ -255,7 +258,7 @@ class _OfflineSmsHandoffCard extends StatelessWidget {
             ),
           ),
           SizedBox(height: 8),
-          Text(
+          LocalizedText(
             'You must review the message and tap Send in the SMS app.',
             style: TextStyle(
               color: AppColors.brand,
@@ -290,7 +293,7 @@ class _SummaryRow extends StatelessWidget {
       children: [
         SizedBox(
           width: 88,
-          child: Text(
+          child: LocalizedText(
             label,
             style: const TextStyle(
               color: AppColors.textSecondary,
@@ -314,7 +317,10 @@ class _SummaryRow extends StatelessWidget {
         const SizedBox(width: 2),
         IconButton(
           key: editKey,
-          tooltip: 'Edit $label',
+          tooltip: context.tr(
+            'Edit {label}',
+            values: {'label': context.tr(label)},
+          ),
           onPressed: onEdit,
           visualDensity: VisualDensity.compact,
           constraints: const BoxConstraints(minWidth: 36, minHeight: 36),

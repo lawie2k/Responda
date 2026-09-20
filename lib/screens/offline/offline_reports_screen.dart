@@ -42,7 +42,7 @@ class _OfflineReportsScreenState extends State<OfflineReportsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          LocalizedText(
                             'My Reports',
                             style: TextStyle(
                               color: AppColors.textPrimary,
@@ -51,7 +51,7 @@ class _OfflineReportsScreenState extends State<OfflineReportsScreen> {
                             ),
                           ),
                           SizedBox(height: 2),
-                          Text(
+                          LocalizedText(
                             'Reports saved safely on this device',
                             style: TextStyle(
                               color: AppColors.textSecondary,
@@ -70,7 +70,7 @@ class _OfflineReportsScreenState extends State<OfflineReportsScreen> {
                         color: AppColors.warningSoft,
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      child: const Text(
+                      child: const LocalizedText(
                         'OFFLINE',
                         style: TextStyle(
                           color: AppColors.warning,
@@ -143,7 +143,7 @@ class _OfflineNotice extends StatelessWidget {
           Icon(Icons.cloud_off_rounded, color: AppColors.warning, size: 21),
           SizedBox(width: 10),
           Expanded(
-            child: Text(
+            child: LocalizedText(
               'No internet connection. New reports are saved on this phone and are not yet sent to MDRRMO.',
               style: TextStyle(
                 color: AppColors.textPrimary,
@@ -175,7 +175,7 @@ class _EmptyReports extends StatelessWidget {
               size: 48,
             ),
             SizedBox(height: 12),
-            Text(
+            LocalizedText(
               'No saved offline reports',
               style: TextStyle(
                 color: AppColors.textPrimary,
@@ -216,7 +216,7 @@ class _SavedReportCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(
+                child: LocalizedText(
                   report.id,
                   style: const TextStyle(
                     color: AppColors.textSecondary,
@@ -231,7 +231,7 @@ class _SavedReportCard extends StatelessWidget {
                   color: AppColors.warningSoft,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text(
+                child: const LocalizedText(
                   'NOT SENT',
                   style: TextStyle(
                     color: AppColors.warning,
@@ -243,7 +243,7 @@ class _SavedReportCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text(
+          LocalizedText(
             report.draft.incidentType.label,
             style: const TextStyle(
               color: AppColors.textPrimary,
@@ -252,8 +252,8 @@ class _SavedReportCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 5),
-          Text(
-            '${report.draft.locationTitle} · ${report.draft.coordinates}\nWaiting for connection',
+          LocalizedText(
+            '${context.tr(report.draft.locationTitle)} · ${context.tr(report.draft.coordinates)}\n${context.tr('Waiting for connection')}',
             style: const TextStyle(
               color: AppColors.textSecondary,
               fontSize: 12,

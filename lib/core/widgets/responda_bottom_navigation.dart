@@ -47,24 +47,27 @@ class RespondaBottomNavigation extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _buildNavigationItem(_items[0]),
-          _buildNavigationItem(_items[1]),
+          _buildNavigationItem(context, _items[0]),
+          _buildNavigationItem(context, _items[1]),
           Expanded(child: _CallAction(onTap: () => _handleCall(context))),
-          _buildNavigationItem(_items[2]),
-          _buildNavigationItem(_items[3]),
+          _buildNavigationItem(context, _items[2]),
+          _buildNavigationItem(context, _items[3]),
         ],
       ),
     );
   }
 
-  Widget _buildNavigationItem((RespondaNavItem, String, String) item) {
+  Widget _buildNavigationItem(
+    BuildContext context,
+    (RespondaNavItem, String, String) item,
+  ) {
     final isActive = item.$1 == activeItem;
     final color = isActive ? AppColors.brand : AppColors.textSecondary;
     return Expanded(
       child: Semantics(
         button: true,
         selected: isActive,
-        label: item.$2,
+        label: context.tr(item.$2),
         child: InkWell(
           onTap: () => onSelected?.call(item.$1),
           borderRadius: BorderRadius.circular(14),
@@ -80,20 +83,23 @@ class RespondaBottomNavigation extends StatelessWidget {
                   colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
                 ),
                 const SizedBox(height: 4),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
+                SizedBox(
+                  height: 32,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: LocalizedText(
                       item.$2,
-                      maxLines: 1,
+                      maxLines: 2,
+                      softWrap: true,
+                      overflow: TextOverflow.visible,
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         color: color,
                         fontSize: 12,
                         fontWeight: isActive
                             ? FontWeight.w600
                             : FontWeight.w500,
-                        height: 16 / 12,
+                        height: 14 / 12,
                       ),
                     ),
                   ),
@@ -132,7 +138,7 @@ class _CallAction extends StatelessWidget {
             top: -20,
             child: Semantics(
               button: true,
-              label: 'Call MDRRMO',
+              label: context.tr('Call MDRRMO'),
               child: Material(
                 key: const Key('emergency_call_nav_button'),
                 color: AppColors.brand,
@@ -157,7 +163,7 @@ class _CallAction extends StatelessWidget {
           ),
           const Positioned(
             bottom: 8,
-            child: Text(
+            child: LocalizedText(
               'Call',
               style: TextStyle(
                 color: AppColors.brand,
@@ -196,7 +202,7 @@ Future<void> _showEmergencyCallSheet(
 
   var opened = false;
   try {
-    opened = await (phoneLauncher?.call(phoneUri) ?? launchUrl(phoneUri));
+    opened = await (phoneLauncher?.call(phoneUri) ?? _launchExternal(phoneUri));
   } catch (_) {
     opened = false;
   }
@@ -204,11 +210,27 @@ Future<void> _showEmergencyCallSheet(
   if (!opened && context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text(
+        content: LocalizedText(
           'Could not open the phone app. Dial 09476236516 manually.',
         ),
       ),
     );
+  }
+}
+
+Future<bool> _launchExternal(Uri uri) async {
+  try {
+    if (await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      return true;
+    }
+  } catch (_) {
+    // Try the platform default below.
+  }
+
+  try {
+    return await launchUrl(uri);
+  } catch (_) {
+    return false;
   }
 }
 
@@ -243,7 +265,7 @@ class _EmergencyCallSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 14),
-            const Text(
+            const LocalizedText(
               'Call MDRRMO?',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -253,7 +275,7 @@ class _EmergencyCallSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            const LocalizedText(
               'Calling will not send your accurate GPS location or report details to MDRRMO. Be ready to tell the dispatcher where you are.',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -275,7 +297,7 @@ class _EmergencyCallSheet extends StatelessWidget {
                 children: [
                   Icon(Icons.dialpad_rounded, color: AppColors.brand, size: 20),
                   SizedBox(width: 8),
-                  Text(
+                  LocalizedText(
                     RespondaBottomNavigation.emergencyNumber,
                     style: TextStyle(
                       color: AppColors.brand,

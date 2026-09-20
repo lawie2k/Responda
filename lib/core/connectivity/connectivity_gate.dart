@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:responda/core/localization/localized_text.dart';
 import 'package:responda/core/widgets/responda_bottom_navigation.dart';
 import 'package:responda/features/splash/presentation/screens/splash_screen.dart';
 import 'package:responda/screens/offline/offline_main_shell.dart';
@@ -110,13 +111,13 @@ class _OfflineDetectedDialog extends StatelessWidget {
                 gaplessPlayback: true,
               ),
               const SizedBox(height: 6),
-              const Text(
+              const LocalizedText(
                 "You're Offline",
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 23, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
-              const Text(
+              const LocalizedText(
                 'No internet connection was detected. You can still create a report, save it on this phone, and hand it off through SMS.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -138,7 +139,7 @@ class _OfflineDetectedDialog extends StatelessWidget {
                       borderRadius: BorderRadius.circular(15),
                     ),
                   ),
-                  child: const Text(
+                  child: const LocalizedText(
                     'Continue Offline',
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),

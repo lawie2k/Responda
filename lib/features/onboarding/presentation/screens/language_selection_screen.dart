@@ -5,7 +5,7 @@ import '../../../../core/localization/app_language.dart';
 import '../../../../core/localization/app_language_scope.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/responda_button.dart';
-import '../../../identity/presentation/screens/identity_onboarding_screen.dart';
+import 'identity_verification_screen.dart';
 
 class LanguageSelectionScreen extends StatefulWidget {
   const LanguageSelectionScreen({super.key});
@@ -40,7 +40,9 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
       return;
     }
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (_) => const IdentityOnboardingScreen()),
+      MaterialPageRoute<void>(
+        builder: (_) => const IdentityVerificationScreen(),
+      ),
     );
   }
 
@@ -74,7 +76,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                         ),
                       ),
                       const SizedBox(height: 14),
-                      const Text(
+                      const LocalizedText(
                         'Choose your language\n'
                         'Pilia ang imong pinulongan\n'
                         'Piliin ang iyong wika',
@@ -106,7 +108,8 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                       ),
                       const SizedBox(height: 14),
                       RespondaButton(
-                        label: _isSaving ? 'Saving…' : 'Continue',
+                        label: AppStrings(_selectedLanguage)
+                            .text(_isSaving ? 'Saving…' : 'Continue'),
                         onPressed: _isSaving ? null : _continue,
                       ),
                     ],

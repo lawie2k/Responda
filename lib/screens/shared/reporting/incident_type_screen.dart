@@ -66,7 +66,7 @@ class _IncidentTypeScreenState extends State<IncidentTypeScreen> {
       step: 1,
       totalSteps: widget.flowMode.totalFormSteps,
       children: [
-        const Text(
+        const LocalizedText(
           'Choose the incident that best matches the situation.',
           style: TextStyle(
             color: AppColors.textSecondary,
@@ -153,7 +153,7 @@ class _IncidentChoice extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
+              child: LocalizedText(
                 label,
                 style: TextStyle(
                   color: selected ? AppColors.brand : AppColors.textPrimary,

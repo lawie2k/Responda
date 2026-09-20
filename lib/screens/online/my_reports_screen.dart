@@ -116,6 +116,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
             : [
                 for (var index = 0; index < reports.online.length; index++) ...[
                   _ReportCard.online(
+                    context: context,
                     report: reports.online[index],
                     onTap: () => _openStatus(reports.online[index]),
                   ),
@@ -148,6 +149,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
                   index++
                 ) ...[
                   _ReportCard.offline(
+                    context: context,
                     report: reports.offline[index],
                     onTap: () => _showOfflineReport(reports.offline[index]),
                   ),
@@ -173,7 +175,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              LocalizedText(
                 report.draft.incidentType.label,
                 style: const TextStyle(
                   color: AppColors.textPrimary,
@@ -182,7 +184,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
                 ),
               ),
               const SizedBox(height: 6),
-              Text(
+              LocalizedText(
                 '${report.id}\n${report.draft.coordinates}\n${report.draft.description}',
                 style: const TextStyle(
                   color: AppColors.textSecondary,
@@ -198,7 +200,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
                   color: AppColors.warningSoft,
                   borderRadius: BorderRadius.circular(15),
                 ),
-                child: const Text(
+                child: const LocalizedText(
                   'Saved on this phone · Not yet sent',
                   style: TextStyle(
                     color: AppColors.warning,
@@ -234,7 +236,7 @@ class _ReportsHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              LocalizedText(
                 'My Reports',
                 style: TextStyle(
                   color: AppColors.textPrimary,
@@ -244,7 +246,7 @@ class _ReportsHeader extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 2),
-              Text(
+              LocalizedText(
                 'Track reports sent from this device',
                 style: TextStyle(
                   color: AppColors.textSecondary,
@@ -263,8 +265,8 @@ class _ReportsHeader extends StatelessWidget {
             color: AppColors.brandSoft,
             borderRadius: BorderRadius.circular(13),
           ),
-          child: Text(
-            '$activeCount ACTIVE',
+          child: LocalizedText(
+            context.tr('{count} ACTIVE', values: {'count': activeCount}),
             style: const TextStyle(
               color: AppColors.brand,
               fontSize: 12,
@@ -318,7 +320,7 @@ class _FilterTabs extends StatelessWidget {
                           ]
                         : null,
                   ),
-                  child: Text(
+                  child: LocalizedText(
                     switch (item) {
                       ReportFilter.active => 'Active',
                       ReportFilter.resolved => 'Resolved',
@@ -357,6 +359,7 @@ class _ReportCard extends StatelessWidget {
   });
 
   factory _ReportCard.online({
+    required BuildContext context,
     required SavedOnlineReport report,
     required VoidCallback onTap,
   }) {
@@ -364,7 +367,7 @@ class _ReportCard extends StatelessWidget {
       id: report.id,
       title: report.draft.incidentType.label,
       meta:
-          '${report.draft.locationTitle}  •  ${_dateAndTime(report.submittedAt)}',
+          '${context.tr(report.draft.locationTitle)}  •  ${_dateAndTime(context, report.submittedAt)}',
       status: report.status.label,
       statusColor: AppColors.warning,
       statusBackground: AppColors.warningSoft,
@@ -374,13 +377,15 @@ class _ReportCard extends StatelessWidget {
   }
 
   factory _ReportCard.offline({
+    required BuildContext context,
     required SavedOfflineReport report,
     required VoidCallback onTap,
   }) {
     return _ReportCard(
       id: report.id,
       title: report.draft.incidentType.label,
-      meta: '${report.draft.locationTitle}  •  ${_dateAndTime(report.savedAt)}',
+      meta:
+          '${context.tr(report.draft.locationTitle)}  •  ${_dateAndTime(context, report.savedAt)}',
       status: 'NOT SENT',
       statusColor: AppColors.warning,
       statusBackground: AppColors.warningSoft,
@@ -421,7 +426,7 @@ class _ReportCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(
+                child: LocalizedText(
                   id,
                   style: const TextStyle(
                     color: AppColors.textSecondary,
@@ -438,7 +443,7 @@ class _ReportCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text(
+          LocalizedText(
             title,
             style: const TextStyle(
               color: AppColors.textPrimary,
@@ -448,7 +453,7 @@ class _ReportCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
+          LocalizedText(
             meta,
             style: const TextStyle(
               color: AppColors.textSecondary,
@@ -471,7 +476,7 @@ class _ReportCard extends StatelessWidget {
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(
+                    child: LocalizedText(
                       action,
                       style: TextStyle(
                         color: offline ? AppColors.warning : AppColors.brand,
@@ -523,7 +528,7 @@ class _StatusBadge extends StatelessWidget {
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 6),
-          Text(
+          LocalizedText(
             label,
             style: TextStyle(
               color: color,
@@ -547,7 +552,7 @@ class _SavedHeader extends StatelessWidget {
     return Row(
       children: [
         const Expanded(
-          child: Text(
+          child: LocalizedText(
             'SAVED OFFLINE',
             style: TextStyle(
               color: AppColors.textSecondary,
@@ -556,8 +561,11 @@ class _SavedHeader extends StatelessWidget {
             ),
           ),
         ),
-        Text(
-          '$count ${count == 1 ? 'report' : 'reports'}',
+        LocalizedText(
+          context.tr(
+            count == 1 ? '{count} report' : '{count} reports',
+            values: {'count': count},
+          ),
           style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
         ),
       ],
@@ -583,7 +591,7 @@ class _EmptyReports extends StatelessWidget {
             size: 44,
           ),
           const SizedBox(height: 12),
-          Text(
+          LocalizedText(
             title,
             textAlign: TextAlign.center,
             style: const TextStyle(
@@ -593,7 +601,7 @@ class _EmptyReports extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 5),
-          Text(
+          LocalizedText(
             message,
             textAlign: TextAlign.center,
             style: const TextStyle(
@@ -620,7 +628,7 @@ class _LoadingReports extends StatelessWidget {
   }
 }
 
-String _dateAndTime(DateTime time) {
+String _dateAndTime(BuildContext context, DateTime time) {
   const months = [
     'Jan',
     'Feb',
@@ -642,7 +650,7 @@ String _dateAndTime(DateTime time) {
   final minute = time.minute.toString().padLeft(2, '0');
   final period = time.hour < 12 ? 'AM' : 'PM';
   final date = sameDay
-      ? 'Today'
-      : '${time.day} ${months[time.month - 1]} ${time.year}';
+      ? context.tr('Today')
+      : '${time.day} ${context.tr(months[time.month - 1])} ${time.year}';
   return '$date, $hour:$minute $period';
 }

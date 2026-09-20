@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:responda/core/theme/app_colors.dart';
-import 'package:responda/features/identity/domain/account_profile.dart';
-import 'package:responda/features/identity/presentation/account_scope.dart';
+import 'package:responda/features/onboarding/domain/account_profile.dart';
+import 'package:responda/features/onboarding/presentation/account_scope.dart';
 
 class AccountManagementScreen extends StatelessWidget {
   const AccountManagementScreen({super.key});
@@ -72,7 +72,7 @@ class _Header extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         const Expanded(
-          child: Text(
+          child: LocalizedText(
             'Account Management',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -114,8 +114,8 @@ class _StatusCard extends StatelessWidget {
               color: background,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Text(
-              profile.status.label.toUpperCase(),
+            child: LocalizedText(
+              context.tr(profile.status.label).toUpperCase(),
               style: TextStyle(
                 color: color,
                 fontSize: 12,
@@ -124,7 +124,7 @@ class _StatusCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 13),
-          Text(
+          LocalizedText(
             verified ? 'Identity verified' : 'Identity review in progress',
             style: const TextStyle(
               color: AppColors.surface,
@@ -133,7 +133,7 @@ class _StatusCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          Text(
+          LocalizedText(
             verified ? 'Your RESPONDA identity has been approved.' : 'You can use the app while MDRRMO reviews your submitted identity.',
             style: const TextStyle(
               color: AppColors.heroText,
@@ -216,7 +216,7 @@ class _DetailRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              LocalizedText(
                 label,
                 style: const TextStyle(
                   color: AppColors.textSecondary,
@@ -224,7 +224,7 @@ class _DetailRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 2),
-              Text(
+              LocalizedText(
                 value,
                 style: const TextStyle(
                   color: AppColors.textPrimary,
@@ -258,7 +258,7 @@ class _RecoveryCard extends StatelessWidget {
           Icon(Icons.restore_rounded, color: AppColors.info, size: 22),
           SizedBox(width: 10),
           Expanded(
-            child: Text(
+            child: LocalizedText(
               'When signing in on a new phone or after reinstalling, use this same phone number and complete the OTP.',
               style: TextStyle(
                 color: AppColors.textPrimary,
@@ -286,7 +286,7 @@ class _NoAccountCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.border),
       ),
-      child: const Text(
+      child: const LocalizedText(
         'No account information is available on this device.',
         style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
       ),

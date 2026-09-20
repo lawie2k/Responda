@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+export '../localization/localized_text.dart';
+export '../localization/app_strings.dart';
+
 abstract final class AppColors {
   static const brand = Color(0xFF7A1F2B);
   static const brandDark = Color(0xFF54131D);

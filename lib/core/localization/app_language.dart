@@ -12,6 +12,12 @@ enum AppLanguage {
 
   Locale get locale => Locale(code);
 
+  Locale get frameworkLocale => switch (this) {
+    AppLanguage.english => const Locale('en'),
+    AppLanguage.filipino => const Locale('fil'),
+    AppLanguage.cebuano => const Locale('en'),
+  };
+
   static AppLanguage? fromCode(String? code) {
     for (final language in values) {
       if (language.code == code) {

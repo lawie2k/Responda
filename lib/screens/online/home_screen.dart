@@ -61,7 +61,7 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 14),
                 _EmergencyHero(onReport: () => _openReport(context)),
                 const SizedBox(height: 14),
-                const Text(
+                const LocalizedText(
                   'Quick incident type',
                   style: TextStyle(
                     color: AppColors.textPrimary,
@@ -136,7 +136,7 @@ class _Header extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                LocalizedText(
                   'RESPONDA',
                   style: TextStyle(
                     color: AppColors.brand,
@@ -145,7 +145,7 @@ class _Header extends StatelessWidget {
                     height: 25 / 18,
                   ),
                 ),
-                Text(
+                LocalizedText(
                   'MDRRMO Pantukan',
                   style: TextStyle(
                     color: AppColors.textSecondary,
@@ -179,7 +179,7 @@ class _Header extends StatelessWidget {
                     height: 7,
                   ),
                 const SizedBox(width: 6),
-                Text(
+                LocalizedText(
                   isOffline ? 'Offline' : 'Online',
                   style: TextStyle(
                     color: isOffline ? AppColors.warning : AppColors.success,
@@ -226,7 +226,7 @@ class _EmergencyHero extends StatelessWidget {
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
-                    child: Text(
+                    child: LocalizedText(
                       'Need Emergency\nAssistance?',
                       style: TextStyle(
                         color: AppColors.surface,
@@ -246,7 +246,7 @@ class _EmergencyHero extends StatelessWidget {
                     alignment: Alignment.centerLeft,
                     child: SizedBox(
                       width: 210,
-                      child: Text(
+                      child: LocalizedText(
                         'Send a structured report with your GPS location.',
                         style: TextStyle(
                           color: AppColors.heroText,
@@ -337,7 +337,7 @@ class _IncidentCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Text(
+            LocalizedText(
               label,
               textAlign: TextAlign.center,
               style: const TextStyle(
@@ -453,7 +453,7 @@ class _LocationCardState extends State<_LocationCard>
               Row(
                 children: [
                   Expanded(
-                    child: Text(
+                    child: LocalizedText(
                       _status == _LocationCardStatus.gpsNotAllowed
                           ? 'Allow GPS'
                           : 'Current GPS Location',
@@ -469,8 +469,8 @@ class _LocationCardState extends State<_LocationCard>
                 ],
               ),
               const SizedBox(height: 4),
-              Text(
-                _details,
+              LocalizedText(
+                _details(context),
                 style: TextStyle(
                   color: _status == _LocationCardStatus.ready
                       ? AppColors.textSecondary
@@ -489,11 +489,11 @@ class _LocationCardState extends State<_LocationCard>
     );
   }
 
-  String get _details {
+  String _details(BuildContext context) {
     final location = _location;
     if (_status == _LocationCardStatus.ready && location != null) {
-      return 'Latitude: ${location.latitude.toStringAsFixed(6)}\n'
-          'Longitude: ${location.longitude.toStringAsFixed(6)}  '
+      return '${context.tr('Latitude')}: ${location.latitude.toStringAsFixed(6)}\n'
+          '${context.tr('Longitude')}: ${location.longitude.toStringAsFixed(6)}  '
           '·  ±${location.accuracy.toStringAsFixed(0)} m';
     }
 

@@ -108,7 +108,7 @@ class _StepHeader extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(
+                  child: LocalizedText(
                     title,
                     style: const TextStyle(
                       color: AppColors.textPrimary,

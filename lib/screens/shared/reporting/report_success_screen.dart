@@ -45,7 +45,7 @@ class ReportSuccessScreen extends StatelessWidget {
                     gaplessPlayback: true,
                   ),
                   const SizedBox(height: 18),
-                  Text(
+                  LocalizedText(
                     flowMode.isOffline ? 'REPORT SAVED' : 'REPORT SENT',
                     style: TextStyle(
                       color: flowMode.isOffline
@@ -56,7 +56,7 @@ class ReportSuccessScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Text(
+                  LocalizedText(
                     flowMode.isOffline
                         ? smsComposerOpened
                               ? 'A copy is saved on this phone and your SMS draft was prepared for MDRRMO.'
@@ -73,8 +73,8 @@ class ReportSuccessScreen extends StatelessWidget {
                   _ReportCard(
                     title: visibleReportId,
                     body:
-                        '${draft.incidentType.label} · ${draft.locationTitle}\n'
-                        '${_dateAndTime(submittedAt)}',
+                        '${context.tr(draft.incidentType.label)} · ${context.tr(draft.locationTitle)}\n'
+                        '${_dateAndTime(context, submittedAt)}',
                   ),
                   const SizedBox(height: 14),
                   Container(
@@ -89,7 +89,7 @@ class ReportSuccessScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        const LocalizedText(
                           'Important',
                           style: TextStyle(
                             color: AppColors.brand,
@@ -98,7 +98,7 @@ class ReportSuccessScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Text(
+                        LocalizedText(
                           flowMode.isOffline
                               ? smsComposerOpened
                                     ? 'The app cannot confirm that an SMS was sent. Review the prepared message and tap Send in Messages.'
@@ -150,7 +150,7 @@ class ReportSuccessScreen extends StatelessWidget {
     return 'RSP-${time.year}-${sequence.toString().padLeft(5, '0')}';
   }
 
-  static String _dateAndTime(DateTime time) {
+  static String _dateAndTime(BuildContext context, DateTime time) {
     const months = [
       'Jan',
       'Feb',
@@ -168,7 +168,7 @@ class ReportSuccessScreen extends StatelessWidget {
     final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
     final minute = time.minute.toString().padLeft(2, '0');
     final period = time.hour < 12 ? 'AM' : 'PM';
-    return '${time.day} ${months[time.month - 1]} ${time.year} · '
+    return '${time.day} ${context.tr(months[time.month - 1])} ${time.year} · '
         '$hour:$minute $period';
   }
 }
@@ -198,7 +198,7 @@ class _ReportCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          LocalizedText(
             title,
             style: const TextStyle(
               color: AppColors.textPrimary,
@@ -207,7 +207,7 @@ class _ReportCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
+          LocalizedText(
             body,
             style: const TextStyle(
               color: AppColors.textSecondary,

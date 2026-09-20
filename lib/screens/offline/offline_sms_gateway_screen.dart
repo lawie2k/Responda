@@ -31,7 +31,7 @@ class OfflineSmsGatewayScreen extends StatelessWidget {
                   const SizedBox(height: 24),
                   const _SmsHero(),
                   const SizedBox(height: 16),
-                  const Text(
+                  const LocalizedText(
                     'CHOOSE A BACKUP',
                     style: TextStyle(
                       color: Color(0xFF85858A),
@@ -105,7 +105,7 @@ class _GatewayHeader extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           const Expanded(
-            child: Text(
+            child: LocalizedText(
               'No Internet Connection',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -147,7 +147,7 @@ class _SmsHero extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      LocalizedText(
                         'SMS can still reach\nhelp',
                         maxLines: 2,
                         style: TextStyle(
@@ -160,7 +160,7 @@ class _SmsHero extends StatelessWidget {
                       SizedBox(height: 8),
                       SizedBox(
                         width: 205,
-                        child: Text(
+                        child: LocalizedText(
                           'Use the cellular network to hand off your report.',
                           maxLines: 3,
                           style: TextStyle(
@@ -242,7 +242,7 @@ class _HeroStatus extends StatelessWidget {
         ),
         const SizedBox(width: 6),
         Flexible(
-          child: Text(
+          child: LocalizedText(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -285,7 +285,7 @@ class _SmsOptionCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                LocalizedText(
                   'Send via SMS',
                   style: TextStyle(
                     color: AppColors.textPrimary,
@@ -294,7 +294,7 @@ class _SmsOptionCard extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 3),
-                Text(
+                LocalizedText(
                   'Includes incident details, GPS coordinates, and timestamp.',
                   style: TextStyle(
                     color: AppColors.textSecondary,
@@ -342,17 +342,17 @@ class _IncludedDetails extends StatelessWidget {
         borderRadius: BorderRadius.circular(15),
       ),
       alignment: Alignment.centerLeft,
-      child: const Text.rich(
+      child: Text.rich(
         TextSpan(
           children: [
             TextSpan(
-              text: 'Included:   ',
-              style: TextStyle(fontWeight: FontWeight.w700),
+              text: '${context.tr('Included:')}   ',
+              style: const TextStyle(fontWeight: FontWeight.w700),
             ),
-            TextSpan(text: 'Incident  •  GPS  •  Time'),
+            TextSpan(text: context.tr('Incident  •  GPS  •  Time')),
           ],
         ),
-        style: TextStyle(
+        style: const TextStyle(
           color: AppColors.brand,
           fontSize: 12,
           fontWeight: FontWeight.w500,

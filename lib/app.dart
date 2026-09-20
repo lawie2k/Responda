@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/connectivity/connectivity_controller.dart';
 import 'core/connectivity/connectivity_gate.dart';
@@ -12,9 +13,9 @@ import 'core/theme/app_theme.dart';
 import 'core/widgets/keyboard_dismiss_on_tap.dart';
 import 'core/widgets/responda_bottom_navigation.dart';
 import 'features/onboarding/presentation/screens/language_selection_screen.dart';
-import 'features/identity/data/account_controller.dart';
-import 'features/identity/presentation/account_scope.dart';
-import 'features/identity/presentation/screens/identity_onboarding_screen.dart';
+import 'features/onboarding/data/account_controller.dart';
+import 'features/onboarding/presentation/account_scope.dart';
+import 'features/onboarding/presentation/screens/identity_verification_screen.dart';
 import 'features/splash/presentation/screens/splash_screen.dart';
 
 class RespondaApp extends StatefulWidget {
@@ -107,6 +108,9 @@ class _RespondaAppState extends State<RespondaApp> with WidgetsBindingObserver {
               controller: _connectivityController,
               child: MaterialApp(
                 title: 'RESPONDA',
+                locale: _languageController.language.frameworkLocale,
+                localizationsDelegates: GlobalMaterialLocalizations.delegates,
+                supportedLocales: const [Locale('en'), Locale('fil')],
                 debugShowCheckedModeBanner: false,
                 theme: AppTheme.light,
                 builder: (context, child) => KeyboardDismissOnTap(
@@ -122,7 +126,7 @@ class _RespondaAppState extends State<RespondaApp> with WidgetsBindingObserver {
                     final destination = !_languageController.hasSelectedLanguage
                         ? const LanguageSelectionScreen()
                         : !_accountController.hasAccount
-                        ? const IdentityOnboardingScreen()
+                        ? const IdentityVerificationScreen()
                         : const ConnectivityGate();
                     return SplashScreen(destination: destination);
                   },

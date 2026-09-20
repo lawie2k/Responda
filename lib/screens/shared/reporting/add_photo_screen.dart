@@ -93,7 +93,9 @@ class _AddPhotoScreenState extends State<AddPhotoScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('The photo could not be opened. Please try again.'),
+            content: LocalizedText(
+              'The photo could not be opened. Please try again.',
+            ),
           ),
         );
       }
@@ -133,7 +135,7 @@ class _SafetyCard extends StatelessWidget {
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          LocalizedText(
             'Safety first',
             style: TextStyle(
               color: AppColors.textPrimary,
@@ -142,7 +144,7 @@ class _SafetyCard extends StatelessWidget {
             ),
           ),
           SizedBox(height: 8),
-          Text(
+          LocalizedText(
             'Optional — only take a photo if it is safe to do so.',
             style: TextStyle(
               color: AppColors.textPrimary,
@@ -184,7 +186,7 @@ class _PhotoPreview extends StatelessWidget {
                     size: 48,
                   ),
                   SizedBox(height: 10),
-                  Text(
+                  LocalizedText(
                     'No photo attached',
                     style: TextStyle(
                       color: AppColors.textPrimary,
@@ -193,7 +195,7 @@ class _PhotoPreview extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 6),
-                  Text(
+                  LocalizedText(
                     'Photos can help verify visible hazards.',
                     style: TextStyle(
                       color: AppColors.textSecondary,
@@ -218,7 +220,7 @@ class _PhotoPreview extends StatelessWidget {
                         color: AppColors.surface.withValues(alpha: 0.92),
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      child: const Text(
+                      child: const LocalizedText(
                         'Photo attached',
                         style: TextStyle(
                           color: AppColors.success,

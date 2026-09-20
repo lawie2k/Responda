@@ -62,7 +62,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       totalSteps: widget.flowMode.totalFormSteps,
       children: [
         _SelectedIncident(incidentType: widget.draft.incidentType),
-        const Text(
+        const LocalizedText(
           'Describe the situation',
           style: TextStyle(
             color: AppColors.textPrimary,
@@ -72,7 +72,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
           ),
         ),
         const _LanguageSupportTag(),
-        const Text(
+        const LocalizedText(
           'Incident description',
           style: TextStyle(
             color: AppColors.textPrimary,
@@ -88,7 +88,9 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
           maxLines: 4,
           style: const TextStyle(fontSize: 14, height: 19 / 14),
           decoration: InputDecoration(
-            hintText: 'Two motorcycles collided. One person is injured and one lane is blocked.',
+            hintText: context.tr(
+              'Two motorcycles collided. One person is injured and one lane is blocked.',
+            ),
             filled: true,
             fillColor: AppColors.surface,
             border: OutlineInputBorder(
@@ -171,7 +173,7 @@ class _SelectedIncident extends StatelessWidget {
             size: 19,
           ),
           const SizedBox(width: 8),
-          const Text(
+          const LocalizedText(
             'Incident type',
             style: TextStyle(
               color: AppColors.textSecondary,
@@ -180,7 +182,7 @@ class _SelectedIncident extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          Text(
+          LocalizedText(
             incidentType.label,
             style: const TextStyle(
               color: AppColors.brand,
@@ -216,7 +218,7 @@ class _LanguageSupportTag extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           const Expanded(
-            child: Text(
+            child: LocalizedText(
               'Bisaya · Tagalog · English supported',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -249,7 +251,7 @@ class _HelpfulDetailsCard extends StatelessWidget {
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          LocalizedText(
             'Helpful details',
             style: TextStyle(
               color: AppColors.brand,
@@ -259,7 +261,7 @@ class _HelpfulDetailsCard extends StatelessWidget {
             ),
           ),
           SizedBox(height: 8),
-          Text(
+          LocalizedText(
             'Mention visible hazards, blocked roads, injuries, and anything changing quickly.',
             style: TextStyle(
               color: AppColors.textPrimary,
@@ -289,7 +291,7 @@ class _QuestionChoice extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        LocalizedText(
           question,
           style: const TextStyle(
             color: AppColors.textPrimary,

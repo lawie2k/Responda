@@ -133,7 +133,7 @@ class _EmergencyHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              LocalizedText(
                 'Emergency Information',
                 style: TextStyle(
                   color: AppColors.textPrimary,
@@ -143,7 +143,7 @@ class _EmergencyHeader extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 2),
-              Text(
+              LocalizedText(
                 'Offline safety manual',
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
               ),
@@ -158,7 +158,7 @@ class _EmergencyHeader extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
           ),
           alignment: Alignment.center,
-          child: const Text(
+          child: const LocalizedText(
             'AVAILABLE OFFLINE',
             style: TextStyle(
               color: AppColors.success,
@@ -192,7 +192,7 @@ class _ManualCover extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  LocalizedText(
                     'PANTUKAN MDRRMO',
                     style: TextStyle(
                       color: Color(0xFFF2C8CF),
@@ -201,7 +201,7 @@ class _ManualCover extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 5),
-                  Text(
+                  LocalizedText(
                     'Emergency Safety Manual',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -213,7 +213,7 @@ class _ManualCover extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 4),
-                  Text(
+                  LocalizedText(
                     'Simple guidance to read before, during, and after an emergency.',
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
@@ -224,7 +224,7 @@ class _ManualCover extends StatelessWidget {
                     ),
                   ),
                   Spacer(),
-                  Text(
+                  LocalizedText(
                     'Keep this guide on your phone for offline use.',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -245,7 +245,9 @@ class _ManualCover extends StatelessWidget {
                 padding: const EdgeInsets.only(right: 5),
                 child: Semantics(
                   image: true,
-                  label: 'RESPONDA responder reading an emergency manual',
+                  label: context.tr(
+                    'RESPONDA responder reading an emergency manual',
+                  ),
                   child: Image.asset(
                     'assets/images/emergency_information.gif',
                     height: 160,
@@ -280,7 +282,7 @@ class _ContentsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          const LocalizedText(
             'CONTENTS',
             style: TextStyle(
               color: AppColors.brand,
@@ -301,7 +303,7 @@ class _ContentsCard extends StatelessWidget {
                 children: [
                   SizedBox(
                     width: 48,
-                    child: Text(
+                    child: LocalizedText(
                       _items[index].$1,
                       style: const TextStyle(
                         color: AppColors.brand,
@@ -311,7 +313,7 @@ class _ContentsCard extends StatelessWidget {
                     ),
                   ),
                   Expanded(
-                    child: Text(
+                    child: LocalizedText(
                       _items[index].$2,
                       style: const TextStyle(
                         color: AppColors.textPrimary,
@@ -376,7 +378,7 @@ class _ManualSection extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 alignment: Alignment.center,
-                child: Text(
+                child: LocalizedText(
                   number,
                   style: const TextStyle(
                     color: AppColors.surface,
@@ -387,7 +389,7 @@ class _ManualSection extends StatelessWidget {
               ),
               const SizedBox(width: 9),
               Expanded(
-                child: Text(
+                child: LocalizedText(
                   title,
                   style: const TextStyle(
                     color: AppColors.textPrimary,
@@ -399,7 +401,7 @@ class _ManualSection extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Text(
+          LocalizedText(
             body,
             style: const TextStyle(
               color: AppColors.textPrimary,
@@ -462,7 +464,7 @@ class _SectionHeading extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
           ),
           alignment: Alignment.center,
-          child: Text(
+          child: LocalizedText(
             number,
             style: const TextStyle(
               color: AppColors.surface,
@@ -472,7 +474,7 @@ class _SectionHeading extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 9),
-        Text(
+        LocalizedText(
           title,
           style: const TextStyle(
             color: AppColors.textPrimary,
@@ -496,7 +498,7 @@ class _ContactRow extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        LocalizedText(
           title,
           style: const TextStyle(
             color: AppColors.textPrimary,
@@ -505,7 +507,7 @@ class _ContactRow extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 3),
-        Text(
+        LocalizedText(
           detail,
           style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
         ),
@@ -538,7 +540,7 @@ class _NoticeCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          LocalizedText(
             title,
             style: TextStyle(
               color: titleColor,
@@ -547,7 +549,7 @@ class _NoticeCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
+          LocalizedText(
             body,
             style: const TextStyle(
               color: AppColors.textSecondary,

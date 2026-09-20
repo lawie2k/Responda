@@ -173,8 +173,8 @@ class _IncidentLocationScreenState extends State<IncidentLocationScreen> {
             focusNode: _landmarkFocus,
             textInputAction: TextInputAction.done,
             decoration: InputDecoration(
-              labelText: 'Landmark',
-              hintText: 'e.g. Kingking Highway',
+              labelText: context.tr('Landmark'),
+              hintText: context.tr('e.g. Kingking Highway'),
               filled: true,
               fillColor: AppColors.surface,
               border: OutlineInputBorder(
@@ -258,7 +258,7 @@ class _IncidentLocationScreenState extends State<IncidentLocationScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
+            content: LocalizedText(
               'Location permission was not allowed in your phone settings.',
             ),
           ),
@@ -385,7 +385,7 @@ class _LocationTag extends StatelessWidget {
               decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             ),
             const SizedBox(width: 6),
-            Text(
+            LocalizedText(
               label,
               style: TextStyle(
                 color: color,
@@ -505,7 +505,7 @@ class _GpsMapPreview extends StatelessWidget {
                               size: 34,
                             ),
                             SizedBox(height: 8),
-                            Text(
+                            LocalizedText(
                               'Allow GPS to show the map',
                               style: TextStyle(
                                 color: AppColors.textPrimary,
@@ -551,7 +551,7 @@ class _GpsMapPreview extends StatelessWidget {
                     color: AppColors.surface.withValues(alpha: 0.92),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
+                  child: const LocalizedText(
                     'Drag or tap to choose',
                     style: TextStyle(
                       color: AppColors.textPrimary,
@@ -570,7 +570,7 @@ class _GpsMapPreview extends StatelessWidget {
                 color: Color(0xCCFFFFFF),
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  child: Text(
+                  child: LocalizedText(
                     '© OpenStreetMap contributors',
                     style: TextStyle(
                       color: AppColors.textSecondary,
@@ -612,7 +612,7 @@ class _LocationCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          LocalizedText(
             selectedFromMap
                 ? 'Selected Incident Location'
                 : 'Current GPS Location',
@@ -623,10 +623,10 @@ class _LocationCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
+          LocalizedText(
             '${location.latitude.toStringAsFixed(6)}, '
             '${location.longitude.toStringAsFixed(6)}  ·  '
-            '${selectedFromMap ? 'Chosen on map' : '±${location.accuracy.round()} m'}',
+            '${selectedFromMap ? context.tr('Chosen on map') : '±${location.accuracy.round()} m'}',
             style: const TextStyle(
               color: AppColors.textSecondary,
               fontSize: 13,
@@ -703,7 +703,7 @@ class _MessageCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          LocalizedText(
             title,
             style: const TextStyle(
               color: AppColors.textPrimary,
@@ -712,7 +712,7 @@ class _MessageCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          Text(
+          LocalizedText(
             message,
             style: const TextStyle(
               color: AppColors.textSecondary,

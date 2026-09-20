@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:responda/core/navigation/app_routes.dart';
-import 'package:responda/features/identity/data/account_controller.dart';
-import 'package:responda/features/identity/domain/account_profile.dart';
-import 'package:responda/features/identity/presentation/account_scope.dart';
-import 'package:responda/features/identity/presentation/screens/identity_onboarding_screen.dart';
+import 'package:responda/features/onboarding/data/account_controller.dart';
+import 'package:responda/features/onboarding/domain/account_profile.dart';
+import 'package:responda/features/onboarding/presentation/account_scope.dart';
+import 'package:responda/features/onboarding/presentation/screens/identity_verification_screen.dart';
 import 'package:responda/screens/online/account_management_screen.dart';
 import 'package:responda/screens/online/settings_screen.dart';
 
@@ -44,7 +44,7 @@ void main() {
       AccountScope(
         controller: controller,
         child: MaterialApp(
-          home: IdentityOnboardingScreen(
+          home: IdentityVerificationScreen(
             mediaPicker: (_) async => 'assets/images/responda_logo.png',
           ),
           routes: {AppRoutes.home: (_) => const _HomeMarker()},
@@ -81,7 +81,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Take a face photo'), findsOneWidget);
-    await tester.tap(find.widgetWithText(FilledButton, 'Open Front Camera'));
+    expect(find.text('Open Front Camera'), findsNothing);
+    await tester.tap(find.byKey(const Key('capture_identity_face_button')));
     await tester.pumpAndSettle();
     final submit = find.byKey(const Key('submit_identity_button'));
     await tester.ensureVisible(submit);
@@ -105,7 +106,7 @@ void main() {
     await setPhoneSize(tester);
 
     await tester.pumpWidget(
-      const MaterialApp(home: IdentityOnboardingScreen()),
+      const MaterialApp(home: IdentityVerificationScreen()),
     );
     await tester.pumpAndSettle();
 

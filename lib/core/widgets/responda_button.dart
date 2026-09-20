@@ -56,7 +56,14 @@ class RespondaButton extends StatelessWidget {
             height: 21 / 15,
           ),
         ),
-        child: Text(label),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: LocalizedText(
+            label,
+            maxLines: 1,
+            softWrap: false,
+          ),
+        ),
       ),
     );
   }

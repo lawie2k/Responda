@@ -7,6 +7,8 @@ abstract interface class AppLanguageStore {
   Future<String?> readLanguageCode();
 
   Future<void> writeLanguageCode(String code);
+
+  Future<void> clearLanguageCode();
 }
 
 class SharedPreferencesAppLanguageStore implements AppLanguageStore {
@@ -26,6 +28,9 @@ class SharedPreferencesAppLanguageStore implements AppLanguageStore {
   @override
   Future<void> writeLanguageCode(String code) =>
       _client.setString(_languageKey, code);
+
+  @override
+  Future<void> clearLanguageCode() => _client.remove(_languageKey);
 }
 
 class AppLanguageController extends ChangeNotifier {
@@ -65,5 +70,12 @@ class AppLanguageController extends ChangeNotifier {
       notifyListeners();
     }
     await _store.writeLanguageCode(language.code);
+  }
+
+  Future<void> resetSelection() async {
+    _selectedLanguage = null;
+    _isLoaded = true;
+    notifyListeners();
+    await _store.clearLanguageCode();
   }
 }
