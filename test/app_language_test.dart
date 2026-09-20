@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:responda/core/localization/app_language.dart';
 import 'package:responda/core/localization/app_language_controller.dart';
 import 'package:responda/core/localization/app_language_scope.dart';
-import 'package:responda/core/navigation/app_routes.dart';
+import 'package:responda/features/identity/presentation/screens/identity_onboarding_screen.dart';
 import 'package:responda/features/onboarding/presentation/screens/language_selection_screen.dart';
 import 'package:responda/screens/online/settings_screen.dart';
 
@@ -32,10 +32,7 @@ void main() {
     await tester.pumpWidget(
       AppLanguageScope(
         controller: controller,
-        child: MaterialApp(
-          home: const LanguageSelectionScreen(),
-          routes: {AppRoutes.home: (_) => const _HomeMarker()},
-        ),
+        child: MaterialApp(home: const LanguageSelectionScreen()),
       ),
     );
 
@@ -45,7 +42,7 @@ void main() {
 
     expect(store.code, AppLanguage.filipino.code);
     expect(controller.language, AppLanguage.filipino);
-    expect(find.byType(_HomeMarker), findsOneWidget);
+    expect(find.byType(IdentityOnboardingScreen), findsOneWidget);
   });
 
   testWidgets('settings changes and persists the same language', (
@@ -90,14 +87,5 @@ class _MemoryLanguageStore implements AppLanguageStore {
   @override
   Future<void> writeLanguageCode(String code) async {
     this.code = code;
-  }
-}
-
-class _HomeMarker extends StatelessWidget {
-  const _HomeMarker();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(body: Text('Home marker'));
   }
 }

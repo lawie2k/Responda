@@ -196,7 +196,7 @@ class _ManualCover extends StatelessWidget {
                     'PANTUKAN MDRRMO',
                     style: TextStyle(
                       color: Color(0xFFF2C8CF),
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -219,8 +219,8 @@ class _ManualCover extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: Color(0xFFFBECEF),
-                      fontSize: 10,
-                      height: 13 / 10,
+                      fontSize: 12,
+                      height: 15 / 12,
                     ),
                   ),
                   Spacer(),
@@ -284,7 +284,7 @@ class _ContentsCard extends StatelessWidget {
             'CONTENTS',
             style: TextStyle(
               color: AppColors.brand,
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -305,7 +305,7 @@ class _ContentsCard extends StatelessWidget {
                       _items[index].$1,
                       style: const TextStyle(
                         color: AppColors.brand,
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -315,7 +315,7 @@ class _ContentsCard extends StatelessWidget {
                       _items[index].$2,
                       style: const TextStyle(
                         color: AppColors.textPrimary,
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -507,7 +507,7 @@ class _ContactRow extends StatelessWidget {
         const SizedBox(height: 3),
         Text(
           detail,
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 10),
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
         ),
       ],
     );
@@ -542,7 +542,7 @@ class _NoticeCard extends StatelessWidget {
             title,
             style: TextStyle(
               color: titleColor,
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -551,8 +551,8 @@ class _NoticeCard extends StatelessWidget {
             body,
             style: const TextStyle(
               color: AppColors.textSecondary,
-              fontSize: 10,
-              height: 16 / 10,
+              fontSize: 12,
+              height: 18 / 12,
             ),
           ),
         ],

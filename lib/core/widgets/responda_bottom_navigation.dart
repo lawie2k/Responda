@@ -89,11 +89,11 @@ class RespondaBottomNavigation extends StatelessWidget {
                       maxLines: 1,
                       style: TextStyle(
                         color: color,
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: isActive
                             ? FontWeight.w600
                             : FontWeight.w500,
-                        height: 14 / 10,
+                        height: 16 / 12,
                       ),
                     ),
                   ),
@@ -161,9 +161,9 @@ class _CallAction extends StatelessWidget {
               'Call',
               style: TextStyle(
                 color: AppColors.brand,
-                fontSize: 10,
+                fontSize: 12,
                 fontWeight: FontWeight.w700,
-                height: 14 / 10,
+                height: 16 / 12,
               ),
             ),
           ),

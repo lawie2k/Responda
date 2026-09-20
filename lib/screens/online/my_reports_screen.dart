@@ -24,52 +24,70 @@ class MyReportsScreen extends StatefulWidget {
 
 class _MyReportsScreenState extends State<MyReportsScreen> {
   ReportFilter _filter = ReportFilter.active;
+  SavedOnlineReport? _selectedReport;
   late Future<_ReportsSnapshot> _reports = _loadReports();
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      bottom: false,
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 390),
-          child: FutureBuilder<_ReportsSnapshot>(
-            future: _reports,
-            builder: (context, snapshot) {
-              final reports = snapshot.data ?? const _ReportsSnapshot();
-              return Padding(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _ReportsHeader(activeCount: reports.online.length),
-                    const SizedBox(height: 12),
-                    _FilterTabs(
-                      selected: _filter,
-                      onSelected: (filter) => setState(() => _filter = filter),
-                    ),
-                    const SizedBox(height: 12),
-                    Expanded(
-                      child: RefreshIndicator(
-                        onRefresh: _refresh,
-                        child: ListView(
-                          key: const Key('report_cards_scroll_view'),
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.only(bottom: 24),
-                          children:
-                              snapshot.connectionState != ConnectionState.done
-                              ? const [_LoadingReports()]
-                              : _contentForFilter(reports),
+    final selectedReport = _selectedReport;
+    return PopScope(
+      canPop: _selectedReport == null,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _selectedReport != null) {
+          setState(() => _selectedReport = null);
+        }
+      },
+      child: selectedReport != null
+          ? ReportStatusContent(
+              report: selectedReport,
+              onBack: () => setState(() => _selectedReport = null),
+            )
+          : SafeArea(
+              bottom: false,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 390),
+                  child: FutureBuilder<_ReportsSnapshot>(
+                    future: _reports,
+                    builder: (context, snapshot) {
+                      final reports = snapshot.data ?? const _ReportsSnapshot();
+                      return Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _ReportsHeader(activeCount: reports.online.length),
+                            const SizedBox(height: 12),
+                            _FilterTabs(
+                              selected: _filter,
+                              onSelected: (filter) =>
+                                  setState(() => _filter = filter),
+                            ),
+                            const SizedBox(height: 12),
+                            Expanded(
+                              child: RefreshIndicator(
+                                onRefresh: _refresh,
+                                child: ListView(
+                                  key: const Key('report_cards_scroll_view'),
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
+                                  padding: const EdgeInsets.only(bottom: 24),
+                                  children:
+                                      snapshot.connectionState !=
+                                          ConnectionState.done
+                                      ? const [_LoadingReports()]
+                                      : _contentForFilter(reports),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ),
-                  ],
+                      );
+                    },
+                  ),
                 ),
-              );
-            },
-          ),
-        ),
-      ),
+              ),
+            ),
     );
   }
 
@@ -141,11 +159,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
   }
 
   void _openStatus(SavedOnlineReport report) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => ReportStatusScreen(report: report),
-      ),
-    );
+    setState(() => _selectedReport = report);
   }
 
   void _showOfflineReport(SavedOfflineReport report) {
@@ -234,8 +248,8 @@ class _ReportsHeader extends StatelessWidget {
                 'Track reports sent from this device',
                 style: TextStyle(
                   color: AppColors.textSecondary,
-                  fontSize: 10,
-                  height: 14 / 10,
+                  fontSize: 12,
+                  height: 16 / 12,
                 ),
               ),
             ],
@@ -253,7 +267,7 @@ class _ReportsHeader extends StatelessWidget {
             '$activeCount ACTIVE',
             style: const TextStyle(
               color: AppColors.brand,
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -411,7 +425,7 @@ class _ReportCard extends StatelessWidget {
                   id,
                   style: const TextStyle(
                     color: AppColors.textSecondary,
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -438,8 +452,8 @@ class _ReportCard extends StatelessWidget {
             meta,
             style: const TextStyle(
               color: AppColors.textSecondary,
-              fontSize: 10,
-              height: 15 / 10,
+              fontSize: 12,
+              height: 17 / 12,
             ),
           ),
           const SizedBox(height: 8),
@@ -537,14 +551,14 @@ class _SavedHeader extends StatelessWidget {
             'SAVED OFFLINE',
             style: TextStyle(
               color: AppColors.textSecondary,
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
           ),
         ),
         Text(
           '$count ${count == 1 ? 'report' : 'reports'}',
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 10),
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
         ),
       ],
     );

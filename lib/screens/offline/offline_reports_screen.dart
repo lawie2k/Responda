@@ -220,7 +220,7 @@ class _SavedReportCard extends StatelessWidget {
                   report.id,
                   style: const TextStyle(
                     color: AppColors.textSecondary,
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

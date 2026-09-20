@@ -27,11 +27,11 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>RESPONDA uses the camera so you can attach an optional incident photo.</string>
+	<string>RESPONDA uses the camera to capture identity verification photos and optional incident photos.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>RESPONDA uses your precise location to attach GPS coordinates to emergency reports.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>RESPONDA lets you choose an optional incident photo from your library.</string>
+	<string>RESPONDA lets you choose a valid ID and optional incident photos from your library.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

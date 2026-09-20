@@ -3,9 +3,9 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/localization/app_language.dart';
 import '../../../../core/localization/app_language_scope.dart';
-import '../../../../core/navigation/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/responda_button.dart';
+import '../../../identity/presentation/screens/identity_onboarding_screen.dart';
 
 class LanguageSelectionScreen extends StatefulWidget {
   const LanguageSelectionScreen({super.key});
@@ -39,7 +39,9 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
     if (!mounted) {
       return;
     }
-    Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(builder: (_) => const IdentityOnboardingScreen()),
+    );
   }
 
   @override

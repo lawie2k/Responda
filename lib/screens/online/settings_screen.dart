@@ -6,6 +6,9 @@ import 'package:responda/core/location/device_location_service.dart';
 import 'package:responda/core/location/gps_preference_controller.dart';
 import 'package:responda/core/location/gps_preference_scope.dart';
 import 'package:responda/core/theme/app_colors.dart';
+import 'package:responda/features/identity/presentation/account_scope.dart';
+
+import 'account_management_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -33,104 +36,118 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final profile = AccountScope.maybeOf(context)?.profile;
     return SafeArea(
       bottom: false,
       child: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 390),
-          child: Padding(
+          child: SingleChildScrollView(
+            key: const Key('settings_scroll_view'),
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
-            child: LayoutBuilder(
-              builder: (context, constraints) => FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.topCenter,
-                child: SizedBox(
-                  width: constraints.maxWidth,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const _SettingsHeader(),
-                      const SizedBox(height: 18),
-                      const _SectionLabel('PREFERENCES'),
-                      const SizedBox(height: 8),
-                      _SettingsCard(
-                        children: [
-                          _SettingsTile(
-                            icon: Icons.language_rounded,
-                            title: 'Language',
-                            subtitle: 'Language used throughout the app',
-                            value: _language.displayName,
-                            onTap: _showLanguagePicker,
-                          ),
-                          const _CardDivider(),
-                          _SwitchTile(
-                            icon: Icons.notifications_none_rounded,
-                            title: 'Notifications',
-                            subtitle: 'Report and emergency updates',
-                            value: _notificationsEnabled,
-                            onChanged: (value) =>
-                                setState(() => _notificationsEnabled = value),
-                          ),
-                          const _CardDivider(),
-                          _SwitchTile(
-                            icon: Icons.location_on_outlined,
-                            title: 'Allow GPS',
-                            subtitle: _allowGps
-                                ? 'Use phone GPS for incident locations'
-                                : 'RESPONDA will not access phone GPS',
-                            value: _allowGps,
-                            onChanged: _updatingGps ? null : _setAllowGps,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      const _SectionLabel('REPORTING & SAFETY'),
-                      const SizedBox(height: 8),
-                      _SettingsCard(
-                        children: [
-                          _SwitchTile(
-                            icon: Icons.save_outlined,
-                            title: 'Save drafts offline',
-                            subtitle: 'Keep unfinished reports on this device',
-                            value: _offlineDraftsEnabled,
-                            onChanged: (value) =>
-                                setState(() => _offlineDraftsEnabled = value),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      const _SectionLabel('PRIVACY & DATA'),
-                      const SizedBox(height: 8),
-                      const _SettingsCard(
-                        children: [
-                          _SettingsTile(
-                            icon: Icons.shield_outlined,
-                            title: 'Location and photo data',
-                            subtitle: 'Learn how report information is used',
-                          ),
-                          _CardDivider(),
-                          _SettingsTile(
-                            icon: Icons.delete_outline_rounded,
-                            title: 'Clear local reports',
-                            subtitle: 'Remove saved drafts from this device',
-                            destructive: true,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      const _SectionLabel('ABOUT'),
-                      const SizedBox(height: 8),
-                      const _AboutCard(),
-                    ],
-                  ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const _SettingsHeader(),
+                const SizedBox(height: 18),
+                const _SectionLabel('ACCOUNT'),
+                const SizedBox(height: 8),
+                _SettingsCard(
+                  children: [
+                    _SettingsTile(
+                      icon: Icons.manage_accounts_outlined,
+                      title: 'Account management',
+                      subtitle:
+                          profile?.phoneNumber ??
+                          'Phone number and identity verification',
+                      value: profile?.status.label,
+                      onTap: _openAccountManagement,
+                    ),
+                  ],
                 ),
-              ),
+                const SizedBox(height: 18),
+                const _SectionLabel('PREFERENCES'),
+                const SizedBox(height: 8),
+                _SettingsCard(
+                  children: [
+                    _SettingsTile(
+                      icon: Icons.language_rounded,
+                      title: 'Language',
+                      subtitle: 'Language used throughout the app',
+                      value: _language.displayName,
+                      onTap: _showLanguagePicker,
+                    ),
+                    const _CardDivider(),
+                    _SwitchTile(
+                      icon: Icons.notifications_none_rounded,
+                      title: 'Notifications',
+                      subtitle: 'Report and emergency updates',
+                      value: _notificationsEnabled,
+                      onChanged: (value) =>
+                          setState(() => _notificationsEnabled = value),
+                    ),
+                    const _CardDivider(),
+                    _SwitchTile(
+                      icon: Icons.location_on_outlined,
+                      title: 'Allow GPS',
+                      subtitle: _allowGps
+                          ? 'Use phone GPS for incident locations'
+                          : 'RESPONDA will not access phone GPS',
+                      value: _allowGps,
+                      onChanged: _updatingGps ? null : _setAllowGps,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                const _SectionLabel('REPORTING & SAFETY'),
+                const SizedBox(height: 8),
+                _SettingsCard(
+                  children: [
+                    _SwitchTile(
+                      icon: Icons.save_outlined,
+                      title: 'Save drafts offline',
+                      subtitle: 'Keep unfinished reports on this device',
+                      value: _offlineDraftsEnabled,
+                      onChanged: (value) =>
+                          setState(() => _offlineDraftsEnabled = value),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                const _SectionLabel('PRIVACY & DATA'),
+                const SizedBox(height: 8),
+                const _SettingsCard(
+                  children: [
+                    _SettingsTile(
+                      icon: Icons.shield_outlined,
+                      title: 'Location and photo data',
+                      subtitle: 'Learn how report information is used',
+                    ),
+                    _CardDivider(),
+                    _SettingsTile(
+                      icon: Icons.delete_outline_rounded,
+                      title: 'Clear local reports',
+                      subtitle: 'Remove saved drafts from this device',
+                      destructive: true,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                const _SectionLabel('ABOUT'),
+                const SizedBox(height: 8),
+                const _AboutCard(),
+              ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  void _openAccountManagement() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const AccountManagementScreen()),
     );
   }
 
@@ -224,7 +241,7 @@ class _SectionLabel extends StatelessWidget {
       label,
       style: const TextStyle(
         color: AppColors.textSecondary,
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: FontWeight.w700,
         letterSpacing: .5,
       ),
@@ -313,12 +330,18 @@ class _SettingsTile extends StatelessWidget {
             ),
             if (value != null) ...[
               const SizedBox(width: 8),
-              Text(
-                value!,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 100),
+                child: Text(
+                  value!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ],
@@ -556,14 +579,14 @@ class _AboutCard extends StatelessWidget {
                 SizedBox(height: 2),
                 Text(
                   'Pantukan MDRRMO',
-                  style: TextStyle(color: Color(0xFFF7DDE1), fontSize: 10),
+                  style: TextStyle(color: Color(0xFFF7DDE1), fontSize: 12),
                 ),
               ],
             ),
           ),
           const Text(
             'Version 1.0.0',
-            style: TextStyle(color: Color(0xFFF7DDE1), fontSize: 10),
+            style: TextStyle(color: Color(0xFFF7DDE1), fontSize: 12),
           ),
         ],
       ),

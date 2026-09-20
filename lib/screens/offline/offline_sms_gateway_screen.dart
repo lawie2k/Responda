@@ -248,7 +248,7 @@ class _HeroStatus extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: AppColors.surface,
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
           ),

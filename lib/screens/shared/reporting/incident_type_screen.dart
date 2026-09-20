@@ -130,10 +130,9 @@ class _IncidentChoice extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: selected ? AppColors.brandSoft : AppColors.surface,
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: selected ? AppColors.brand : AppColors.border,
-            width: selected ? 1.5 : 1,
           ),
         ),
         child: Row(

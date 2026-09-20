@@ -262,8 +262,9 @@ void main() {
     await tester.tap(find.text('Settings'));
     await tester.pump();
     expect(find.text('Language used throughout the app'), findsOneWidget);
+    expect(find.text('Account management'), findsOneWidget);
     expect(find.text('SMS fallback'), findsNothing);
-    expect(find.byType(Scrollable), findsNothing);
+    expect(find.byKey(const Key('settings_scroll_view')), findsOneWidget);
     expect(tester.element(navigation), same(originalNavigationElement));
     expect(tester.getSize(navigation).width, 390);
     expect(tester.getBottomRight(navigation).dy, 844);

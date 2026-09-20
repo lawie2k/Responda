@@ -14,29 +14,9 @@ class ReportStatusScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        bottom: false,
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 390),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _StatusHeader(onBack: () => Navigator.of(context).pop()),
-                  const SizedBox(height: 24),
-                  _StatusHero(report: report),
-                  const SizedBox(height: 12),
-                  _ReportJourney(report: report),
-                  const SizedBox(height: 12),
-                  const _ContactCard(),
-                ],
-              ),
-            ),
-          ),
-        ),
+      body: ReportStatusContent(
+        report: report,
+        onBack: () => Navigator.of(context).pop(),
       ),
       bottomNavigationBar: Material(
         color: AppColors.surface,
@@ -66,6 +46,45 @@ class ReportStatusScreen extends StatelessWidget {
   }
 }
 
+class ReportStatusContent extends StatelessWidget {
+  const ReportStatusContent({
+    required this.report,
+    required this.onBack,
+    super.key,
+  });
+
+  final SavedOnlineReport report;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      bottom: false,
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 390),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _StatusHeader(onBack: onBack),
+                const SizedBox(height: 24),
+                _StatusHero(report: report),
+                const SizedBox(height: 12),
+                _ReportJourney(report: report),
+                const SizedBox(height: 12),
+                const _ContactCard(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _StatusHeader extends StatelessWidget {
   const _StatusHeader({required this.onBack});
 
@@ -74,25 +93,25 @@ class _StatusHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 50,
+      height: 44,
       child: Row(
         children: [
           InkWell(
             key: const Key('report_status_back_button'),
             onTap: onBack,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             child: Container(
-              width: 50,
-              height: 50,
+              width: 34,
+              height: 34,
               decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(14),
+                color: const Color(0xFFFCF6F7),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.brand),
               ),
               child: const Icon(
                 Icons.chevron_left_rounded,
                 color: AppColors.brand,
-                size: 28,
+                size: 22,
               ),
             ),
           ),
@@ -179,7 +198,7 @@ class _StatusHero extends StatelessWidget {
                   textAlign: TextAlign.right,
                   style: const TextStyle(
                     color: Color(0xFFF6DDE1),
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -210,20 +229,29 @@ class _StatusHero extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Text(
-                  '${report.status.stage} OF 7 STAGES',
-                  style: const TextStyle(
-                    color: AppColors.surface,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
+                Expanded(
+                  child: Text(
+                    '${report.status.stage} OF 7 STAGES',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.surface,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
-                const Spacer(),
-                Text(
-                  'Updated ${_clockTime(report.submittedAt.add(const Duration(minutes: 2)))}',
-                  style: const TextStyle(
-                    color: AppColors.surface,
-                    fontSize: 10,
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    'Updated ${_clockTime(report.submittedAt.add(const Duration(minutes: 2)))}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(
+                      color: AppColors.surface,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],
@@ -274,7 +302,7 @@ class _ReportJourney extends StatelessWidget {
             'REPORT JOURNEY',
             style: TextStyle(
               color: AppColors.textSecondary,
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -457,7 +485,7 @@ class _ContactCard extends StatelessWidget {
                     'Tap to see what to expect during verification.',
                     style: TextStyle(
                       color: AppColors.textSecondary,
-                      fontSize: 10,
+                      fontSize: 12,
                     ),
                   ),
                 ],

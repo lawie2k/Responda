@@ -434,7 +434,7 @@ class _LocationCardState extends State<_LocationCard>
         borderRadius: BorderRadius.circular(18),
         child: Container(
           width: double.infinity,
-          constraints: const BoxConstraints(minHeight: 104),
+          constraints: const BoxConstraints(minHeight: 95),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: AppColors.surface,
