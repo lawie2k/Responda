@@ -36,6 +36,7 @@ const tagalogTranslations = <String, String>{
       'Ilagay ang 6-digit na code na ipinadala sa {phone}.',
   'Your account for {phone} was submitted. You can use RESPONDA while MDRRMO reviews your identity.': 'Naisumite ang account mo para sa {phone}. Maaari mong gamitin ang RESPONDA habang sinusuri ng MDRRMO ang identity mo.',
   '{step} of 4': '{step} sa 4',
+  '{step} of {total}': '{step} sa {total}',
   '{count} ACTIVE': '{count} AKTIBO',
   '{count} report': '{count} ulat',
   '{count} reports': '{count} ulat',

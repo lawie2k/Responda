@@ -5,6 +5,7 @@ import '../../../../core/localization/app_language.dart';
 import '../../../../core/localization/app_language_scope.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/responda_button.dart';
+import '../widgets/onboarding_step_scaffold.dart';
 import 'identity_verification_screen.dart';
 
 class LanguageSelectionScreen extends StatefulWidget {
@@ -39,7 +40,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
     if (!mounted) {
       return;
     }
-    Navigator.of(context).pushReplacement(
+    Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => const IdentityVerificationScreen(),
       ),
@@ -48,78 +49,48 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) => SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 350),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 96,
-                        height: 96,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: AppColors.brandSoft,
-                          borderRadius: BorderRadius.circular(32),
-                        ),
-                        child: SvgPicture.asset(
-                          'assets/icons/language.svg',
-                          width: 50,
-                          height: 44,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      const LocalizedText(
-                        'Choose your language\n'
-                        'Pilia ang imong pinulongan\n'
-                        'Piliin ang iyong wika',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          height: 21 / 15,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      _LanguageButton(
-                        label: 'English',
-                        selected: _selectedLanguage == AppLanguage.english,
-                        onPressed: () => _select(AppLanguage.english),
-                      ),
-                      const SizedBox(height: 14),
-                      _LanguageButton(
-                        label: 'Filipino/Tagalog',
-                        selected: _selectedLanguage == AppLanguage.filipino,
-                        onPressed: () => _select(AppLanguage.filipino),
-                      ),
-                      const SizedBox(height: 14),
-                      _LanguageButton(
-                        label: 'Bisaya/Cebuano',
-                        selected: _selectedLanguage == AppLanguage.cebuano,
-                        onPressed: () => _select(AppLanguage.cebuano),
-                      ),
-                      const SizedBox(height: 14),
-                      RespondaButton(
-                        label: AppStrings(_selectedLanguage)
-                            .text(_isSaving ? 'Saving…' : 'Continue'),
-                        onPressed: _isSaving ? null : _continue,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+    return OnboardingStepScaffold(
+      step: 1,
+      title: 'Choose your language',
+      subtitle: 'Choose your language\nPilia ang imong pinulongan\nPiliin ang iyong wika',
+      children: [
+        Center(
+          child: Container(
+            width: 96,
+            height: 96,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.brandSoft,
+              borderRadius: BorderRadius.circular(32),
+            ),
+            child: SvgPicture.asset(
+              'assets/icons/language.svg',
+              width: 50,
+              height: 44,
             ),
           ),
         ),
-      ),
+        _LanguageButton(
+          label: 'English',
+          selected: _selectedLanguage == AppLanguage.english,
+          onPressed: () => _select(AppLanguage.english),
+        ),
+        _LanguageButton(
+          label: 'Filipino/Tagalog',
+          selected: _selectedLanguage == AppLanguage.filipino,
+          onPressed: () => _select(AppLanguage.filipino),
+        ),
+        _LanguageButton(
+          label: 'Bisaya/Cebuano',
+          selected: _selectedLanguage == AppLanguage.cebuano,
+          onPressed: () => _select(AppLanguage.cebuano),
+        ),
+        RespondaButton(
+          label: AppStrings(_selectedLanguage)
+              .text(_isSaving ? 'Saving…' : 'Continue'),
+          onPressed: _isSaving ? null : _continue,
+        ),
+      ],
     );
   }
 

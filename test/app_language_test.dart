@@ -69,12 +69,15 @@ void main() {
     );
 
     await tester.tap(find.text('Filipino/Tagalog'));
-    await tester.tap(find.text('Continue'));
+    final continueButton = find.text('Continue');
+    await tester.ensureVisible(continueButton);
+    await tester.tap(continueButton);
     await tester.pumpAndSettle();
 
     expect(store.code, AppLanguage.filipino.code);
     expect(controller.language, AppLanguage.filipino);
     expect(find.byType(IdentityVerificationScreen), findsOneWidget);
+    expect(find.text('2 sa 5'), findsOneWidget);
   });
 
   testWidgets('settings changes and persists the same language', (

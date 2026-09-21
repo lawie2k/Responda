@@ -51,6 +51,7 @@ void main() {
       ),
       findsOneWidget,
     );
+    expect(find.text('1 of 5'), findsOneWidget);
   });
 
   testWidgets('renders the online home screen', (tester) async {

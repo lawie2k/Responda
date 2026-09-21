@@ -36,6 +36,7 @@ const bisayaTranslations = <String, String>{
       'Isulod ang 6-digit nga code nga gipadala sa {phone}.',
   'Your account for {phone} was submitted. You can use RESPONDA while MDRRMO reviews your identity.': 'Nasumite ang account para sa {phone}. Mahimo nimong gamiton ang RESPONDA samtang gisusi sa MDRRMO ang imong identity.',
   '{step} of 4': '{step} sa 4',
+  '{step} of {total}': '{step} sa {total}',
   '{count} ACTIVE': '{count} AKTIBO',
   '{count} report': '{count} report',
   '{count} reports': '{count} ka report',

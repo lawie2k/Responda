@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -14,10 +16,17 @@ import '../offline/offline_sms_gateway_screen.dart';
 import '../shared/reporting/incident_location_screen.dart';
 import '../shared/reporting/incident_type_screen.dart';
 
+typedef HomeLocationLoader = Future<DeviceLocationData> Function();
+
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({this.flowMode = ReportFlowMode.online, super.key});
+  const HomeScreen({
+    this.flowMode = ReportFlowMode.online,
+    this.locationLoader,
+    super.key,
+  });
 
   final ReportFlowMode flowMode;
+  final HomeLocationLoader? locationLoader;
 
   static const _incidentTypes = [
     (
@@ -87,7 +96,7 @@ class HomeScreen extends StatelessWidget {
                       .toList(),
                 ),
                 const SizedBox(height: 14),
-                const _LocationCard(),
+                HomeGpsLocationCard(locationLoader: locationLoader),
               ],
             ),
           ),
@@ -354,11 +363,13 @@ class _IncidentCard extends StatelessWidget {
   }
 }
 
-class _LocationCard extends StatefulWidget {
-  const _LocationCard();
+class HomeGpsLocationCard extends StatefulWidget {
+  const HomeGpsLocationCard({this.locationLoader, super.key});
+
+  final HomeLocationLoader? locationLoader;
 
   @override
-  State<_LocationCard> createState() => _LocationCardState();
+  State<HomeGpsLocationCard> createState() => _HomeGpsLocationCardState();
 }
 
 enum _LocationCardStatus {
@@ -372,15 +383,17 @@ enum _LocationCardStatus {
   unavailable,
 }
 
-class _LocationCardState extends State<_LocationCard>
+class _HomeGpsLocationCardState extends State<HomeGpsLocationCard>
     with WidgetsBindingObserver {
   static const _locationService = DeviceLocationService();
+  static const _refreshInterval = Duration(minutes: 5);
 
   _LocationCardStatus _status = _LocationCardStatus.loading;
   DeviceLocationData? _location;
   GpsPreferenceController? _gpsPreferenceController;
+  Timer? _refreshTimer;
   bool? _lastAllowGps;
-  bool _openedSettings = false;
+  bool _isLoadingLocation = false;
 
   @override
   void initState() {
@@ -399,6 +412,7 @@ class _LocationCardState extends State<_LocationCard>
 
     _lastAllowGps = allowGps;
     if (!allowGps) {
+      _stopAutoRefresh();
       setState(() {
         _location = null;
         _status = _LocationCardStatus.gpsNotAllowed;
@@ -406,23 +420,41 @@ class _LocationCardState extends State<_LocationCard>
       return;
     }
 
+    _startAutoRefresh();
     _loadLocation(requestPermission: true);
   }
 
   @override
   void dispose() {
+    _stopAutoRefresh();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed &&
-        _openedSettings &&
-        _isGpsAllowed) {
-      _openedSettings = false;
-      _loadLocation();
+    if (state == AppLifecycleState.resumed) {
+      _startAutoRefresh();
+      if (_isGpsAllowed) {
+        _loadLocation(keepCurrentLocation: true);
+      }
+    } else {
+      _stopAutoRefresh();
     }
+  }
+
+  void _startAutoRefresh() {
+    _stopAutoRefresh();
+    if (!_isGpsAllowed) return;
+    _refreshTimer = Timer.periodic(
+      _refreshInterval,
+      (_) => _loadLocation(keepCurrentLocation: true),
+    );
+  }
+
+  void _stopAutoRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
   }
 
   @override
@@ -515,7 +547,11 @@ class _LocationCardState extends State<_LocationCard>
     };
   }
 
-  Future<void> _loadLocation({bool requestPermission = false}) async {
+  Future<void> _loadLocation({
+    bool requestPermission = false,
+    bool keepCurrentLocation = false,
+  }) async {
+    if (_isLoadingLocation) return;
     if (!_isGpsAllowed) {
       if (mounted) {
         setState(() {
@@ -526,17 +562,22 @@ class _LocationCardState extends State<_LocationCard>
       return;
     }
 
+    _isLoadingLocation = true;
     if (mounted) {
       setState(() {
-        _status = _LocationCardStatus.loading;
-        _location = null;
+        if (!keepCurrentLocation || _location == null) {
+          _status = _LocationCardStatus.loading;
+          _location = null;
+        }
       });
     }
 
     try {
-      final location = await _locationService.getCurrentLocation(
-        requestPermission: requestPermission,
-      );
+      final location =
+          await (widget.locationLoader?.call() ??
+              _locationService.getCurrentLocation(
+                requestPermission: requestPermission,
+              ));
       if (!mounted || !_isGpsAllowed) {
         return;
       }
@@ -561,6 +602,15 @@ class _LocationCardState extends State<_LocationCard>
           DeviceLocationProblem.unavailable => _LocationCardStatus.unavailable,
         };
       });
+    } catch (_) {
+      if (mounted && _isGpsAllowed) {
+        setState(() {
+          _location = null;
+          _status = _LocationCardStatus.unavailable;
+        });
+      }
+    } finally {
+      _isLoadingLocation = false;
     }
   }
 
@@ -581,11 +631,9 @@ class _LocationCardState extends State<_LocationCard>
         }
         return;
       case _LocationCardStatus.serviceDisabled:
-        _openedSettings = true;
         await _locationService.openLocationSettings();
         return;
       case _LocationCardStatus.permissionDeniedForever:
-        _openedSettings = true;
         await _locationService.openAppSettings();
         return;
       case _LocationCardStatus.permissionDenied:

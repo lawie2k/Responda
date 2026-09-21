@@ -5,6 +5,7 @@ import 'package:responda/core/location/gps_preference_controller.dart';
 import 'package:responda/core/location/gps_preference_scope.dart';
 import 'package:responda/features/reporting/domain/models/incident_type.dart';
 import 'package:responda/features/reporting/domain/models/report_draft.dart';
+import 'package:responda/screens/online/home_screen.dart';
 import 'package:responda/screens/online/main_shell.dart';
 import 'package:responda/screens/shared/reporting/incident_location_screen.dart';
 
@@ -87,6 +88,52 @@ void main() {
     expect(locationRequests, 0);
     expect(find.text('Allow GPS'), findsNWidgets(3));
     expect(find.text('Allow GPS to show the map'), findsOneWidget);
+  });
+
+  testWidgets('home refreshes GPS on resume and every five minutes', (
+    tester,
+  ) async {
+    await _setPhoneSize(tester);
+    final controller = GpsPreferenceController(
+      store: _MemoryGpsPreferenceStore(true),
+    );
+    await controller.load();
+    var locationRequests = 0;
+
+    await tester.pumpWidget(
+      GpsPreferenceScope(
+        controller: controller,
+        child: MaterialApp(
+          home: Scaffold(
+            body: HomeGpsLocationCard(
+              locationLoader: () async {
+                locationRequests++;
+                return DeviceLocationData(
+                  latitude: 7.135421 + locationRequests,
+                  longitude: 125.912300,
+                  accuracy: 8,
+                  timestamp: DateTime(2026, 9, 21),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(locationRequests, 1);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    expect(locationRequests, 2);
+
+    await tester.pump(const Duration(minutes: 5));
+    await tester.pump();
+    expect(locationRequests, 3);
+
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 }
 
