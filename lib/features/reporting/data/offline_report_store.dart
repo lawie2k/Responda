@@ -67,6 +67,11 @@ class OfflineReportStore {
     return reports;
   }
 
+  Future<void> clearAll() async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.remove(_storageKey);
+  }
+
   Future<void> _write(List<SavedOfflineReport> reports) async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setStringList(

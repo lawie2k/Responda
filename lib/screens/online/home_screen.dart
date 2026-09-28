@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:responda/core/location/device_location_service.dart';
+import 'package:responda/core/location/gps_accuracy_quality.dart';
 import 'package:responda/core/location/gps_preference_controller.dart';
 import 'package:responda/core/location/gps_preference_scope.dart';
 import 'package:responda/core/theme/app_colors.dart';
@@ -22,11 +23,19 @@ class HomeScreen extends StatelessWidget {
   const HomeScreen({
     this.flowMode = ReportFlowMode.online,
     this.locationLoader,
+    this.onOpenSettings,
+    this.tutorialReportButtonKey,
+    this.tutorialQuickIncidentKey,
+    this.tutorialGpsCardKey,
     super.key,
   });
 
   final ReportFlowMode flowMode;
   final HomeLocationLoader? locationLoader;
+  final VoidCallback? onOpenSettings;
+  final GlobalKey? tutorialReportButtonKey;
+  final GlobalKey? tutorialQuickIncidentKey;
+  final GlobalKey? tutorialGpsCardKey;
 
   static const _incidentTypes = [
     (
@@ -68,7 +77,10 @@ class HomeScreen extends StatelessWidget {
               children: [
                 _Header(isOffline: flowMode.isOffline),
                 const SizedBox(height: 14),
-                _EmergencyHero(onReport: () => _openReport(context)),
+                _EmergencyHero(
+                  reportButtonKey: tutorialReportButtonKey,
+                  onReport: () => _openReport(context),
+                ),
                 const SizedBox(height: 14),
                 const LocalizedText(
                   'Quick incident type',
@@ -85,6 +97,9 @@ class HomeScreen extends StatelessWidget {
                   children: _incidentTypes
                       .map(
                         (item) => _IncidentCard(
+                          key: item.$1 == IncidentType.accident
+                              ? tutorialQuickIncidentKey
+                              : null,
                           label: item.$2,
                           asset: item.$3,
                           iconWidth: item.$4,
@@ -96,7 +111,12 @@ class HomeScreen extends StatelessWidget {
                       .toList(),
                 ),
                 const SizedBox(height: 14),
-                HomeGpsLocationCard(locationLoader: locationLoader),
+                HomeGpsLocationCard(
+                  key: tutorialGpsCardKey,
+                  locationLoader: locationLoader,
+                  isOffline: flowMode.isOffline,
+                  onOpenSettings: onOpenSettings,
+                ),
               ],
             ),
           ),
@@ -109,7 +129,10 @@ class HomeScreen extends StatelessWidget {
     if (flowMode.isOffline) {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => OfflineSmsGatewayScreen(initialType: initialType),
+          builder: (_) => OfflineSmsGatewayScreen(
+            initialType: initialType,
+            onOpenSettings: () => _openSettingsFromReport(context),
+          ),
         ),
       );
       return;
@@ -118,13 +141,22 @@ class HomeScreen extends StatelessWidget {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => initialType == null
-            ? IncidentTypeScreen(flowMode: flowMode)
+            ? IncidentTypeScreen(
+                flowMode: flowMode,
+                onOpenSettings: () => _openSettingsFromReport(context),
+              )
             : IncidentLocationScreen(
                 draft: ReportDraft(incidentType: initialType),
                 flowMode: flowMode,
+                onOpenSettings: () => _openSettingsFromReport(context),
               ),
       ),
     );
+  }
+
+  void _openSettingsFromReport(BuildContext context) {
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    onOpenSettings?.call();
   }
 }
 
@@ -207,8 +239,9 @@ class _Header extends StatelessWidget {
 }
 
 class _EmergencyHero extends StatelessWidget {
-  const _EmergencyHero({required this.onReport});
+  const _EmergencyHero({this.reportButtonKey, required this.onReport});
 
+  final GlobalKey? reportButtonKey;
   final VoidCallback onReport;
 
   @override
@@ -268,6 +301,7 @@ class _EmergencyHero extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 RespondaButton(
+                  controlKey: reportButtonKey,
                   label: 'REPORT AN EMERGENCY',
                   height: 41,
                   style: RespondaButtonStyle.secondary,
@@ -300,6 +334,7 @@ class _IncidentCard extends StatelessWidget {
     required this.iconWidth,
     required this.iconHeight,
     required this.onTap,
+    super.key,
   });
 
   final String label;
@@ -364,9 +399,16 @@ class _IncidentCard extends StatelessWidget {
 }
 
 class HomeGpsLocationCard extends StatefulWidget {
-  const HomeGpsLocationCard({this.locationLoader, super.key});
+  const HomeGpsLocationCard({
+    this.locationLoader,
+    this.isOffline = false,
+    this.onOpenSettings,
+    super.key,
+  });
 
   final HomeLocationLoader? locationLoader;
+  final bool isOffline;
+  final VoidCallback? onOpenSettings;
 
   @override
   State<HomeGpsLocationCard> createState() => _HomeGpsLocationCardState();
@@ -460,6 +502,7 @@ class _HomeGpsLocationCardState extends State<HomeGpsLocationCard>
   @override
   Widget build(BuildContext context) {
     return Material(
+      key: const Key('home_gps_card'),
       color: Colors.transparent,
       child: InkWell(
         onTap: _status == _LocationCardStatus.loading ? null : _handleTap,
@@ -497,7 +540,14 @@ class _HomeGpsLocationCardState extends State<HomeGpsLocationCard>
                       ),
                     ),
                   ),
-                  _StatusIcon(status: _status),
+                  if (_status == _LocationCardStatus.ready && _location != null)
+                    _GpsAccuracyBadge(
+                      quality: GpsAccuracyQuality.fromMeters(
+                        _location!.accuracy,
+                      ),
+                    )
+                  else
+                    _StatusIcon(status: _status),
                 ],
               ),
               const SizedBox(height: 4),
@@ -531,16 +581,18 @@ class _HomeGpsLocationCardState extends State<HomeGpsLocationCard>
 
     return switch (_status) {
       _LocationCardStatus.gpsNotAllowed =>
-        'GPS is off in RESPONDA. Tap to allow GPS.',
-      _LocationCardStatus.loading => 'Getting location from this device…',
+        'GPS is off in RESPONDA. Tap to open Settings.',
+      _LocationCardStatus.loading =>
+        widget.isOffline
+            ? 'Searching for GPS satellites… Without cellular signal this can take up to 90 seconds.'
+            : 'Getting location from this device…',
       _LocationCardStatus.serviceDisabled =>
         'Location Services are off. Tap to open settings.',
       _LocationCardStatus.permissionDenied =>
         'Tap to allow location access for RESPONDA.',
       _LocationCardStatus.permissionDeniedForever =>
         'Location access is blocked. Tap to open app settings.',
-      _LocationCardStatus.timedOut =>
-        'GPS took too long to respond. Tap to try again.',
+      _LocationCardStatus.timedOut => 'GPS could not lock on. Move outdoors with a clear view of the sky, then tap to try again.',
       _LocationCardStatus.unavailable =>
         'Unable to read GPS location. Tap to try again.',
       _LocationCardStatus.ready => '',
@@ -577,6 +629,9 @@ class _HomeGpsLocationCardState extends State<HomeGpsLocationCard>
           await (widget.locationLoader?.call() ??
               _locationService.getCurrentLocation(
                 requestPermission: requestPermission,
+                timeLimit: widget.isOffline
+                    ? DeviceLocationService.satelliteFixTimeout
+                    : DeviceLocationService.assistedFixTimeout,
               ));
       if (!mounted || !_isGpsAllowed) {
         return;
@@ -617,18 +672,7 @@ class _HomeGpsLocationCardState extends State<HomeGpsLocationCard>
   Future<void> _handleTap() async {
     switch (_status) {
       case _LocationCardStatus.gpsNotAllowed:
-        final permissionGranted = await _locationService
-            .requestWhenInUsePermission();
-        if (!mounted || !permissionGranted) {
-          return;
-        }
-        final controller = _gpsPreferenceController;
-        if (controller == null) {
-          _lastAllowGps = true;
-          await _loadLocation();
-        } else {
-          await controller.setAllowGps(true);
-        }
+        widget.onOpenSettings?.call();
         return;
       case _LocationCardStatus.serviceDisabled:
         await _locationService.openLocationSettings();
@@ -685,6 +729,55 @@ class _StatusIcon extends StatelessWidget {
       color: status == _LocationCardStatus.ready
           ? AppColors.success
           : AppColors.brand,
+    );
+  }
+}
+
+class _GpsAccuracyBadge extends StatelessWidget {
+  const _GpsAccuracyBadge({required this.quality});
+
+  final GpsAccuracyQuality quality;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (quality) {
+      GpsAccuracyQuality.acceptable => AppColors.success,
+      GpsAccuracyQuality.okay => AppColors.warning,
+      GpsAccuracyQuality.notGood => AppColors.danger,
+    };
+    final background = switch (quality) {
+      GpsAccuracyQuality.acceptable => AppColors.successSoft,
+      GpsAccuracyQuality.okay => AppColors.warningSoft,
+      GpsAccuracyQuality.notGood => AppColors.dangerSoft,
+    };
+
+    return Container(
+      key: Key('home_gps_accuracy_${quality.name}'),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 7,
+            height: 7,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 5),
+          LocalizedText(
+            quality.label,
+            style: TextStyle(
+              color: color,
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              letterSpacing: .2,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

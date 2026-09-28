@@ -100,6 +100,23 @@ void main() {
     expect(find.byType(_HomeMarker), findsOneWidget);
   });
 
+  testWidgets('phone number only accepts 9 as its first digit', (tester) async {
+    await setPhoneSize(tester);
+    await tester.pumpWidget(
+      const MaterialApp(home: IdentityVerificationScreen()),
+    );
+
+    final phoneField = find.byKey(const Key('identity_phone_field'));
+    await tester.enterText(phoneField, '0');
+    expect(tester.widget<TextField>(phoneField).controller!.text, isEmpty);
+
+    await tester.enterText(phoneField, '9');
+    expect(tester.widget<TextField>(phoneField).controller!.text, '9');
+
+    await tester.enterText(phoneField, '9171234567');
+    expect(tester.widget<TextField>(phoneField).controller!.text, '9171234567');
+  });
+
   testWidgets('send OTP stays clickable and explains missing information', (
     tester,
   ) async {

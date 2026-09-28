@@ -4,10 +4,27 @@ import 'package:responda/features/reporting/domain/models/report_flow_mode.dart'
 import 'package:responda/screens/online/home_screen.dart';
 
 class OfflineHomeScreen extends StatelessWidget {
-  const OfflineHomeScreen({super.key});
+  const OfflineHomeScreen({
+    this.onOpenSettings,
+    this.tutorialReportButtonKey,
+    this.tutorialQuickIncidentKey,
+    this.tutorialGpsCardKey,
+    super.key,
+  });
+
+  final VoidCallback? onOpenSettings;
+  final GlobalKey? tutorialReportButtonKey;
+  final GlobalKey? tutorialQuickIncidentKey;
+  final GlobalKey? tutorialGpsCardKey;
 
   @override
   Widget build(BuildContext context) {
-    return const HomeScreen(flowMode: ReportFlowMode.offline);
+    return HomeScreen(
+      flowMode: ReportFlowMode.offline,
+      onOpenSettings: onOpenSettings,
+      tutorialReportButtonKey: tutorialReportButtonKey,
+      tutorialQuickIncidentKey: tutorialQuickIncidentKey,
+      tutorialGpsCardKey: tutorialGpsCardKey,
+    );
   }
 }

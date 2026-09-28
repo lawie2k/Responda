@@ -33,6 +33,23 @@ class DeviceLocationData {
 class DeviceLocationService {
   const DeviceLocationService();
 
+  /// Normal assisted location lookup when network-based location aids exist.
+  static const assistedFixTimeout = Duration(seconds: 30);
+
+  /// A cold satellite-only fix can take substantially longer without a
+  /// cellular or Wi-Fi connection, including while Airplane Mode is enabled.
+  static const satelliteFixTimeout = Duration(seconds: 90);
+
+  Future<bool> hasWhenInUsePermission() async {
+    try {
+      final permission = await Geolocator.checkPermission();
+      return permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<bool> requestWhenInUsePermission() async {
     try {
       var permission = await Geolocator.checkPermission();
@@ -49,6 +66,7 @@ class DeviceLocationService {
 
   Future<DeviceLocationData> getCurrentLocation({
     bool requestPermission = false,
+    Duration timeLimit = assistedFixTimeout,
   }) async {
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
@@ -75,9 +93,9 @@ class DeviceLocationService {
       }
 
       final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
+        locationSettings: LocationSettings(
           accuracy: LocationAccuracy.best,
-          timeLimit: Duration(seconds: 15),
+          timeLimit: timeLimit,
         ),
       );
 

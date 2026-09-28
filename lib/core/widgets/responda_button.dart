@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 
-enum RespondaButtonStyle { primary, secondary, ghost, selected }
+enum RespondaButtonStyle { primary, secondary, ghost, selected, danger }
 
 class RespondaButton extends StatelessWidget {
   const RespondaButton({
@@ -10,6 +10,7 @@ class RespondaButton extends StatelessWidget {
     required this.onPressed,
     this.style = RespondaButtonStyle.primary,
     this.height = 52,
+    this.controlKey,
     super.key,
   });
 
@@ -17,6 +18,7 @@ class RespondaButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final RespondaButtonStyle style;
   final double height;
+  final Key? controlKey;
 
   @override
   Widget build(BuildContext context) {
@@ -25,11 +27,16 @@ class RespondaButton extends StatelessWidget {
       RespondaButtonStyle.secondary => AppColors.surface,
       RespondaButtonStyle.ghost => AppColors.surface,
       RespondaButtonStyle.selected => AppColors.brandSoft,
+      RespondaButtonStyle.danger => AppColors.danger,
     };
-    final foreground = style == RespondaButtonStyle.primary
+    final foreground =
+        style == RespondaButtonStyle.primary ||
+            style == RespondaButtonStyle.danger
         ? AppColors.surface
         : AppColors.brand;
-    final border = style == RespondaButtonStyle.primary
+    final border =
+        style == RespondaButtonStyle.primary ||
+            style == RespondaButtonStyle.danger
         ? Colors.transparent
         : AppColors.brand;
 
@@ -37,6 +44,7 @@ class RespondaButton extends StatelessWidget {
       width: double.infinity,
       height: height,
       child: FilledButton(
+        key: controlKey,
         onPressed: onPressed,
         style: FilledButton.styleFrom(
           backgroundColor: background,
@@ -58,11 +66,7 @@ class RespondaButton extends StatelessWidget {
         ),
         child: FittedBox(
           fit: BoxFit.scaleDown,
-          child: LocalizedText(
-            label,
-            maxLines: 1,
-            softWrap: false,
-          ),
+          child: LocalizedText(label, maxLines: 1, softWrap: false),
         ),
       ),
     );

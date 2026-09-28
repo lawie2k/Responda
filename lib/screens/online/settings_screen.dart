@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:responda/core/localization/app_language.dart';
@@ -5,36 +7,96 @@ import 'package:responda/core/localization/app_language_scope.dart';
 import 'package:responda/core/location/device_location_service.dart';
 import 'package:responda/core/location/gps_preference_controller.dart';
 import 'package:responda/core/location/gps_preference_scope.dart';
+import 'package:responda/core/navigation/app_routes.dart';
+import 'package:responda/core/settings/app_settings_controller.dart';
+import 'package:responda/core/settings/app_settings_scope.dart';
 import 'package:responda/core/theme/app_colors.dart';
 import 'package:responda/core/widgets/responda_button.dart';
 import 'package:responda/features/onboarding/presentation/account_scope.dart';
 import 'package:responda/features/onboarding/presentation/screens/language_selection_screen.dart';
+import 'package:responda/features/reporting/data/offline_report_store.dart';
+import 'package:responda/features/reporting/data/online_report_store.dart';
+import 'package:responda/features/testing/data/testing_mode_controller.dart';
+import 'package:responda/features/testing/presentation/testing_mode_scope.dart';
+import 'package:responda/features/tutorial/data/home_tutorial_store.dart';
 
 import 'account_management_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  const SettingsScreen({
+    this.onlineReportStore = const OnlineReportStore(),
+    this.offlineReportStore = const OfflineReportStore(),
+    this.locationService = const DeviceLocationService(),
+    this.homeTutorialStore = const SharedPreferencesHomeTutorialStore(),
+    this.onOutsidePantukanChanged,
+    super.key,
+  });
+
+  final OnlineReportStore onlineReportStore;
+  final OfflineReportStore offlineReportStore;
+  final DeviceLocationService locationService;
+  final HomeTutorialProgressStore homeTutorialStore;
+  final ValueChanged<bool>? onOutsidePantukanChanged;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends State<SettingsScreen>
+    with WidgetsBindingObserver {
   bool _notificationsEnabled = true;
-  bool _offlineDraftsEnabled = true;
+  bool _updatingNotifications = false;
   bool _allowGps = true;
   bool _updatingGps = false;
+  bool _checkingGpsPermission = false;
+  bool _gpsPermissionChecked = false;
+  bool _gpsPermissionGranted = true;
+  bool _waitingForGpsPermission = false;
+  bool _clearingReports = false;
   bool _resettingTestData = false;
+  bool _updatingOutsideMode = false;
+  bool _restartingTutorial = false;
+  bool _outsidePantukan = false;
   AppLanguage _language = AppLanguage.english;
+  AppSettingsController? _settingsController;
   GpsPreferenceController? _gpsPreferenceController;
+  TestingModeController? _testingModeController;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _language =
         AppLanguageScope.maybeOf(context)?.language ?? AppLanguage.english;
+    _settingsController = AppSettingsScope.maybeOf(context);
+    _notificationsEnabled =
+        _settingsController?.notificationsEnabled ?? _notificationsEnabled;
     _gpsPreferenceController = GpsPreferenceScope.maybeOf(context);
     _allowGps = _gpsPreferenceController?.allowGps ?? true;
+    if (!_gpsPermissionChecked && !_checkingGpsPermission) {
+      _syncGpsPermission();
+    }
+    _testingModeController = TestingModeScope.maybeOf(context);
+    _outsidePantukan =
+        _testingModeController?.outsidePantukan ?? _outsidePantukan;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _syncGpsPermission(enableWhenGranted: _waitingForGpsPermission);
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   @override
@@ -88,37 +150,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       title: 'Notifications',
                       subtitle: 'Report and emergency updates',
                       value: _notificationsEnabled,
-                      onChanged: (value) =>
-                          setState(() => _notificationsEnabled = value),
+                      onChanged: _updatingNotifications
+                          ? null
+                          : _setNotificationsEnabled,
                     ),
                     const _CardDivider(),
                     _SwitchTile(
+                      key: const Key('gps_settings_switch_tile'),
                       icon: Icons.location_on_outlined,
                       title: 'Allow GPS',
-                      subtitle: _allowGps
+                      subtitle: !_gpsPermissionGranted
+                          ? 'Location permission is off. Tap to open phone settings'
+                          : _allowGps
                           ? 'Use phone GPS for incident locations'
                           : 'RESPONDA will not access phone GPS',
                       value: _allowGps,
-                      onChanged: _updatingGps ? null : _setAllowGps,
+                      onChanged: _updatingGps || _checkingGpsPermission
+                          ? null
+                          : _setAllowGps,
                     ),
                   ],
                 ),
                 const SizedBox(height: 18),
                 const _SectionLabel('PRIVACY & DATA'),
                 const SizedBox(height: 8),
-                const _SettingsCard(
+                _SettingsCard(
                   children: [
                     _SettingsTile(
+                      key: const Key('privacy_data_tile'),
                       icon: Icons.shield_outlined,
                       title: 'Location and photo data',
                       subtitle: 'Learn how report information is used',
+                      onTap: _showPrivacyInformation,
                     ),
-                    _CardDivider(),
+                    const _CardDivider(),
                     _SettingsTile(
+                      key: const Key('clear_local_reports_tile'),
                       icon: Icons.delete_outline_rounded,
                       title: 'Clear local reports',
                       subtitle: 'Remove saved drafts from this device',
                       destructive: true,
+                      onTap: _clearingReports ? null : _confirmClearReports,
                     ),
                   ],
                 ),
@@ -131,6 +203,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 8),
                 _SettingsCard(
                   children: [
+                    _SettingsTile(
+                      key: const Key('toggle_outside_pantukan_tile'),
+                      icon: _outsidePantukan
+                          ? Icons.location_on_outlined
+                          : Icons.location_off_outlined,
+                      title: _outsidePantukan
+                          ? 'Return to normal mode'
+                          : 'Test outside Pantukan',
+                      subtitle: _outsidePantukan
+                          ? 'Restore normal reporting inside Pantukan'
+                          : 'Show the screen that blocks report creation',
+                      onTap: _updatingOutsideMode
+                          ? null
+                          : _toggleOutsidePantukan,
+                    ),
+                    const _CardDivider(),
+                    _SettingsTile(
+                      key: const Key('replay_home_tutorial_tile'),
+                      icon: Icons.school_outlined,
+                      title: 'Replay Home Tutorial',
+                      subtitle: 'Show the guided Home screen tour again',
+                      onTap: _restartingTutorial ? null : _replayHomeTutorial,
+                    ),
+                    const _CardDivider(),
                     _SettingsTile(
                       key: const Key('reset_test_onboarding_tile'),
                       icon: Icons.restart_alt_rounded,
@@ -171,6 +267,85 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await languageController?.selectLanguage(selected);
   }
 
+  Future<void> _setNotificationsEnabled(bool value) async {
+    if (_updatingNotifications) {
+      return;
+    }
+
+    final previous = _notificationsEnabled;
+    setState(() {
+      _notificationsEnabled = value;
+      _updatingNotifications = true;
+    });
+    try {
+      await _settingsController?.setNotificationsEnabled(value);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _notificationsEnabled = previous);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: LocalizedText('Could not save the notification setting.'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _updatingNotifications = false);
+      }
+    }
+  }
+
+  void _showPrivacyInformation() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => const _PrivacyInformationSheet(),
+    );
+  }
+
+  Future<void> _confirmClearReports() async {
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => const _ClearReportsSheet(),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    setState(() => _clearingReports = true);
+    try {
+      await Future.wait([
+        widget.onlineReportStore.clearAll(),
+        widget.offlineReportStore.clearAll(),
+      ]);
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: LocalizedText('Local reports cleared.')),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: LocalizedText('Could not clear local reports.'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _clearingReports = false);
+      }
+    }
+  }
+
   Future<void> _setAllowGps(bool value) async {
     if (_updatingGps) {
       return;
@@ -183,8 +358,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     setState(() => _updatingGps = true);
-    final permissionGranted = await const DeviceLocationService()
-        .requestWhenInUsePermission();
+    final permissionGranted = await widget.locationService
+        .hasWhenInUsePermission();
     if (!mounted) {
       return;
     }
@@ -192,29 +367,68 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!permissionGranted) {
       setState(() {
         _allowGps = false;
+        _gpsPermissionGranted = false;
+        _gpsPermissionChecked = true;
+        _waitingForGpsPermission = true;
         _updatingGps = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: LocalizedText(
-            'Location permission was not allowed in your phone settings.',
+      await _gpsPreferenceController?.setAllowGps(false);
+      final opened = await widget.locationService.openAppSettings();
+      if (mounted && !opened) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: LocalizedText('Could not open the phone settings.'),
           ),
-        ),
-      );
+        );
+      }
       return;
     }
 
     setState(() {
       _allowGps = true;
+      _gpsPermissionGranted = true;
+      _gpsPermissionChecked = true;
       _updatingGps = false;
     });
     await _gpsPreferenceController?.setAllowGps(true);
+  }
+
+  Future<void> _syncGpsPermission({bool enableWhenGranted = false}) async {
+    if (_checkingGpsPermission) {
+      return;
+    }
+    _checkingGpsPermission = true;
+    final permissionWasDenied = _gpsPermissionChecked && !_gpsPermissionGranted;
+    final permissionGranted = await widget.locationService
+        .hasWhenInUsePermission();
+    if (!mounted) {
+      return;
+    }
+
+    final shouldEnable =
+        permissionGranted && (enableWhenGranted || permissionWasDenied);
+    setState(() {
+      _checkingGpsPermission = false;
+      _gpsPermissionChecked = true;
+      _gpsPermissionGranted = permissionGranted;
+      _waitingForGpsPermission = false;
+      _allowGps =
+          permissionGranted &&
+          (shouldEnable || (_gpsPreferenceController?.allowGps ?? true));
+    });
+
+    if (!permissionGranted && (_gpsPreferenceController?.allowGps ?? false)) {
+      await _gpsPreferenceController?.setAllowGps(false);
+    } else if (shouldEnable) {
+      await _gpsPreferenceController?.setAllowGps(true);
+    }
   }
 
   Future<void> _confirmTestReset() async {
     final accountController = AccountScope.maybeOf(context);
     final languageController = AppLanguageScope.maybeOf(context);
     final gpsController = GpsPreferenceScope.maybeOf(context);
+    final testingModeController = TestingModeScope.maybeOf(context);
     final navigator = Navigator.of(context);
 
     final confirmed = await showModalBottomSheet<bool>(
@@ -229,10 +443,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     setState(() => _resettingTestData = true);
+    unawaited(widget.homeTutorialStore.reset());
     await Future.wait([
       if (accountController != null) accountController.clearLocalSession(),
       if (languageController != null) languageController.resetSelection(),
       if (gpsController != null) gpsController.resetPreference(),
+      if (testingModeController != null) testingModeController.reset(),
     ]);
     if (!mounted) {
       return;
@@ -242,6 +458,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
       MaterialPageRoute<void>(builder: (_) => const LanguageSelectionScreen()),
       (_) => false,
     );
+  }
+
+  Future<void> _replayHomeTutorial() async {
+    if (_restartingTutorial) return;
+    setState(() => _restartingTutorial = true);
+    await widget.homeTutorialStore.reset();
+    if (!mounted) return;
+    Navigator.of(
+      context,
+      rootNavigator: true,
+    ).pushNamedAndRemoveUntil(AppRoutes.home, (_) => false);
+  }
+
+  Future<void> _toggleOutsidePantukan() async {
+    if (_updatingOutsideMode) return;
+    final nextValue = !_outsidePantukan;
+    setState(() => _updatingOutsideMode = true);
+    try {
+      await _testingModeController?.setOutsidePantukan(nextValue);
+      if (!mounted) return;
+      setState(() => _outsidePantukan = nextValue);
+      widget.onOutsidePantukanChanged?.call(nextValue);
+    } finally {
+      if (mounted) setState(() => _updatingOutsideMode = false);
+    }
   }
 }
 
@@ -389,6 +630,177 @@ class _SettingsTile extends StatelessWidget {
               Icons.chevron_right_rounded,
               color: destructive ? AppColors.danger : AppColors.textSecondary,
               size: 19,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PrivacyInformationSheet extends StatelessWidget {
+  const _PrivacyInformationSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                _IconBox(icon: Icons.shield_outlined),
+                SizedBox(width: 12),
+                Expanded(
+                  child: LocalizedText(
+                    'Location and photo data',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const _PrivacyItem(
+              icon: Icons.location_on_outlined,
+              title: 'Location',
+              description: 'Your selected incident location is attached to the report so responders can find the emergency.',
+            ),
+            const SizedBox(height: 12),
+            const _PrivacyItem(
+              icon: Icons.photo_camera_outlined,
+              title: 'Photos',
+              description: 'A photo is optional and is only attached when you choose or capture one for a report.',
+            ),
+            const SizedBox(height: 12),
+            const _PrivacyItem(
+              icon: Icons.phone_android_rounded,
+              title: 'On this device',
+              description: 'Saved report details remain on this phone until you clear local reports or uninstall the app.',
+            ),
+            const SizedBox(height: 20),
+            RespondaButton(
+              label: 'Done',
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PrivacyItem extends StatelessWidget {
+  const _PrivacyItem({
+    required this.icon,
+    required this.title,
+    required this.description,
+  });
+
+  final IconData icon;
+  final String title;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: AppColors.brand, size: 21),
+        const SizedBox(width: 11),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              LocalizedText(
+                title,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 3),
+              LocalizedText(
+                description,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                  height: 17 / 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ClearReportsSheet extends StatelessWidget {
+  const _ClearReportsSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 58,
+              height: 58,
+              decoration: const BoxDecoration(
+                color: AppColors.dangerSoft,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.delete_outline_rounded,
+                color: AppColors.danger,
+                size: 30,
+              ),
+            ),
+            const SizedBox(height: 14),
+            const LocalizedText(
+              'Clear local reports?',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 21,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const LocalizedText(
+              'This permanently removes online report history and offline saved reports from this phone. This cannot be undone.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+                height: 19 / 13,
+              ),
+            ),
+            const SizedBox(height: 18),
+            RespondaButton(
+              key: const Key('confirm_clear_local_reports_button'),
+              label: 'Clear reports',
+              style: RespondaButtonStyle.danger,
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+            const SizedBox(height: 8),
+            RespondaButton(
+              label: 'Cancel',
+              style: RespondaButtonStyle.ghost,
+              onPressed: () => Navigator.of(context).pop(false),
             ),
           ],
         ),
@@ -550,6 +962,7 @@ class _LanguageOption extends StatelessWidget {
 
 class _SwitchTile extends StatelessWidget {
   const _SwitchTile({
+    super.key,
     required this.icon,
     required this.title,
     required this.subtitle,

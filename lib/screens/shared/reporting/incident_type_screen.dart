@@ -14,11 +14,13 @@ class IncidentTypeScreen extends StatefulWidget {
   const IncidentTypeScreen({
     this.initialType,
     this.flowMode = ReportFlowMode.online,
+    this.onOpenSettings,
     super.key,
   });
 
   final IncidentType? initialType;
   final ReportFlowMode flowMode;
+  final VoidCallback? onOpenSettings;
 
   @override
   State<IncidentTypeScreen> createState() => _IncidentTypeScreenState();
@@ -93,6 +95,7 @@ class _IncidentTypeScreenState extends State<IncidentTypeScreen> {
                       builder: (_) => IncidentLocationScreen(
                         draft: ReportDraft(incidentType: _selectedType!),
                         flowMode: widget.flowMode,
+                        onOpenSettings: widget.onOpenSettings,
                       ),
                     ),
                   );

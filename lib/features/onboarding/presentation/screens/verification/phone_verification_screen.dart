@@ -119,6 +119,7 @@ class _IdentityVerificationScreenState
           inputFormatters: [
             FilteringTextInputFormatter.digitsOnly,
             LengthLimitingTextInputFormatter(10),
+            _PhilippineMobileNumberFormatter(),
           ],
           onChanged: (_) => setState(() {}),
           decoration: identityInputDecoration(
@@ -167,5 +168,18 @@ class _IdentityVerificationScreenState
         const IdentityPrototypeNotice(),
       ],
     );
+  }
+}
+
+class _PhilippineMobileNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isEmpty || newValue.text.startsWith('9')) {
+      return newValue;
+    }
+    return oldValue;
   }
 }

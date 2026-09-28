@@ -1,10 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:responda/core/location/device_location_service.dart';
 import 'package:responda/core/localization/app_language.dart';
-import 'package:responda/core/localization/app_strings.dart';
+import 'package:responda/core/theme/app_colors.dart';
 import 'package:responda/features/reporting/data/offline_report_store.dart';
 import 'package:responda/features/reporting/data/offline_sms_handoff.dart';
 import 'package:responda/features/reporting/domain/models/incident_type.dart';
@@ -84,7 +87,131 @@ void main() {
     expect(find.text('GPS works without internet'), findsOneWidget);
     expect(find.textContaining('7.135421'), findsOneWidget);
     expect(find.byType(FlutterMap), findsNothing);
-    expect(find.text('Landmark'), findsNothing);
+    expect(find.text('Landmark'), findsOneWidget);
+    expect(
+      tester.widget<TextField>(find.byKey(const Key('landmark_input'))).enabled,
+      isFalse,
+    );
+    expect(_gpsCardColor(tester), AppColors.successSoft);
+  });
+
+  testWidgets('landmark field unlocks only from its manual entry button', (
+    tester,
+  ) async {
+    await pumpPhoneScreen(
+      tester,
+      const IncidentLocationScreen(
+        draft: completeDraft,
+        flowMode: ReportFlowMode.offline,
+      ),
+    );
+
+    final landmarkInput = find.byKey(const Key('landmark_input'));
+    var field = tester.widget<TextField>(landmarkInput);
+    expect(field.enabled, isFalse);
+
+    await tester.tap(landmarkInput);
+    await tester.pump();
+    expect(field.focusNode?.hasFocus, isFalse);
+
+    final enableButton = find.byKey(const Key('enable_landmark_input_button'));
+    await tester.ensureVisible(enableButton);
+    await tester.tap(enableButton);
+    await tester.pump();
+    await tester.pump();
+
+    field = tester.widget<TextField>(landmarkInput);
+    expect(field.enabled, isTrue);
+    expect(field.focusNode?.hasFocus, isTrue);
+
+    await tester.enterText(landmarkInput, 'Barangay Hall');
+    expect(find.text('Barangay Hall'), findsOneWidget);
+  });
+
+  testWidgets('offline GPS warns when accuracy is between 50 and 200 meters', (
+    tester,
+  ) async {
+    await pumpPhoneScreen(
+      tester,
+      const IncidentLocationScreen(
+        draft: ReportDraft(
+          incidentType: IncidentType.accident,
+          latitude: 7.129329,
+          longitude: 125.898422,
+          locationAccuracy: 120,
+        ),
+        flowMode: ReportFlowMode.offline,
+      ),
+    );
+
+    expect(find.text('Low GPS accuracy'), findsNWidgets(2));
+    expect(find.byKey(const Key('low_gps_accuracy_warning')), findsOneWidget);
+    expect(find.textContaining('(±120 m)'), findsOneWidget);
+    expect(find.textContaining('Enter a nearby landmark'), findsOneWidget);
+    expect(_gpsCardColor(tester), AppColors.warningSoft);
+    expect(
+      find.byKey(const Key('very_low_gps_accuracy_warning')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('offline GPS strongly warns at 200 meters or worse', (
+    tester,
+  ) async {
+    await pumpPhoneScreen(
+      tester,
+      const IncidentLocationScreen(
+        draft: ReportDraft(
+          incidentType: IncidentType.accident,
+          latitude: 7.129329,
+          longitude: 125.898422,
+          locationAccuracy: 200,
+        ),
+        flowMode: ReportFlowMode.offline,
+      ),
+    );
+
+    expect(find.text('Very low GPS accuracy'), findsNWidgets(2));
+    expect(
+      find.byKey(const Key('very_low_gps_accuracy_warning')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('(±200 m)'), findsOneWidget);
+    expect(find.textContaining('Enter a clear landmark'), findsOneWidget);
+    expect(_gpsCardColor(tester), AppColors.dangerSoft);
+    expect(find.byKey(const Key('low_gps_accuracy_warning')), findsNothing);
+  });
+
+  testWidgets('offline GPS keeps searching for a satellite-only fix', (
+    tester,
+  ) async {
+    final location = Completer<DeviceLocationData>();
+    await pumpPhoneScreen(
+      tester,
+      IncidentLocationScreen(
+        draft: const ReportDraft(incidentType: IncidentType.accident),
+        flowMode: ReportFlowMode.offline,
+        loadLocation: () => location.future,
+      ),
+    );
+
+    expect(
+      find.textContaining('searches for up to 90 seconds'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Without cellular signal'), findsOneWidget);
+
+    location.complete(
+      DeviceLocationData(
+        latitude: 7.129329,
+        longitude: 125.898422,
+        accuracy: 20,
+        timestamp: DateTime(2026, 9, 24),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('7.129329'), findsOneWidget);
   });
 
   testWidgets('offline details skip the photo screen and open review', (
@@ -216,4 +343,11 @@ void main() {
       expect(openedUri?.queryParameters['body'], contains(testCase.$2));
     }
   });
+}
+
+Color? _gpsCardColor(WidgetTester tester) {
+  final card = tester.widget<Container>(
+    find.byKey(const Key('report_gps_location_card')),
+  );
+  return (card.decoration as BoxDecoration).color;
 }

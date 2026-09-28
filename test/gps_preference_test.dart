@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:responda/core/location/device_location_service.dart';
+import 'package:responda/core/location/gps_accuracy_quality.dart';
 import 'package:responda/core/location/gps_preference_controller.dart';
 import 'package:responda/core/location/gps_preference_scope.dart';
 import 'package:responda/features/reporting/domain/models/incident_type.dart';
@@ -10,6 +11,25 @@ import 'package:responda/screens/online/main_shell.dart';
 import 'package:responda/screens/shared/reporting/incident_location_screen.dart';
 
 void main() {
+  test('GPS accuracy quality uses the safety thresholds', () {
+    expect(GpsAccuracyQuality.fromMeters(49.9), GpsAccuracyQuality.acceptable);
+    expect(GpsAccuracyQuality.fromMeters(50), GpsAccuracyQuality.okay);
+    expect(GpsAccuracyQuality.fromMeters(199.9), GpsAccuracyQuality.okay);
+    expect(GpsAccuracyQuality.fromMeters(200), GpsAccuracyQuality.notGood);
+    expect(GpsAccuracyQuality.fromMeters(3000), GpsAccuracyQuality.notGood);
+  });
+
+  test('allows longer satellite-only GPS acquisition while offline', () {
+    expect(
+      DeviceLocationService.assistedFixTimeout,
+      const Duration(seconds: 30),
+    );
+    expect(
+      DeviceLocationService.satelliteFixTimeout,
+      const Duration(seconds: 90),
+    );
+  });
+
   test('loads and saves the Allow GPS preference', () async {
     final store = _MemoryGpsPreferenceStore(false);
     final controller = GpsPreferenceController(store: store);
@@ -49,9 +69,15 @@ void main() {
 
     expect(find.text('Allow GPS'), findsOneWidget);
     expect(
-      find.text('GPS is off in RESPONDA. Tap to allow GPS.'),
+      find.text('GPS is off in RESPONDA. Tap to open Settings.'),
       findsOneWidget,
     );
+
+    await tester.tap(find.byKey(const Key('home_gps_card')));
+    await tester.pump();
+
+    expect(controller.allowGps, isFalse);
+    expect(find.byKey(const Key('language_settings_tile')), findsOneWidget);
   });
 
   testWidgets('incident location does not call its GPS loader when off', (
@@ -63,6 +89,7 @@ void main() {
     );
     await controller.load();
     var locationRequests = 0;
+    var settingsOpened = false;
 
     await tester.pumpWidget(
       GpsPreferenceScope(
@@ -79,6 +106,7 @@ void main() {
                 timestamp: DateTime(2026, 9, 19),
               );
             },
+            onOpenSettings: () => settingsOpened = true,
           ),
         ),
       ),
@@ -86,8 +114,15 @@ void main() {
     await tester.pump();
 
     expect(locationRequests, 0);
-    expect(find.text('Allow GPS'), findsNWidgets(3));
+    expect(find.text('Allow GPS'), findsNWidgets(2));
     expect(find.text('Allow GPS to show the map'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('report_open_settings_button')));
+    await tester.pump();
+
+    expect(settingsOpened, isTrue);
+    expect(controller.allowGps, isFalse);
+    expect(locationRequests, 0);
   });
 
   testWidgets('home refreshes GPS on resume and every five minutes', (
@@ -132,6 +167,44 @@ void main() {
     await tester.pump(const Duration(minutes: 5));
     await tester.pump();
     expect(locationRequests, 3);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('home GPS card shows its color-coded accuracy badge', (
+    tester,
+  ) async {
+    await _setPhoneSize(tester);
+
+    for (final testCase in const [
+      (20.0, GpsAccuracyQuality.acceptable),
+      (120.0, GpsAccuracyQuality.okay),
+      (3000.0, GpsAccuracyQuality.notGood),
+    ]) {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: HomeGpsLocationCard(
+              key: ValueKey(testCase.$1),
+              locationLoader: () async => DeviceLocationData(
+                latitude: 7.129329,
+                longitude: 125.898422,
+                accuracy: testCase.$1,
+                timestamp: DateTime(2026, 9, 24),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(
+        find.byKey(Key('home_gps_accuracy_${testCase.$2.name}')),
+        findsOneWidget,
+      );
+      expect(find.text(testCase.$2.label), findsOneWidget);
+    }
 
     await tester.pumpWidget(const SizedBox.shrink());
   });

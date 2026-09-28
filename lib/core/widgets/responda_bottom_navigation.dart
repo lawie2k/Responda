@@ -15,6 +15,7 @@ class RespondaBottomNavigation extends StatelessWidget {
     this.onSelected,
     this.onCallPressed,
     this.phoneLauncher,
+    this.callButtonKey,
     super.key,
   });
 
@@ -22,6 +23,7 @@ class RespondaBottomNavigation extends StatelessWidget {
   final ValueChanged<RespondaNavItem>? onSelected;
   final VoidCallback? onCallPressed;
   final PhoneLauncher? phoneLauncher;
+  final GlobalKey? callButtonKey;
 
   static const emergencyNumber = '09476236516';
 
@@ -49,7 +51,12 @@ class RespondaBottomNavigation extends StatelessWidget {
         children: [
           _buildNavigationItem(context, _items[0]),
           _buildNavigationItem(context, _items[1]),
-          Expanded(child: _CallAction(onTap: () => _handleCall(context))),
+          Expanded(
+            child: _CallAction(
+              key: callButtonKey,
+              onTap: () => _handleCall(context),
+            ),
+          ),
           _buildNavigationItem(context, _items[2]),
           _buildNavigationItem(context, _items[3]),
         ],
@@ -122,7 +129,7 @@ class RespondaBottomNavigation extends StatelessWidget {
 }
 
 class _CallAction extends StatelessWidget {
-  const _CallAction({required this.onTap});
+  const _CallAction({required this.onTap, super.key});
 
   final VoidCallback onTap;
 

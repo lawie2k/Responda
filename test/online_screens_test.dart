@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:responda/core/location/device_location_service.dart';
@@ -193,6 +194,16 @@ void main() {
       ),
     );
     await tester.pump();
+    final circleLayer = tester.widget<CircleLayer<Object>>(
+      find.byWidgetPredicate((widget) => widget is CircleLayer<Object>),
+    );
+    final accuracyCircle = circleLayer.circles.singleWhere(
+      (circle) => circle.key == const Key('report_gps_accuracy_circle'),
+    );
+    expect(accuracyCircle.radius, 8);
+    expect(accuracyCircle.useRadiusInMeter, isTrue);
+    expect(find.byKey(const Key('report_gps_accuracy_label')), findsOneWidget);
+    expect(find.text('GPS accuracy area · ±8 m'), findsOneWidget);
     final useLocationButton = find.widgetWithText(
       FilledButton,
       'Use This Location',

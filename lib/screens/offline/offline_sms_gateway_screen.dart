@@ -9,9 +9,14 @@ import 'package:responda/screens/shared/reporting/incident_location_screen.dart'
 import 'package:responda/screens/shared/reporting/incident_type_screen.dart';
 
 class OfflineSmsGatewayScreen extends StatelessWidget {
-  const OfflineSmsGatewayScreen({this.initialType, super.key});
+  const OfflineSmsGatewayScreen({
+    this.initialType,
+    this.onOpenSettings,
+    super.key,
+  });
 
   final IncidentType? initialType;
+  final VoidCallback? onOpenSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -64,10 +69,14 @@ class OfflineSmsGatewayScreen extends StatelessWidget {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => initialType == null
-            ? const IncidentTypeScreen(flowMode: ReportFlowMode.offline)
+            ? IncidentTypeScreen(
+                flowMode: ReportFlowMode.offline,
+                onOpenSettings: onOpenSettings,
+              )
             : IncidentLocationScreen(
                 draft: ReportDraft(incidentType: initialType!),
                 flowMode: ReportFlowMode.offline,
+                onOpenSettings: onOpenSettings,
               ),
       ),
     );
