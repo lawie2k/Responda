@@ -1,13 +1,13 @@
-import { reports, tone } from "../data/reports";
+import { tone, type Report } from "../data/reports";
 import { Badge } from "./ui";
 import { Icon } from "./Icon";
 
 export function ReportTable({
-  rows = reports,
+  rows,
   onSelect,
   selectedId,
 }: {
-  rows?: typeof reports;
+  rows: Report[];
   onSelect?: (id: string) => void;
   selectedId?: string;
 }) {
@@ -40,7 +40,7 @@ export function ReportTable({
             }
           }}
         >
-          <strong>{r.id}</strong>
+          <strong title={r.id}>{r.reference}</strong>
           <span>{r.incident}</span>
           <span className="grid gap-0.5 text-muted">
             <span>{r.location}</span>

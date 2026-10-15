@@ -1,5 +1,7 @@
-from sqlalchemy import MetaData
-from sqlalchemy.orm import DeclarativeBase
+from datetime import UTC, datetime
+
+from sqlalchemy import DateTime, MetaData
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 NAMING_CONVENTION = {
     "ix": "ix_%(column_0_label)s",
@@ -12,3 +14,15 @@ NAMING_CONVENTION = {
 
 class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
+
+
+class SoftDeleteMixin:
+    """Adds reversible deletion state to mutable operational records."""
+
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+
+    def soft_delete(self, *, deleted_at: datetime | None = None) -> None:
+        self.deleted_at = deleted_at or datetime.now(UTC)
+
+    def restore(self) -> None:
+        self.deleted_at = None

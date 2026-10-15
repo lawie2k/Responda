@@ -48,11 +48,11 @@ export function Login({
           src={operationCenterPhoto}
           alt=""
           aria-hidden="true"
-          className="absolute inset-0 size-full object-cover object-[56%_center] min-[901px]:-translate-y-[12%] min-[901px]:scale-[1.28]"
+          className="absolute inset-0 size-full object-cover object-[56%_center] min-[901px]:translate-y-[4%] min-[901px]:scale-[1.28]"
         />
         <div className="absolute inset-0 bg-[#3e0711]/65" />
-        <div className="absolute -left-24 top-[18%] size-[360px] rounded-full bg-[#9d344522] blur-2xl" />
-        <div className="absolute -bottom-48 -right-24 size-[480px] rounded-full border-[80px] border-[#7f263455]" />
+        <div className="absolute -left-24 top-[18%] size-[360px] rounded-full bg-[#9d344522] blur-2xl max-[900px]:-left-12 max-[900px]:size-48 max-[560px]:-left-8 max-[560px]:size-36" />
+        <div className="absolute -bottom-48 -right-24 size-[480px] rounded-full border-[80px] border-[#7f263455] max-[900px]:-bottom-24 max-[900px]:-right-12 max-[900px]:size-64 max-[900px]:border-[44px] max-[560px]:-bottom-16 max-[560px]:-right-8 max-[560px]:size-44 max-[560px]:border-[30px]" />
 
         <div className="relative z-10 flex items-center gap-3.5">
           <span className="grid size-14 place-items-center rounded-[18px] bg-white p-2 shadow-[0_14px_36px_rgba(0,0,0,.2)]">

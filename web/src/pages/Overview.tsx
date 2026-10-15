@@ -1,5 +1,6 @@
 import type { Page } from "../types";
-import { reports } from "../data/reports";
+import { tone, type Report } from "../data/reports";
+import type { MapPoint } from "../data/mapData";
 import { Icon } from "../components/Icon";
 import { MiniMap } from "../components/Map";
 import { ReportTable } from "../components/ReportTable";
@@ -17,12 +18,51 @@ const colorClasses: Record<string, string> = {
 export function Overview({
   go,
   firstName,
+  reports,
+  reportStatus,
+  reportError,
+  retryReports,
 }: {
   go: (p: Page) => void;
   firstName: string;
+  reports: Report[];
+  reportStatus: "loading" | "ready" | "error";
+  reportError: string | null;
+  retryReports: () => void;
 }) {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const criticalReports = reports.filter((report) => report.priority === "CRITICAL");
+  const pendingReports = reports.filter((report) => report.status === "VERIFYING");
+  const activeReports = reports.filter((report) => report.status !== "CLOSED");
+  const mapPoints: MapPoint[] = reports.flatMap((report) =>
+    report.position
+      ? [
+          {
+            id: report.reference,
+            name: report.incident,
+            location: report.location,
+            position: report.position,
+            barangay: report.barangay,
+            priority:
+              report.priority === "CRITICAL"
+                ? "Critical"
+                : report.priority === "HIGH"
+                  ? "High"
+                  : "Moderate",
+            hoursAgo: 0,
+          } satisfies MapPoint,
+        ]
+      : [],
+  );
+  const priorityQueue = [...reports]
+    .sort(
+      (left, right) =>
+        ["CRITICAL", "HIGH", "MEDIUM", "LOW"].indexOf(left.priority) -
+          ["CRITICAL", "HIGH", "MEDIUM", "LOW"].indexOf(right.priority) ||
+        new Date(right.receivedAt).getTime() - new Date(left.receivedAt).getTime(),
+    )
+    .slice(0, 3);
 
   return (
     <>
@@ -37,51 +77,61 @@ export function Overview({
         </div>
         <Badge tone="green">LIVE OPERATIONS</Badge>
       </div>
-      <div
-        className={
-          "flex min-h-[52px] items-center gap-[10px] rounded-[14px] px-3 py-2 max-[650px]:flex-wrap max-[650px]:items-start [&>span]:grid [&>span]:size-8 [&>span]:shrink-0 [&>span]:place-items-center [&>span]:rounded-[10px] [&>span]:bg-white [&>div]:min-w-0 [&>div]:flex-1 [&_b]:text-[11px] [&_p]:my-0.5 [&_p]:text-[9px] [&_p]:text-muted max-[650px]:[&>.button]:w-full bg-amber-soft text-priority-amber"
-        }
-      >
-        <span>
-          <Icon name="alert" />
-        </span>
-        <div>
-          <b>3 incoming reports require validation</b>
-          <p>
-            Confirm location, contact details, and ML-supported classifications
-            before dispatch decisions.
-          </p>
+      {pendingReports.length > 0 && (
+        <div
+          className={
+            "flex min-h-[52px] items-center gap-[10px] rounded-[14px] px-3 py-2 max-[650px]:flex-wrap max-[650px]:items-start [&>span]:grid [&>span]:size-8 [&>span]:shrink-0 [&>span]:place-items-center [&>span]:rounded-[10px] [&>span]:bg-white [&>div]:min-w-0 [&>div]:flex-1 [&_b]:text-[11px] [&_p]:my-0.5 [&_p]:text-[9px] [&_p]:text-muted max-[650px]:[&>.button]:w-full bg-amber-soft text-priority-amber"
+          }
+        >
+          <span>
+            <Icon name="alert" />
+          </span>
+          <div>
+            <b>
+              {pendingReports.length} incoming{" "}
+              {pendingReports.length === 1
+                ? "report requires"
+                : "reports require"}{" "}
+              validation
+            </b>
+            <p>
+              Confirm location, contact details, and ML-supported classifications
+              before dispatch decisions.
+            </p>
+          </div>
+          <Button variant="secondary" onClick={() => go("Live Reports")}>
+            Review queue
+          </Button>
         </div>
-        <Button variant="secondary" onClick={() => go("Report Validation")}>
-          Review queue
-        </Button>
-      </div>
+      )}
       <div
-        className={
-          "grid grid-cols-4 gap-4 max-[1180px]:grid-cols-2 max-[650px]:grid-cols-1"
-        }
+        className={`grid gap-4 max-[1180px]:grid-cols-2 max-[650px]:grid-cols-1 ${
+          pendingReports.length > 0 ? "grid-cols-4" : "grid-cols-3"
+        }`}
       >
         <Metric
           icon="reports"
-          title="Active incidents"
-          value="12"
-          sub="Across 8 reported locations"
+          title="Active reports"
+          value={String(activeReports.length)}
+          sub={`Across ${new Set(activeReports.map((report) => report.location)).size} reported locations`}
           tone="maroon"
         />
         <Metric
           icon="alert"
           title="Critical priority"
-          value="3"
+          value={String(criticalReports.length)}
           sub="MDRRMO review required"
           tone="red"
         />
-        <Metric
-          icon="verify"
-          title="Needs validation"
-          value="5"
-          sub="2 require location review"
-          tone="amber"
-        />
+        {pendingReports.length > 0 && (
+          <Metric
+            icon="verify"
+            title="Needs validation"
+            value={String(pendingReports.length)}
+            sub="Awaiting MDRRMO review"
+            tone="amber"
+          />
+        )}
         <Metric
           icon="users"
           title="Teams deployed"
@@ -102,7 +152,7 @@ export function Overview({
             action="Open full map"
             onAction={() => go("Incident Map")}
           />
-          <MiniMap />
+          <MiniMap points={mapPoints} />
         </Card>
         <Card>
           <SectionHead
@@ -112,36 +162,32 @@ export function Overview({
             onAction={() => go("Live Reports")}
           />
           <div className={"grid gap-2"}>
-            {[
-              ["CRITICAL", "Road accident", "Kingking Highway", "4 min", "red"],
-              ["HIGH", "Flash flood", "Magnaga Riverside", "9 min", "orange"],
-              [
-                "MODERATE",
-                "Medical emergency",
-                "Matiao Public Market",
-                "14 min",
-                "amber",
-              ],
-            ].map((x) => (
+            {priorityQueue.map((report) => (
               <button
                 className={
                   "flex min-h-[61px] items-center gap-[9px] rounded-[13px] border-0 bg-white px-2 py-[7px] text-left hover:bg-soft-gray [&>i]:w-1 [&>i]:self-stretch [&>i]:rounded-sm [&>span]:grid [&>span]:flex-1 [&>span]:gap-[3px] [&_b]:text-[11px] [&_small]:text-[9px] [&_small]:text-muted"
                 }
-                key={x[1]}
+                key={report.id}
+                onClick={() => go("Live Reports")}
               >
-                <i className={colorClasses[x[4]]} />
+                <i className={colorClasses[tone(report.priority)]} />
                 <span>
-                  <b>{x[1]}</b>
+                  <b>{report.incident}</b>
                   <small>
-                    {x[2]} • {x[3]}
+                    {report.location} • {report.time}
                   </small>
                 </span>
-                <Badge tone={x[4]} dot={false}>
-                  {x[0]}
+                <Badge tone={tone(report.priority)} dot={false}>
+                  {report.priority}
                 </Badge>
                 <Icon name="chevron" size={14} />
               </button>
             ))}
+            {!priorityQueue.length && (
+              <div className="grid min-h-[150px] place-items-center rounded-[13px] bg-soft-gray px-5 text-center text-[10px] text-muted">
+                No active reports are in the database yet.
+              </div>
+            )}
           </div>
           <div
             className={
@@ -165,7 +211,24 @@ export function Overview({
             action="View reports"
             onAction={() => go("Live Reports")}
           />
-          <ReportTable rows={reports.slice(0, 3)} />
+          {reportStatus === "error" && !reports.length ? (
+            <div className="grid min-h-[150px] place-items-center gap-2 rounded-[13px] bg-red-soft px-5 text-center text-[10px] text-priority-red">
+              <span>{reportError}</span>
+              <Button variant="secondary" onClick={retryReports}>
+                Try again
+              </Button>
+            </div>
+          ) : reportStatus === "loading" && !reports.length ? (
+            <div className="grid min-h-[150px] place-items-center text-[10px] text-muted">
+              Loading reports…
+            </div>
+          ) : reports.length ? (
+            <ReportTable rows={reports.slice(0, 3)} />
+          ) : (
+            <div className="grid min-h-[150px] place-items-center rounded-[13px] bg-soft-gray px-5 text-center text-[10px] text-muted">
+              No reports have been received yet.
+            </div>
+          )}
         </Card>
         <Card>
           <SectionHead

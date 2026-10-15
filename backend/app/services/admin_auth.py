@@ -135,7 +135,10 @@ class AdminAuthService:
         statement = (
             select(AuthSession, User)
             .join(User, User.user_id == AuthSession.user_id)
-            .where(AuthSession.refresh_token_hash == hash_session_token(token))
+            .where(
+                AuthSession.refresh_token_hash == hash_session_token(token),
+                User.deleted_at.is_(None),
+            )
         )
         result = await self._database.execute(statement)
         row = result.one_or_none()
@@ -166,7 +169,10 @@ class AdminAuthService:
             await self._database.commit()
 
     async def _find_user_by_email(self, email: str) -> User | None:
-        statement = select(User).where(func.lower(User.email) == email)
+        statement = select(User).where(
+            func.lower(User.email) == email,
+            User.deleted_at.is_(None),
+        )
         result = await self._database.execute(statement)
         return result.scalar_one_or_none()
 

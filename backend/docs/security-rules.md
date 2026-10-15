@@ -25,6 +25,16 @@ VA101 to FastAPI and PostgreSQL; VA101's Next.js code is a reference, not code t
 - Use SQLAlchemy parameters; never build SQL by concatenating user input.
 - Use transactions for multi-table writes, status transitions, dispatch operations, and audit
   records that belong to the same operation.
+- For staff report review, lock the pending report and require the caller's last-seen `updated_at`
+  value. Reject stale or repeated decisions instead of overwriting a newer review.
+- Allow only administrators and dispatchers to create incidents or link reports. Lock the report,
+  require its last-seen `updated_at`, and accept only verified reports with a final priority that
+  have not already been linked.
+- Existing incident links must target a non-deleted open, dispatched, or responding incident with
+  the same incident type. Insert a newly created incident before linking its source report, and
+  commit the incident, report state, event, and audit record in one transaction.
+- Staff incident lists must be authenticated, paginated, capped, non-cacheable, and exclude
+  soft-deleted incidents and incident types.
 - Return stable public error codes and safe messages. Log internal exceptions server-side without
   exposing stack traces, SQL, secrets, or report contents to clients.
 - Allow only explicit CORS origins when cookies are enabled. Reject unsafe browser requests from
@@ -33,6 +43,19 @@ VA101 to FastAPI and PostgreSQL; VA101's Next.js code is a reference, not code t
   data. Store only what the workflow needs and never copy raw values into project memory or graphs.
 - Make externally retried report and SMS ingestion operations idempotent and enforce uniqueness in
   PostgreSQL, not only in application code.
+
+## Deletion and retention
+
+- Mutable operational records use nullable `deleted_at` timestamps. Normal authentication and API
+  queries must exclude rows whose `deleted_at` is set unless an explicitly authorized historical
+  or restoration workflow requests them.
+- Use the model `soft_delete()` and `restore()` methods for operational records; do not issue hard
+  deletes from ordinary product endpoints.
+- Authentication sessions and OTP challenges use revoke, consume, and expiry lifecycle fields
+  instead of soft deletion. Audit logs, report events, reviews, translations, and priority
+  assessments are immutable history and must not be silently deleted.
+- Soft deletion is not anonymization. Any privacy-driven erasure or attachment-retention workflow
+  needs separate, explicit rules and audit coverage.
 
 ## Change requirements
 

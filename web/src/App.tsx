@@ -7,7 +7,8 @@ import { ReportModal } from "./components/ReportModal";
 import { Sidebar } from "./components/Sidebar";
 import { Button } from "./components/ui";
 import { pageInfo } from "./config/navigation";
-import { reports } from "./data/reports";
+import { toReport } from "./data/reports";
+import { useAdminReports } from "./hooks/useAdminReports";
 import { Analytics } from "./pages/Analytics";
 import { MobileAccounts } from "./pages/mobile-accounts/MobileAccounts";
 import { HistoricalRecords } from "./pages/HistoricalRecords";
@@ -85,14 +86,6 @@ function Dashboard({
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([
     {
-      id: 1,
-      title: "Reports need validation",
-      detail: "Three new incident reports are waiting for review.",
-      time: "2 min ago",
-      page: "Report Validation",
-      read: false,
-    },
-    {
       id: 2,
       title: "New phone-verified account",
       detail: "A mobile user completed OTP verification and account setup.",
@@ -111,20 +104,25 @@ function Dashboard({
   ]);
   const searchRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
+  const reportQuery = useAdminReports({ pageSize: 100 });
+  const dashboardReports = useMemo(
+    () => reportQuery.data?.items.map(toReport) ?? [],
+    [reportQuery.data],
+  );
   const info = pageInfo[page];
   const normalizedQuery = query.trim().toLowerCase();
   const matchingReports = useMemo(
     () =>
       normalizedQuery
-        ? reports
+        ? dashboardReports
             .filter((report) =>
-              `${report.id} ${report.incident} ${report.location} ${report.barangay ?? ""} ${report.priority} ${report.status}`
+              `${report.reference} ${report.id} ${report.incident} ${report.location} ${report.barangay ?? ""} ${report.priority} ${report.status}`
                 .toLowerCase()
                 .includes(normalizedQuery),
             )
             .slice(0, 5)
         : [],
-    [normalizedQuery],
+    [dashboardReports, normalizedQuery],
   );
   const matchingPages = useMemo(
     () =>
@@ -278,7 +276,7 @@ function Dashboard({
                           className="flex min-h-11 w-full items-center gap-2 rounded-[10px] border-0 bg-white px-2 text-left hover:bg-soft-gray"
                           key={report.id}
                           onClick={() => {
-                            setQuery(report.id);
+                            setQuery(report.reference);
                             setPage("Live Reports");
                             setSearchOpen(false);
                           }}
@@ -288,7 +286,7 @@ function Dashboard({
                           </span>
                           <span className="grid flex-1 gap-0.5">
                             <b className="text-[10px]">
-                              {report.incident} · {report.id}
+                              {report.incident} · {report.reference}
                             </b>
                             <small className="text-[8px] text-muted">
                               {report.location}
@@ -400,11 +398,18 @@ function Dashboard({
             <Overview
               go={setPage}
               firstName={session.user.full_name.split(/\s+/)[0] || "Staff"}
+              reports={dashboardReports}
+              reportStatus={reportQuery.status}
+              reportError={reportQuery.error}
+              retryReports={reportQuery.refetch}
             />
           )}
           {page === "Live Reports" && (
             <LiveReports
               query={query}
+              summaryReports={dashboardReports}
+              userRole={session.user.role}
+              onReportsChanged={reportQuery.refetch}
               openModal={() => setReportModalOpen(true)}
               openValidation={(reportId) => {
                 setValidationTarget(reportId);
@@ -414,7 +419,11 @@ function Dashboard({
           )}
           {page === "Incident Map" && <IncidentMap />}
           {page === "Report Validation" && (
-            <ReportValidation selectedReportId={validationTarget} />
+            <ReportValidation
+              selectedReportId={validationTarget}
+              userRole={session.user.role}
+              onReportReviewed={reportQuery.refetch}
+            />
           )}
           {page === "Mobile Accounts" && <MobileAccounts />}
           {page === "Response Teams" && <ResponseTeams />}

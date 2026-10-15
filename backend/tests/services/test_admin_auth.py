@@ -57,9 +57,11 @@ def test_service_creates_only_a_hashed_session_token() -> None:
     added_objects = [call.args[0] for call in database.add.call_args_list]
     stored_session = next(item for item in added_objects if isinstance(item, AuthSession))
     audit = next(item for item in added_objects if isinstance(item, AuditLog))
+    user_lookup = database.execute.await_args_list[0].args[0]
     assert stored_session.refresh_token_hash == hash_session_token(result.token)
     assert stored_session.refresh_token_hash != result.token
     assert audit.action == "auth.login.succeeded"
+    assert "users.deleted_at IS NULL" in str(user_lookup)
     database.commit.assert_awaited_once()
 
 

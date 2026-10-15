@@ -1,7 +1,7 @@
 from sqlalchemy import CheckConstraint
 
 from app.db.base import Base
-from app.models import SmsMessage
+from app.models import SmsMessage, User
 
 EXPECTED_TABLES = {
     "audit_logs",
@@ -23,6 +23,22 @@ EXPECTED_TABLES = {
     "sms_messages",
     "users",
 }
+
+SOFT_DELETE_TABLES = {
+    "users",
+    "incident_types",
+    "incidents",
+    "reports",
+    "report_locations",
+    "report_attachments",
+    "sms_gateways",
+    "sms_messages",
+    "response_units",
+    "response_assignments",
+    "notifications",
+}
+
+IMMUTABLE_OR_LIFECYCLE_TABLES = EXPECTED_TABLES - SOFT_DELETE_TABLES
 
 
 def test_initial_schema_contains_expected_tables() -> None:
@@ -56,3 +72,21 @@ def test_app_reports_require_a_client_generated_identifier() -> None:
     assert constraints["ck_reports_app_client_report_id_present"] == (
         "source = 'manual' OR client_report_id IS NOT NULL"
     )
+
+
+def test_operational_tables_support_soft_delete() -> None:
+    for table_name in SOFT_DELETE_TABLES:
+        assert "deleted_at" in Base.metadata.tables[table_name].columns
+
+    for table_name in IMMUTABLE_OR_LIFECYCLE_TABLES:
+        assert "deleted_at" not in Base.metadata.tables[table_name].columns
+
+
+def test_soft_delete_is_reversible_on_models() -> None:
+    user = User(full_name="Temporary User", email="temporary@example.com")
+
+    user.soft_delete()
+    assert user.deleted_at is not None
+
+    user.restore()
+    assert user.deleted_at is None

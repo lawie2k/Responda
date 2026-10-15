@@ -2,7 +2,7 @@
 tags:
   - responda/memory
   - responda/status
-updated: 2026-10-15
+updated: 2026-10-16
 ---
 
 # Current state
@@ -12,14 +12,41 @@ updated: 2026-10-15
 - The FastAPI project structure, configuration, exception handling, CORS, async
   database session setup, and `/api/v1` router separation exist.
 - PostgreSQL is configured locally through a private `.env` file.
-- The initial Alembic migration and 18 SQLAlchemy tables exist.
+- Two Alembic migrations and 18 SQLAlchemy tables exist. The database is at the
+  soft-delete migration head.
+- Mutable operational records use indexed nullable `deleted_at` timestamps:
+  users, incident types, incidents, reports, report locations, report
+  attachments, SMS gateways/messages, response units/assignments, and
+  notifications. Current authentication and report reads exclude deleted rows.
+  Sessions/OTP use revoke/consume/expiry fields, while audit and processing
+  history remain immutable.
 - The shared health endpoint checks application and database availability.
 - Admin staff authentication now provides login, current-session, and logout
   endpoints under `/api/v1/admin/auth`. It uses Argon2id password hashes,
   an 8-character minimum, revocable hashed opaque sessions in `HttpOnly`
   cookies, login throttling, origin checks, active-account and staff-role
   checks, session limits, and audit records.
-- Reporting, review, dispatch, gateway ingestion, and notification APIs are not
+- One active staff account with the `admin` role exists in PostgreSQL. Its
+  identity and credentials are not stored in project memory.
+- Protected staff report-list and report-detail endpoints now exist under
+  `/api/v1/admin/reports`. They use the existing revocable staff session,
+  validated and capped pagination, search and enum-backed filters, stable safe
+  errors, and no-store responses. List responses exclude reporter contact data;
+  protected detail responses include it but do not expose attachment storage
+  keys or checksums.
+- A protected report-review endpoint now allows only administrators and
+  verifiers to decide pending reports. Each decision locks and version-checks
+  the report, updates verification/final-priority state, and creates a review,
+  report event, and audit entry in one transaction. Verified and unverified
+  reports move to `under_review`; invalid reports are closed.
+- Protected incident write endpoints now allow administrators and dispatchers
+  to create an incident from a verified report or link a verified report to an
+  existing active incident of the same type. Both operations lock and
+  version-check the report and atomically update the report plus its event and
+  audit history. A protected, paginated incident-list endpoint supplies active
+  matching incidents to staff clients. Response-unit assignment and dispatch
+  lifecycle endpoints are not implemented yet.
+- Mobile report creation, gateway ingestion, and notification APIs are not
   implemented yet.
 - The strict app-only SMS acceptance policy is documented and represented in
   the schema; gateway ingestion and signature verification are not implemented.
@@ -38,8 +65,20 @@ updated: 2026-10-15
   action plus outside-click and Escape-key dismissal.
 - The dashboard also calls the backend health endpoint and displays
   `Backend connected` when FastAPI and PostgreSQL are available.
-- Report cards, statistics, and operational dashboard content still use
-  demonstration data until protected admin APIs are implemented.
+- The Overview report metrics, priority queue, map markers, recent-report table,
+  global report search, and Live Reports queue now read from the protected
+  report APIs. Live Reports supports server-side search, filters, capped
+  pagination, real protected details, and explicit loading, error, and empty
+  states. Report Validation now loads pending reports and protected details from
+  the backend, submits real verified/unverified/invalid decisions, respects
+  reviewer roles, and handles validation and concurrency failures. Zero-count
+  validation alerts, summary cards, and queue badges are hidden while the clear
+  queue empty state remains visible. In Live Reports, administrators and
+  dispatchers can now create an incident from a verified report or choose a
+  matching active incident and link it; all report and incident views refresh
+  after success, while other roles remain read-only. Unrelated response-team,
+  analytics, historical, and incident-map views still contain demonstration
+  data.
 
 ## Mobile app
 
@@ -53,12 +92,18 @@ updated: 2026-10-15
 
 ## Verification history
 
-- The latest staff-authentication backend phase passed Ruff, strict mypy, and
-  all 30
-  tests.
-- The web connection change passed lint and production build, and the running
-  page displayed `Backend connected`. The later login-page phase also passed
-  web lint and production build and was verified in a real browser.
+- The Live Reports incident integration passed all 61 backend tests, backend
+  Ruff and strict mypy, web lint and production build. Alembic reports no schema
+  drift, OpenAPI exposes GET/POST on the incident collection, and the configured
+  PostgreSQL incident-list query completed successfully.
+- The incident creation/linking phase passed backend Ruff, strict mypy, and all
+  58 tests. PostgreSQL accepted one temporary incident with two linked reports,
+  two events, and two audits in transactional verification; the outer rollback
+  left zero temporary reports or incidents. Alembic reports no schema drift.
+- The report-review phase passed backend Ruff, strict mypy, and all 46 tests;
+  the web dashboard passed lint and production build. A rolled-back PostgreSQL
+  test confirmed atomic report/review/event/audit writes, stale-review conflict
+  handling, and zero temporary rows remaining.
 - Treat these as historical results; rerun component checks after new changes.
 
 ## Repository and project-memory setup
@@ -69,7 +114,8 @@ updated: 2026-10-15
 - Human-written project memory is in `memory/`.
 - Graphify indexes code from backend, web, mobile, and the monorepo root into one
   combined graph.
-- The monorepo graph contains 2,010 code nodes, 3,179 relationships, and 161
-  detected communities. Generated graph artifacts remain local and ignored.
+- The combined graph currently contains 2,236 code nodes, 3,897 relationships,
+  and 185 detected communities. Generated graph artifacts remain local and
+  ignored.
 - `AGENTS.md` directs future coding sessions to read memory and query Graphify
   before broad filesystem searches.

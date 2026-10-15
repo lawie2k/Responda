@@ -1,85 +1,76 @@
+import type { AdminReportListItem } from "../api/respondaApi";
 import { getBarangayForPosition } from "./barangayBoundaries";
 
 export type Report = {
   id: string;
+  reference: string;
   incident: string;
   location: string;
   position: [number, number] | null;
   barangay: string | null;
-  priority: string;
+  priority: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
   status: string;
   time: string;
+  receivedAt: string;
+  description: string;
+  source: AdminReportListItem["source"];
+  verificationStatus: AdminReportListItem["verification_status"];
+  incidentStatus: NonNullable<AdminReportListItem["incident"]>["status"] | undefined;
+  incidentTypeId: string;
 };
 
-const reportSeeds: Omit<Report, "barangay">[] = [
-  {
-    id: "RSP-00872",
-    incident: "Road Accident",
-    location: "Kingking Highway",
-    position: [7.1428, 125.8882],
-    priority: "CRITICAL",
-    status: "VERIFYING",
-    time: "1:41 PM",
-  },
-  {
-    id: "RSP-00871",
-    incident: "Flash Flood",
-    location: "Magnaga Riverside",
-    position: [7.19521, 125.956137],
-    priority: "HIGH",
-    status: "DISPATCHED",
-    time: "1:36 PM",
-  },
-  {
-    id: "RSP-00870",
-    incident: "Medical",
-    location: "Matiao Public Market",
-    position: [7.103213, 125.924505],
-    priority: "MODERATE",
-    status: "VALIDATED",
-    time: "1:31 PM",
-  },
-  {
-    id: "RSP-00869",
-    incident: "Landslide",
-    location: "Bongabong Slope",
-    position: [7.234498, 125.946031],
-    priority: "HIGH",
-    status: "VERIFYING",
-    time: "1:25 PM",
-  },
-  {
-    id: "RSP-00868",
-    incident: "Fire",
-    location: "Kingking Junction",
-    position: [7.1365, 125.8912],
-    priority: "CRITICAL",
-    status: "DISPATCHED",
-    time: "1:19 PM",
-  },
-  {
-    id: "RSP-00867",
-    incident: "Fallen Tree",
-    location: "Pantukan Highway",
-    position: [7.12682, 125.89714],
-    priority: "MODERATE",
-    status: "VALIDATED",
-    time: "1:04 PM",
-  },
-];
+const formatStatus = (report: AdminReportListItem) => {
+  if (report.status === "closed" || report.incident?.status === "closed") {
+    return "CLOSED";
+  }
+  if (report.incident?.status === "dispatched") return "DISPATCHED";
+  if (report.incident?.status === "responding") return "RESPONDING";
+  if (report.incident?.status === "resolved") return "RESOLVED";
+  if (report.verification_status === "pending") return "VERIFYING";
+  if (report.verification_status === "verified") return "VALIDATED";
+  if (report.verification_status === "unverified") return "UNVERIFIED";
+  if (report.verification_status === "invalid") return "INVALID";
+  return report.status.replaceAll("_", " ").toUpperCase();
+};
 
-export const reports: Report[] = reportSeeds.map((report) => ({
-  ...report,
-  barangay: getBarangayForPosition(report.position),
-}));
+export const toReport = (report: AdminReportListItem): Report => {
+  const position: [number, number] | null = report.location
+    ? [report.location.latitude, report.location.longitude]
+    : null;
+  const coordinateLabel = position
+    ? `${position[0].toFixed(5)}, ${position[1].toFixed(5)}`
+    : "Location not provided";
+  return {
+    id: report.report_id,
+    reference: `RSP-${report.report_id.slice(0, 8).toUpperCase()}`,
+    incident: report.incident_type.name,
+    location: report.location?.landmark || coordinateLabel,
+    position,
+    barangay: getBarangayForPosition(position),
+    priority: report.effective_priority.toUpperCase() as Report["priority"],
+    status: formatStatus(report),
+    time: new Intl.DateTimeFormat("en-PH", {
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date(report.received_at)),
+    receivedAt: report.received_at,
+    description: report.description_original,
+    source: report.source,
+    verificationStatus: report.verification_status,
+    incidentStatus: report.incident?.status,
+    incidentTypeId: report.incident_type.incident_type_id,
+  };
+};
 
 export const tone = (value: string) =>
   value === "CRITICAL"
     ? "red"
     : value === "HIGH"
       ? "orange"
-      : value === "MODERATE"
+      : value === "MEDIUM"
         ? "amber"
+        : value === "LOW"
+          ? "green"
         : value === "DISPATCHED"
           ? "green"
           : value === "VALIDATED"

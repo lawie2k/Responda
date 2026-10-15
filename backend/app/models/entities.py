@@ -18,7 +18,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base import Base
+from app.db.base import Base, SoftDeleteMixin
 
 
 def uuid_primary_key() -> Mapped[uuid.UUID]:
@@ -31,7 +31,7 @@ def created_at_column() -> Mapped[datetime]:
     )
 
 
-class User(Base):
+class User(SoftDeleteMixin, Base):
     __tablename__ = "users"
     __table_args__ = (
         CheckConstraint(
@@ -81,7 +81,7 @@ class OtpChallenge(Base):
     created_at: Mapped[datetime] = created_at_column()
 
 
-class IncidentType(Base):
+class IncidentType(SoftDeleteMixin, Base):
     __tablename__ = "incident_types"
     __table_args__ = (
         CheckConstraint(
@@ -101,7 +101,7 @@ class IncidentType(Base):
     updated_at: Mapped[datetime] = created_at_column()
 
 
-class Incident(Base):
+class Incident(SoftDeleteMixin, Base):
     __tablename__ = "incidents"
     __table_args__ = (
         CheckConstraint("priority IN ('critical','high','medium','low')", name="priority_valid"),
@@ -129,7 +129,7 @@ class Incident(Base):
     updated_at: Mapped[datetime] = created_at_column()
 
 
-class Report(Base):
+class Report(SoftDeleteMixin, Base):
     __tablename__ = "reports"
     __table_args__ = (
         CheckConstraint("source IN ('app_api','app_sms','manual')", name="source_valid"),
@@ -190,7 +190,7 @@ class Report(Base):
     updated_at: Mapped[datetime] = created_at_column()
 
 
-class ReportLocation(Base):
+class ReportLocation(SoftDeleteMixin, Base):
     __tablename__ = "report_locations"
     __table_args__ = (
         CheckConstraint("latitude BETWEEN -90 AND 90", name="latitude_valid"),
@@ -213,7 +213,7 @@ class ReportLocation(Base):
     captured_at: Mapped[datetime] = created_at_column()
 
 
-class ReportAttachment(Base):
+class ReportAttachment(SoftDeleteMixin, Base):
     __tablename__ = "report_attachments"
     __table_args__ = (CheckConstraint("media_type IN ('image','video')", name="media_type_valid"),)
 
@@ -299,7 +299,7 @@ class ReportReview(Base):
     reviewed_at: Mapped[datetime] = created_at_column()
 
 
-class SmsGateway(Base):
+class SmsGateway(SoftDeleteMixin, Base):
     __tablename__ = "sms_gateways"
     __table_args__ = (
         CheckConstraint("status IN ('active','inactive','offline')", name="status_valid"),
@@ -316,7 +316,7 @@ class SmsGateway(Base):
     updated_at: Mapped[datetime] = created_at_column()
 
 
-class SmsMessage(Base):
+class SmsMessage(SoftDeleteMixin, Base):
     __tablename__ = "sms_messages"
     __table_args__ = (
         UniqueConstraint("gateway_id", "provider_message_id"),
@@ -361,7 +361,7 @@ class SmsMessage(Base):
     processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
-class ResponseUnit(Base):
+class ResponseUnit(SoftDeleteMixin, Base):
     __tablename__ = "response_units"
     __table_args__ = (
         CheckConstraint(
@@ -390,7 +390,7 @@ class ResponseUnit(Base):
     updated_at: Mapped[datetime] = created_at_column()
 
 
-class ResponseAssignment(Base):
+class ResponseAssignment(SoftDeleteMixin, Base):
     __tablename__ = "response_assignments"
     __table_args__ = (
         CheckConstraint(
@@ -433,7 +433,7 @@ class ReportEvent(Base):
     created_at: Mapped[datetime] = created_at_column()
 
 
-class Notification(Base):
+class Notification(SoftDeleteMixin, Base):
     __tablename__ = "notifications"
     __table_args__ = (CheckConstraint("channel IN ('push','sms','in_app')", name="channel_valid"),)
 

@@ -225,7 +225,7 @@ export function SelectField({
 }: {
   label: string;
   value: string;
-  options: string[];
+  options: Array<string | { label: string; value: string }>;
   onChange: (value: string) => void;
 }) {
   return (
@@ -241,8 +241,11 @@ export function SelectField({
       >
         <option value="">{label}</option>
         {options.map((option) => (
-          <option value={option} key={option}>
-            {option}
+          <option
+            value={typeof option === "string" ? option : option.value}
+            key={typeof option === "string" ? option : option.value}
+          >
+            {typeof option === "string" ? option : option.label}
           </option>
         ))}
       </select>

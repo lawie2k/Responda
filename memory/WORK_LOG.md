@@ -2,13 +2,130 @@
 tags:
   - responda/memory
   - responda/work-log
-updated: 2026-10-15
+updated: 2026-10-16
 ---
 
 # Work log
 
 Keep entries short. Record outcomes and verification, not a transcript of the
 conversation.
+
+## 2026-10-16 — Connect Live Reports to incident operations
+
+- Added a protected, paginated incident-list endpoint with search, status, and
+  incident-type filters for the dashboard's existing-incident picker.
+- Added typed web API clients and loading hooks for incident reads, creation,
+  and report linking.
+- Live Reports now shows create/link controls for verified unlinked reports to
+  administrators and dispatchers, matching active incident choices, inline
+  validation and backend errors, linked-incident details, and automatic report
+  and incident refresh after success. Other staff roles remain read-only.
+- Verification: backend Ruff and strict mypy passed, all 61 backend tests
+  passed, web lint and production build passed, Alembic found no schema drift,
+  and the configured PostgreSQL incident-list query succeeded.
+- Refreshed the combined Graphify index to 2,236 nodes, 3,897 relationships,
+  and 185 communities.
+
+## 2026-10-16 — Create incidents and link verified reports
+
+- Added protected endpoints for administrators and dispatchers to create an
+  incident from a verified report or link one to an existing active incident.
+- Added row locks, last-seen report timestamps, report/incident state checks,
+  same-type enforcement, trusted-origin checks, safe errors, no-store responses,
+  report events, and audit records.
+- Explicitly flushes a new incident before updating the report foreign key while
+  keeping both changes in the same transaction.
+- Verification: backend Ruff and strict mypy passed, all 58 tests passed,
+  Alembic found no schema drift, both routes appear in OpenAPI, and a rolled-back
+  PostgreSQL test confirmed one incident, two linked reports, two events, two
+  audits, and zero temporary rows afterward.
+- Refreshed the combined Graphify index to 2,212 nodes, 3,806 relationships,
+  and 184 communities.
+
+## 2026-10-16 — Hide empty validation summaries
+
+- Hid the Overview validation alert and metric plus the Report Validation queue
+  badge when no reports need review; kept the validation page's clear empty
+  state.
+- Adjusted the Overview metric grid to use three columns when the validation
+  metric is absent.
+- Verification: web lint and production build passed.
+- Refreshed the combined Graphify index to 2,151 nodes, 3,570 relationships,
+  and 181 communities.
+
+## 2026-10-16 — Implement real report validation
+
+- Added a protected pending-report review endpoint for administrators and
+  verifiers with trusted-origin enforcement and strict payload validation.
+- Added row locking plus `updated_at` conflict detection, pending-only
+  transition checks, and atomic report/review/event/audit writes.
+- Implemented verified, unverified, and invalid decisions; verified reports
+  require confirmed location and final priority, while invalid reports close
+  without a final priority.
+- Replaced the web Report Validation demonstration queue with live pending
+  reports, protected details, staff-role behavior, real review forms, system
+  assessment data, explicit loading/error/empty states, and backend mutations.
+- Verification: backend Ruff and strict mypy passed, all 46 tests passed, web
+  lint and production build passed, and a rolled-back PostgreSQL test confirmed
+  one review/event/audit row per atomic decision plus stale-review rejection and
+  zero temporary rows remaining.
+- Refreshed the combined Graphify index to 2,151 nodes, 3,570 relationships,
+  and 180 communities after removing the obsolete validation seed data.
+
+## 2026-10-16 — Add operational soft deletion
+
+- Added a reusable `deleted_at` model mixin with soft-delete and restore methods
+  to 11 mutable operational tables.
+- Added and applied the second Alembic migration, including indexes for each
+  soft-delete timestamp; PostgreSQL is at the new migration head and Alembic
+  reports no model/schema drift.
+- Updated staff authentication and report reads so deleted users cannot log in
+  or restore sessions, deleted reports are hidden, and deleted locations,
+  linked incidents, and attachments are omitted from active reads.
+- Kept audit/processing history immutable and retained existing lifecycle fields
+  for sessions and OTP challenges.
+- Verification: Ruff and strict mypy passed, all 38 backend tests passed, and a
+  temporary transactional report became invisible after soft deletion and was
+  fully rolled back with zero temporary rows remaining.
+- Refreshed the combined Graphify index to 2,125 nodes, 3,424 relationships,
+  and 182 communities.
+
+## 2026-10-16 — Connect protected report reads to the dashboard
+
+- Added authenticated staff report-list and report-detail endpoints with capped
+  pagination, search, status/source/priority/incident filters, safe not-found
+  handling, and no-store responses.
+- Kept reporter contact information out of list responses and internal
+  attachment storage identifiers out of detail responses.
+- Replaced the dashboard's static report seed data in Overview, header search,
+  and Live Reports with backend data, including server-side filters,
+  pagination, protected detail loading, CSV export of the current page, and
+  explicit loading/error/empty states.
+- Removed the fake reporter phone number and fake ML confidence from the live
+  detail panel; values now appear only when returned by the database.
+- Verification: backend Ruff and strict mypy passed; all 35 tests passed; web
+  lint and production build passed. Direct configured-PostgreSQL list and
+  filtered queries succeeded. A temporary uncommitted report exercised the
+  real list/detail mapping and was rolled back with zero temporary rows left;
+  the database contained zero persistent reports during verification.
+- Refreshed the combined Graphify index to 2,098 nodes, 3,434 relationships,
+  and 167 communities.
+
+## 2026-10-16 — Refine the login photo position
+
+- Lowered the desktop and laptop background photo slightly while preserving the
+  title placement and mobile crop.
+- Lowered the desktop crop further after visual review.
+- Made the translucent background circles shrink at tablet and phone
+  breakpoints so they stay proportional to the smaller photo panel.
+- Affected component: `web/src/pages/Login.tsx`.
+
+## 2026-10-16 — Confirm staff-account setup
+
+- Verified without exposing identity or credentials that PostgreSQL contains
+  one active staff account with the `admin` role.
+- Staff-account setup is complete; protected admin report endpoints are the
+  next web-backend implementation group.
 
 ## 2026-10-15 — Set the staff password minimum to eight characters
 

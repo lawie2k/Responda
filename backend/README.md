@@ -75,6 +75,12 @@ The admin API exposes:
 - `POST /api/v1/admin/auth/login`
 - `GET /api/v1/admin/auth/me`
 - `POST /api/v1/admin/auth/logout`
+- `GET /api/v1/admin/reports`
+- `GET /api/v1/admin/reports/{report_id}`
+- `POST /api/v1/admin/reports/{report_id}/reviews`
+- `GET /api/v1/admin/incidents`
+- `POST /api/v1/admin/incidents`
+- `POST /api/v1/admin/incidents/{incident_id}/reports`
 
 The login response sets an opaque `HttpOnly` session cookie. Browser requests from the web app must
 include credentials. Security requirements for this and future endpoint groups are documented in
