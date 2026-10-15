@@ -1,0 +1,37 @@
+{
+  "collapse-filter": false,
+  "search": "-path:graphify-notes",
+  "showTags": true,
+  "showAttachments": false,
+  "hideUnresolved": false,
+  "showOrphans": true,
+  "collapse-color-groups": false,
+  "colorGroups": [
+    {
+      "query": "path:memory",
+      "color": {
+        "a": 1,
+        "rgb": 3978782
+      }
+    },
+    {
+      "query": "path:graphify-notes",
+      "color": {
+        "a": 1,
+        "rgb": 16737792
+      }
+    }
+  ],
+  "collapse-display": true,
+  "showArrow": true,
+  "textFadeMultiplier": 0,
+  "nodeSizeMultiplier": 1,
+  "lineSizeMultiplier": 1,
+  "collapse-forces": true,
+  "centerStrength": 0.5,
+  "repelStrength": 10,
+  "linkStrength": 1,
+  "linkDistance": 250,
+  "scale": 0.8,
+  "close": true
+}

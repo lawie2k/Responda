@@ -1,17 +1,60 @@
-# responda
+# Responda
 
-Capstone Project
+Responda is an emergency-reporting platform for Pantukan. This repository is a
+monorepo containing the citizen mobile application, shared backend, and MDRRMO
+web dashboard.
 
-## Getting Started
+## Repository structure
 
-This project is a starting point for a Flutter application.
+```text
+Responda/
+├── mobile/   Flutter citizen application
+├── backend/  Python/FastAPI API and PostgreSQL database layer
+├── web/      React/Vite MDRRMO dashboard
+├── memory/   Obsidian project memory
+└── scripts/  Project-memory and Graphify maintenance
+```
 
-A few resources to get you started if this is your first Flutter project:
+## Run locally
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Start the backend:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+cd backend
+cp .env.example .env
+make install-dev
+make migrate
+make run
+```
+
+Start the web dashboard in another terminal:
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Run the Flutter app from another terminal:
+
+```bash
+cd mobile
+flutter pub get
+flutter run
+```
+
+The backend API documentation is available at `http://127.0.0.1:8000/docs` and
+the web dashboard uses `http://localhost:5173` by default.
+
+## Project memory and code graph
+
+Start with [memory/INDEX.md](memory/INDEX.md). This repository root can also be
+opened as an Obsidian vault.
+
+Build or refresh the local Graphify code graph with:
+
+```bash
+./scripts/update-project-graph.sh all
+```
+
+Generated Graphify outputs and all private `.env` files are ignored by Git.

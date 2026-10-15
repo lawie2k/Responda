@@ -1,48 +1,45 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
+# Operating system and editors
 .DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
-
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
 .idea/
+.vscode/
+*.iml
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# Local configuration and secrets
+**/.env
+**/.env.*
+!**/.env.example
 
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
-.dart_tool/
-.flutter-plugins-dependencies
-.pub-cache/
-.pub/
-/build/
-/coverage/
+# Python
+**/.venv/
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.coverage
+**/htmlcov/
+**/*.egg-info/
 
-# Symbolication related
-app.*.symbols
+# Node
+**/node_modules/
+**/dist/
+**/dist-ssr/
+**/*.local
 
-# Obfuscation related
-app.*.map.json
+# Flutter and Dart
+mobile/.dart_tool/
+mobile/.flutter-plugins-dependencies
+mobile/.pub-cache/
+mobile/.pub/
+mobile/build/
+mobile/coverage/
+mobile/.widget_preview/
+mobile/android/.gradle/
+mobile/android/.kotlin/
+mobile/android/local.properties
+mobile/**/Flutter/.last_build_id
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
-
-# Widget Preview related
-.widget_preview/
+# Generated project knowledge graph
+.graphify-components/
+graphify-out/
+graphify-notes/

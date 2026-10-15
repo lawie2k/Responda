@@ -1,0 +1,15 @@
+const pantukanBarangays = <String>[
+  'Bongabong',
+  'Bongbong',
+  'P. Fuentes',
+  'Kingking',
+  'Magnaga',
+  'Matiao',
+  'Napnapan',
+  'Tagdangua',
+  'Tambongon',
+  'Tibagon',
+  'Las Arenas',
+  'Araibo',
+  'Tag-Ugpo',
+];

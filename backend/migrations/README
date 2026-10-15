@@ -1,0 +1,10 @@
+Responda database migrations are managed by Alembic.
+
+Create a migration after changing the SQLAlchemy models:
+    .venv/bin/alembic revision --autogenerate -m "describe the change"
+
+Apply all migrations:
+    .venv/bin/alembic upgrade head
+
+Roll back one migration:
+    .venv/bin/alembic downgrade -1
