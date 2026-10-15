@@ -14,7 +14,16 @@ const colorClasses: Record<string, string> = {
   maroon: "bg-maroon",
 };
 
-export function Overview({ go }: { go: (p: Page) => void }) {
+export function Overview({
+  go,
+  firstName,
+}: {
+  go: (p: Page) => void;
+  firstName: string;
+}) {
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+
   return (
     <>
       <div
@@ -23,7 +32,7 @@ export function Overview({ go }: { go: (p: Page) => void }) {
         }
       >
         <div>
-          <h2>Good afternoon, Maria</h2>
+          <h2>{greeting}, {firstName}</h2>
           <p>Here is the current emergency operations picture for Pantukan.</p>
         </div>
         <Badge tone="green">LIVE OPERATIONS</Badge>

@@ -22,16 +22,25 @@ npm run dev
 Open `http://localhost:5173`. The header shows **Backend connected** when FastAPI and PostgreSQL
 are healthy. Select the indicator to retry the health check.
 
-The local default API address is `http://127.0.0.1:8000`. To use another backend, copy
-`.env.example` to `.env.local` and change `VITE_RESPONDA_API_BASE_URL`.
+Unauthenticated visitors are sent to `/login`. The dashboard uses the backend's `HttpOnly` session
+cookie; it never stores a password or session token in browser storage. A successful login replaces
+the login history entry, clears session-scoped RESPONDA caches, and keeps repeated browser Back
+actions inside the authenticated dashboard. Logout revokes the backend session, clears the same
+client cache, and prevents history navigation from revealing the dashboard.
+
+The local default API address uses the same hostname as the browser on port `8000`—for example,
+`http://localhost:8000` or `http://127.0.0.1:8000`. Keeping the hostnames aligned lets the secure
+session cookie work consistently. To use another backend, copy `.env.example` to `.env.local` and
+change `VITE_RESPONDA_API_BASE_URL`.
 
 ```bash
 npm run lint
 npm run build
 ```
 
-The dashboard currently verifies the real backend connection. Its report cards and statistics still
-use demonstration data until the protected admin report endpoints are implemented.
+The dashboard now uses the real backend for health checks and staff authentication. Its report cards
+and statistics still use demonstration data until the protected admin report endpoints are
+implemented.
 
 ## React and Vite notes
 

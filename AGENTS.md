@@ -35,6 +35,26 @@ After material project work:
 - Never record passwords, API keys, tokens, `.env` values, personal IDs, phone
   numbers, or raw emergency-report content.
 
+### Explicit `save` command
+
+When the user types `save` as a standalone instruction, create a comprehensive
+but concise checkpoint of the current work:
+
+- Update `memory/CURRENT_STATE.md`, `memory/DECISIONS.md`, and
+  `memory/NEXT_STEPS.md` wherever the conversation changed them.
+- Append the completed work, verification, affected components, blockers, and
+  next action to `memory/WORK_LOG.md`.
+- Preserve all material requirements and conclusions since the previous save,
+  but do not copy the raw chat transcript.
+- Run `./scripts/check-project-memory.sh`.
+- If source code changed since the last Graphify build, refresh the affected
+  component graph, or use `./scripts/update-project-graph.sh all` when several
+  components changed.
+- Report exactly what was saved.
+
+`save` does not authorize a Git commit or remote push. Only commit or push when
+the user explicitly asks, such as `save and commit` or `save and push`.
+
 ## Graphify
 
 The combined graph is generated at `graphify-out/graph.json` and is intentionally

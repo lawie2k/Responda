@@ -60,6 +60,26 @@ curl http://127.0.0.1:8000/api/v1/shared/health
 The health response reports `database: ok` when PostgreSQL is reachable. It returns HTTP 503 with
 `database: unavailable` when the configured database cannot be reached.
 
+## Staff dashboard authentication
+
+Create the first staff account interactively after applying the migrations. The password is entered
+through a hidden prompt, must contain at least 8 characters, and is never passed as a command-line
+argument:
+
+```bash
+make create-admin ARGS='--email admin@example.com --full-name "Responda Admin" --role admin'
+```
+
+The admin API exposes:
+
+- `POST /api/v1/admin/auth/login`
+- `GET /api/v1/admin/auth/me`
+- `POST /api/v1/admin/auth/logout`
+
+The login response sets an opaque `HttpOnly` session cookie. Browser requests from the web app must
+include credentials. Security requirements for this and future endpoint groups are documented in
+[`docs/security-rules.md`](docs/security-rules.md).
+
 ## Database migrations
 
 Apply the current database schema:

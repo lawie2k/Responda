@@ -27,6 +27,17 @@ Use [[ARCHITECTURE]] for data flow and component responsibilities. Use
   personal IDs, phone numbers, or real emergency-report data.
 - Mark proposals as proposals; do not present them as implemented.
 
+## Chat save command
+
+When the user types `save`, capture every material requirement, decision,
+completed task, verification result, blocker, and next step from the current
+work into the appropriate memory notes and work log. Do not store a verbatim
+chat transcript or any secret, credential, personal identifier, phone number,
+or real emergency-report content.
+
+The `save` command updates local project memory and refreshes Graphify when
+needed. It does not commit or push unless the user explicitly asks for that.
+
 ## Generated navigation
 
 - Graphify HTML: `graphify-out/graph.html`

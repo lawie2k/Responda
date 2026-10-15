@@ -30,10 +30,41 @@ The GitHub repository uses `mobile/`, `backend/`, and `web/` as top-level
 application folders. Shared project memory and maintenance scripts remain at
 the repository root.
 
+### 2026-10-15 — Treat `save` as an explicit memory checkpoint
+
+When the user types `save`, update all relevant project-memory notes with the
+material context since the previous checkpoint and refresh Graphify when code
+changed. Exclude raw transcripts and sensitive data. Saving does not imply a
+Git commit or push.
+
 ### Backend and database — Python/FastAPI with PostgreSQL
 
 The backend uses Python 3.13, FastAPI, async SQLAlchemy, Alembic, and PostgreSQL.
 Mobile and web share the backend while keeping separate API namespaces.
+
+### 2026-10-15 — Use revocable opaque sessions for the staff dashboard
+
+- Staff passwords use Argon2id.
+- Staff passwords require at least 8 characters.
+- The browser receives a random session token only in an `HttpOnly`,
+  `SameSite=Lax` cookie; PostgreSQL stores only the token hash.
+- Staff login is limited per IP address and normalized email, with generic
+  invalid-credential responses and authentication audit records.
+- The current in-process limiter is approved only for a single API process and
+  must move to a shared store before multi-worker or multi-instance deployment.
+- `backend/docs/security-rules.md` is the required baseline for future major
+  endpoint groups.
+
+### 2026-10-15 — Guard authenticated dashboard history
+
+- The web application cannot disable the browser Back control, so it uses
+  replace-state navigation plus an authenticated history guard.
+- Repeated Back actions stay on the dashboard while a session is active.
+- After logout, the backend session is revoked and history navigation cannot
+  reveal protected dashboard content.
+- Session-scoped storage and RESPONDA Cache Storage entries are cleared when a
+  user logs in or out; organization settings in persistent local storage are
+  not erased as part of session handling.
 
 ### Separate reports from confirmed incidents
 

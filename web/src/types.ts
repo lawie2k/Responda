@@ -32,4 +32,9 @@ export type IconName =
   | "truck"
   | "download"
   | "check"
-  | "menu";
+  | "menu"
+  | "mail"
+  | "lock"
+  | "eye"
+  | "eyeOff"
+  | "logout";

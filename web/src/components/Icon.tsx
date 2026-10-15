@@ -110,6 +110,35 @@ const paths: Record<IconName, ReactNode> = {
   ),
   check: <path d="m5 12 4 4L19 6" />,
   menu: <path d="M4 7h16M4 12h16M4 17h16" />,
+  mail: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m4 7 8 6 8-6" />
+    </>
+  ),
+  lock: (
+    <>
+      <rect x="4" y="10" width="16" height="11" rx="2" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+    </>
+  ),
+  eye: (
+    <>
+      <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
+      <circle cx="12" cy="12" r="2.5" />
+    </>
+  ),
+  eyeOff: (
+    <>
+      <path d="m3 3 18 18M10.6 6.2A10.8 10.8 0 0 1 12 6c6.5 0 10 6 10 6a17 17 0 0 1-3 3.7M6.2 6.2C3.5 8 2 12 2 12s3.5 6 10 6a10 10 0 0 0 3-.4" />
+    </>
+  ),
+  logout: (
+    <>
+      <path d="M10 17l5-5-5-5M15 12H3" />
+      <path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5" />
+    </>
+  ),
 };
 export function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
   return (

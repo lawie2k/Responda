@@ -31,6 +31,13 @@ class Settings(BaseSettings):
     database_pool_size: int = Field(default=5, ge=1)
     database_max_overflow: int = Field(default=10, ge=0)
     database_connect_timeout_seconds: int = Field(default=5, ge=1, le=60)
+    admin_session_cookie_name: str = "responda_admin_session"
+    admin_session_cookie_secure: bool = False
+    admin_session_ttl_seconds: int = Field(default=8 * 60 * 60, ge=300, le=7 * 24 * 60 * 60)
+    admin_max_sessions_per_user: int = Field(default=5, ge=1, le=20)
+    admin_login_rate_limit_attempts: int = Field(default=5, ge=1, le=100)
+    admin_login_rate_limit_window_seconds: int = Field(default=60, ge=10, le=3600)
+    trust_proxy_headers: bool = False
     allowed_origins: list[str] = Field(
         default_factory=lambda: [
             "http://localhost:3000",
@@ -50,11 +57,18 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_deployment_settings(self) -> "Settings":
+        if "*" in self.allowed_origins:
+            raise ValueError("Wildcard CORS origins are not allowed when credentials are enabled")
         if self.environment in {Environment.STAGING, Environment.PRODUCTION}:
-            if self.secret_key.get_secret_value() == "development-only-change-me":
+            secret_key = self.secret_key.get_secret_value()
+            if secret_key == "development-only-change-me" or len(secret_key) < 32:
                 raise ValueError("A secure secret key is required outside development and testing")
             if self.debug:
                 raise ValueError("Debug mode must be disabled outside development and testing")
+            if not self.admin_session_cookie_secure:
+                raise ValueError(
+                    "Secure admin session cookies are required outside local environments"
+                )
         return self
 
 

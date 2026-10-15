@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { AdminSession } from "./api/respondaApi";
+import respondaLogo from "./assets/responda-logo.png";
 import { BackendStatus } from "./components/BackendStatus";
 import { Icon } from "./components/Icon";
 import { ReportModal } from "./components/ReportModal";
@@ -12,9 +14,11 @@ import { HistoricalRecords } from "./pages/HistoricalRecords";
 import { IncidentMap } from "./pages/IncidentMap";
 import { LiveReports } from "./pages/LiveReports";
 import { Overview } from "./pages/Overview";
+import { Login } from "./pages/Login";
 import { ReportValidation } from "./pages/ReportValidation";
 import { ResponseTeams } from "./pages/ResponseTeams";
 import { Settings } from "./pages/Settings";
+import { useAdminSession } from "./hooks/useAdminSession";
 import type { Page } from "./types";
 
 type Notification = {
@@ -27,6 +31,51 @@ type Notification = {
 };
 
 export default function App() {
+  const { state, login, logout } = useAdminSession();
+
+  if (state.status === "checking") {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[#f7f4f5]">
+        <div className="grid justify-items-center gap-4 text-center">
+          <span className="grid size-16 place-items-center rounded-[20px] bg-white p-2.5 shadow-[0_14px_38px_rgba(84,19,29,.12)]">
+            <img
+              src={respondaLogo}
+              alt="RESPONDA logo"
+              className="size-full object-contain"
+            />
+          </span>
+          <div>
+            <b className="block text-sm tracking-[.08em] text-deep">RESPONDA</b>
+            <span className="mt-1 block text-[9px] text-muted">
+              Verifying secure session…
+            </span>
+          </div>
+          <i className="size-5 animate-spin rounded-full border-2 border-maroon/20 border-t-maroon" />
+        </div>
+      </main>
+    );
+  }
+
+  if (state.status === "signed-out") {
+    return <Login onLogin={login} />;
+  }
+
+  return (
+    <Dashboard
+      key={`${state.session.user.user_id}:${state.session.expires_at}`}
+      session={state.session}
+      onLogout={logout}
+    />
+  );
+}
+
+function Dashboard({
+  session,
+  onLogout,
+}: {
+  session: AdminSession;
+  onLogout: () => Promise<void>;
+}) {
   const [page, setPage] = useState<Page>("Overview");
   const [query, setQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -113,6 +162,8 @@ export default function App() {
         go={setPage}
         open={sidebarOpen}
         close={() => setSidebarOpen(false)}
+        user={session.user}
+        onLogout={onLogout}
       />
       <main
         className={
@@ -345,7 +396,12 @@ export default function App() {
             "mx-auto flex max-w-[1600px] flex-col gap-4 px-7 py-6 pb-9 max-[1100px]:px-4 max-[1100px]:py-5 max-[650px]:px-3 max-[650px]:py-4"
           }
         >
-          {page === "Overview" && <Overview go={setPage} />}
+          {page === "Overview" && (
+            <Overview
+              go={setPage}
+              firstName={session.user.full_name.split(/\s+/)[0] || "Staff"}
+            />
+          )}
           {page === "Live Reports" && (
             <LiveReports
               query={query}

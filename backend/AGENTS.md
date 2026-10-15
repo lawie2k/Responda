@@ -6,6 +6,7 @@ Before backend work, read the monorepo instructions and current project state:
 - `../memory/INDEX.md`
 - `../memory/CURRENT_STATE.md`
 - `../memory/DECISIONS.md`
+- `docs/security-rules.md` before authentication, authorization, ingestion, or other major API work
 
 Use the combined code graph before broad codebase searches:
 

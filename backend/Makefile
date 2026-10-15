@@ -1,7 +1,7 @@
 PYTHON := .venv/bin/python
 PIP := $(PYTHON) -m pip
 
-.PHONY: venv install install-dev run run-mobile test lint format typecheck migrate migration check
+.PHONY: venv install install-dev run run-mobile create-admin test lint format typecheck migrate migration check
 
 venv: .venv/bin/python
 
@@ -21,6 +21,9 @@ run:
 
 run-mobile:
 	$(PYTHON) -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+create-admin:
+	$(PYTHON) -m app.cli.create_admin $(ARGS)
 
 test:
 	$(PYTHON) -m pytest

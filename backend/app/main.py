@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from app.api.v1.router import api_router
 from app.core.config import Settings, get_settings
 from app.core.exceptions import ApplicationError
+from app.core.rate_limit import LoginRateLimiter
 from app.db.session import create_database_engine, create_session_factory
 
 logger = logging.getLogger(__name__)
@@ -35,6 +36,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.state.settings = current_settings
     application.state.database_engine = database_engine
     application.state.database_session_factory = create_session_factory(database_engine)
+    application.state.admin_login_rate_limiter = LoginRateLimiter(
+        max_attempts=current_settings.admin_login_rate_limit_attempts,
+        window_seconds=current_settings.admin_login_rate_limit_window_seconds,
+        secret_key=current_settings.secret_key.get_secret_value(),
+    )
     application.add_middleware(
         CORSMiddleware,
         allow_origins=current_settings.allowed_origins,
@@ -57,7 +63,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             error_payload = payload["error"]
             if isinstance(error_payload, dict):
                 error_payload["details"] = error.details
-        return JSONResponse(status_code=error.status_code, content=payload)
+        return JSONResponse(
+            status_code=error.status_code,
+            content=payload,
+            headers=error.headers,
+        )
 
     @application.exception_handler(Exception)
     async def handle_unexpected_error(request: Request, error: Exception) -> JSONResponse:

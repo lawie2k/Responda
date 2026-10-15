@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "alembic==1.20.0",
+    "argon2-cffi==25.1.0",
     "fastapi==0.142.2",
     "psycopg[binary,pool]==3.3.6",
     "pydantic-settings==2.15.0",

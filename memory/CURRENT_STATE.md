@@ -14,14 +14,29 @@ updated: 2026-10-15
 - PostgreSQL is configured locally through a private `.env` file.
 - The initial Alembic migration and 18 SQLAlchemy tables exist.
 - The shared health endpoint checks application and database availability.
-- Mobile and admin router namespaces exist, but the actual reporting,
-  authentication, review, dispatch, and notification APIs are not implemented.
+- Admin staff authentication now provides login, current-session, and logout
+  endpoints under `/api/v1/admin/auth`. It uses Argon2id password hashes,
+  an 8-character minimum, revocable hashed opaque sessions in `HttpOnly`
+  cookies, login throttling, origin checks, active-account and staff-role
+  checks, session limits, and audit records.
+- Reporting, review, dispatch, gateway ingestion, and notification APIs are not
+  implemented yet.
 - The strict app-only SMS acceptance policy is documented and represented in
   the schema; gateway ingestion and signature verification are not implemented.
 
 ## Web dashboard
 
-- The React/Vite dashboard can call the backend health endpoint and display
+- The React/Vite dashboard has a responsive staff login page wired to the real
+  admin login, session, and logout endpoints. Its left hero panel uses the
+  supplied MDRRMO Operation Center photo with a responsive maroon treatment.
+- It restores valid `HttpOnly` cookie sessions on reload, clears session-scoped
+  client caches on login/logout, displays the authenticated staff identity, and
+  guards browser history so repeated Back actions do not show the login page
+  while signed in or reveal the dashboard after logout.
+- The bottom-left staff profile is an interactive account menu showing the real
+  authenticated name, email, and role, with a clear server-backed sign-out
+  action plus outside-click and Escape-key dismissal.
+- The dashboard also calls the backend health endpoint and displays
   `Backend connected` when FastAPI and PostgreSQL are available.
 - Report cards, statistics, and operational dashboard content still use
   demonstration data until protected admin APIs are implemented.
@@ -38,9 +53,12 @@ updated: 2026-10-15
 
 ## Verification history
 
-- In the preceding backend phase, the backend suite reported 14 passing tests.
+- The latest staff-authentication backend phase passed Ruff, strict mypy, and
+  all 30
+  tests.
 - The web connection change passed lint and production build, and the running
-  page displayed `Backend connected`.
+  page displayed `Backend connected`. The later login-page phase also passed
+  web lint and production build and was verified in a real browser.
 - Treat these as historical results; rerun component checks after new changes.
 
 ## Repository and project-memory setup
@@ -51,7 +69,7 @@ updated: 2026-10-15
 - Human-written project memory is in `memory/`.
 - Graphify indexes code from backend, web, mobile, and the monorepo root into one
   combined graph.
-- The monorepo graph contains 1,894 code nodes, 2,864 relationships, and 155
+- The monorepo graph contains 2,010 code nodes, 3,179 relationships, and 161
   detected communities. Generated graph artifacts remain local and ignored.
 - `AGENTS.md` directs future coding sessions to read memory and query Graphify
   before broad filesystem searches.

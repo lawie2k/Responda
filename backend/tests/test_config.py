@@ -28,3 +28,8 @@ def test_environment_variables_override_defaults(monkeypatch: MonkeyPatch) -> No
 def test_production_rejects_development_security_defaults() -> None:
     with raises(ValidationError):
         Settings(environment=Environment.PRODUCTION, debug=False, _env_file=None)
+
+
+def test_wildcard_cors_origin_is_rejected_with_credentials() -> None:
+    with raises(ValidationError):
+        Settings(allowed_origins=["*"], _env_file=None)
