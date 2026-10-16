@@ -114,7 +114,7 @@ conversation.
   administrator roster controls.
 - Verification: web lint and production build passed.
 - Refreshed the combined Graphify index to 2,503 nodes, 4,590 relationships,
-  and 187 communities.
+  and 186 communities.
 
 ## 2026-10-16 — Add administrator response-unit roster management
 

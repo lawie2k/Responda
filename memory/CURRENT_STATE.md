@@ -184,7 +184,7 @@ updated: 2026-10-16
 - Graphify indexes code from backend, web, mobile, and the monorepo root into one
   combined graph.
 - The combined graph currently contains 2,503 code nodes, 4,590 relationships,
-  and 187 detected communities. Generated graph artifacts remain local and
+  and 186 detected communities. Generated graph artifacts remain local and
   ignored.
 - `AGENTS.md` directs future coding sessions to read memory and query Graphify
   before broad filesystem searches.
