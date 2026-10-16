@@ -25,6 +25,9 @@ from app.models import (
     User,
 )
 from app.schemas.admin_reports import (
+    AdminIncidentTypeListResponse,
+    AdminManualReportCreateRequest,
+    AdminManualReportCreateResult,
     AdminReportDetailResponse,
     AdminReportListItem,
     AdminReportListResponse,
@@ -33,6 +36,7 @@ from app.schemas.admin_reports import (
     IncidentStatusValue,
     IncidentSummary,
     IncidentTypeSummary,
+    ManualIntakeChannelValue,
     PriorityAssessmentResponse,
     PriorityValue,
     ReportAttachmentResponse,
@@ -63,6 +67,130 @@ class AdminReportFilters:
 class AdminReportService:
     def __init__(self, database: AsyncSession) -> None:
         self._database = database
+
+    async def list_active_incident_types(self) -> AdminIncidentTypeListResponse:
+        result = await self._database.execute(
+            select(IncidentType)
+            .where(
+                IncidentType.active.is_(True),
+                IncidentType.deleted_at.is_(None),
+            )
+            .order_by(IncidentType.name.asc(), IncidentType.incident_type_id.asc())
+        )
+        return AdminIncidentTypeListResponse(
+            items=[
+                IncidentTypeSummary(
+                    incident_type_id=incident_type.incident_type_id,
+                    code=incident_type.code,
+                    name=incident_type.name,
+                )
+                for incident_type in result.scalars()
+            ]
+        )
+
+    async def create_manual_report(
+        self,
+        *,
+        staff_id: uuid.UUID,
+        payload: AdminManualReportCreateRequest,
+        ip_address: str,
+    ) -> AdminManualReportCreateResult:
+        incident_type_result = await self._database.execute(
+            select(IncidentType).where(
+                IncidentType.incident_type_id == payload.incident_type_id,
+                IncidentType.active.is_(True),
+                IncidentType.deleted_at.is_(None),
+            )
+        )
+        incident_type = incident_type_result.scalar_one_or_none()
+        if incident_type is None:
+            raise ApplicationError(
+                "Select an active incident type.",
+                code="incident_type_not_found",
+                status_code=404,
+            )
+
+        reporter_result = await self._database.execute(
+            select(User).where(User.phone_number == payload.reporter_contact)
+        )
+        reporter = reporter_result.scalar_one_or_none()
+        now = datetime.now(UTC)
+        if reporter is None:
+            reporter = User(
+                user_id=uuid.uuid4(),
+                full_name="Unidentified reporter",
+                phone_number=payload.reporter_contact,
+                role="reporter",
+                is_active=True,
+                created_at=now,
+                updated_at=now,
+            )
+            self._database.add(reporter)
+            await self._database.flush()
+
+        report = Report(
+            report_id=uuid.uuid4(),
+            reporter_id=reporter.user_id,
+            incident_type_id=incident_type.incident_type_id,
+            source="manual",
+            manual_intake_channel=payload.intake_channel,
+            description_original=payload.description,
+            people_need_help=payload.people_need_help,
+            additional_assistance=payload.additional_assistance,
+            immediate_danger=payload.immediate_danger,
+            verification_status="pending",
+            status="new",
+            received_at=now,
+            updated_at=now,
+        )
+        event_data = {
+            "source": "manual",
+            "intake_channel": payload.intake_channel,
+            "people_need_help": payload.people_need_help,
+            "additional_assistance": payload.additional_assistance,
+            "immediate_danger": payload.immediate_danger,
+        }
+        self._database.add_all(
+            [
+                report,
+                ReportLocation(
+                    location_id=uuid.uuid4(),
+                    report_id=report.report_id,
+                    landmark=payload.location,
+                    source="manual",
+                    captured_at=now,
+                ),
+                ReportEvent(
+                    report_id=report.report_id,
+                    actor_user_id=staff_id,
+                    event_type="report.created",
+                    event_data=json.dumps(event_data),
+                    created_at=now,
+                ),
+                AuditLog(
+                    actor_user_id=staff_id,
+                    action="report.manual.created",
+                    entity_type="report",
+                    entity_id=report.report_id,
+                    details=json.dumps(
+                        {
+                            "source": "manual",
+                            "intake_channel": payload.intake_channel,
+                            "incident_type_id": str(incident_type.incident_type_id),
+                        }
+                    ),
+                    ip_address=ip_address,
+                    created_at=now,
+                ),
+            ]
+        )
+        await self._database.commit()
+        return AdminManualReportCreateResult(
+            report_id=report.report_id,
+            verification_status="pending",
+            report_status="new",
+            received_at=now,
+        )
 
     async def list_reports(self, filters: AdminReportFilters) -> AdminReportListResponse:
         conditions = self._build_conditions(filters)
@@ -341,9 +469,13 @@ class AdminReportService:
                 else None
             ),
             source=cast(ReportSourceValue, report.source),
+            manual_intake_channel=cast(
+                ManualIntakeChannelValue | None, report.manual_intake_channel
+            ),
             description_original=report.description_original,
             original_language=report.original_language,
             people_need_help=report.people_need_help,
+            additional_assistance=report.additional_assistance,
             immediate_danger=report.immediate_danger,
             suggested_priority=cast(PriorityValue | None, report.suggested_priority),
             final_priority=cast(PriorityValue | None, report.final_priority),
@@ -352,8 +484,10 @@ class AdminReportService:
             status=cast(ReportStatusValue, report.status),
             location=(
                 ReportLocationResponse(
-                    latitude=float(location.latitude),
-                    longitude=float(location.longitude),
+                    latitude=(float(location.latitude) if location.latitude is not None else None),
+                    longitude=(
+                        float(location.longitude) if location.longitude is not None else None
+                    ),
                     accuracy_meters=(
                         float(location.accuracy_meters)
                         if location.accuracy_meters is not None

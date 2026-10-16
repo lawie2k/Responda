@@ -12,6 +12,9 @@ from app.api.dependencies import (
 from app.core.exceptions import ApplicationError
 from app.models.enums import ADMINISTRATOR_ROLES
 from app.schemas.admin_reports import (
+    AdminIncidentTypeListResponse,
+    AdminManualReportCreateRequest,
+    AdminManualReportCreateResult,
     AdminReportDetailResponse,
     AdminReportListResponse,
     AdminReportReviewRequest,
@@ -39,6 +42,15 @@ def _require_report_reviewer(current: AuthenticatedAdmin) -> None:
         raise ApplicationError(
             "This staff account cannot review reports.",
             code="report_review_forbidden",
+            status_code=403,
+        )
+
+
+def _require_report_manager(current: AuthenticatedAdmin) -> None:
+    if current.user.role not in ADMINISTRATOR_ROLES:
+        raise ApplicationError(
+            "This staff account cannot create reports.",
+            code="report_creation_forbidden",
             status_code=403,
         )
 
@@ -87,6 +99,49 @@ async def list_reports(
             incident_type_id=incident_type_id,
             sort=sort,
         )
+    )
+
+
+@router.get(
+    "/incident-types",
+    response_model=AdminIncidentTypeListResponse,
+    status_code=status.HTTP_200_OK,
+    summary="List active incident types for manual report intake",
+)
+async def list_incident_types(
+    response: Response,
+    current: CurrentAdmin,
+    service: AdminReportServiceDependency,
+) -> AdminIncidentTypeListResponse:
+    del current
+    _prevent_response_caching(response)
+    return await service.list_active_incident_types()
+
+
+@router.post(
+    "",
+    response_model=AdminManualReportCreateResult,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_trusted_origin)],
+    summary="Create a manually received report",
+)
+async def create_manual_report(
+    payload: AdminManualReportCreateRequest,
+    request: Request,
+    response: Response,
+    current: CurrentAdmin,
+    service: AdminReportServiceDependency,
+    settings: SettingsDependency,
+) -> AdminManualReportCreateResult:
+    _prevent_response_caching(response)
+    _require_report_manager(current)
+    return await service.create_manual_report(
+        staff_id=current.user.user_id,
+        payload=payload,
+        ip_address=_client_ip(
+            request,
+            trust_proxy_headers=bool(settings.trust_proxy_headers),
+        ),
     )
 
 

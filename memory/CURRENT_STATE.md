@@ -12,8 +12,8 @@ updated: 2026-10-16
 - The FastAPI project structure, configuration, exception handling, CORS, async
   database session setup, and `/api/v1` router separation exist.
 - PostgreSQL is configured locally through a private `.env` file.
-- Four Alembic migrations and 18 SQLAlchemy tables exist. The database is at
-  the response-assignment lifecycle migration head.
+- Five Alembic migrations and 18 SQLAlchemy tables exist. The database is at
+  the manual-report intake migration head.
 - Mutable operational records use indexed nullable `deleted_at` timestamps:
   users, incident types, incidents, reports, report locations, report
   attachments, SMS gateways/messages, response units/assignments, and
@@ -38,6 +38,12 @@ updated: 2026-10-16
   errors, and no-store responses. List responses exclude reporter contact data;
   protected detail responses include it but do not expose attachment storage
   keys or checksums.
+- Super Admin and Administrator accounts can now encode manual reports through
+  a protected endpoint. It loads active database incident types, normalizes the
+  reporter phone, records the offline intake channel and three safety answers,
+  supports a written location without invented GPS coordinates, and commits the
+  caller, report, location, event, and privacy-minimized audit record together.
+  Six canonical incident types are seeded for the current web and Flutter flows.
 - A protected report-review endpoint allows Super Admin and Administrator
   accounts to decide pending reports. Each decision locks and version-checks
   the report, updates verification/final-priority state, and creates a review,
@@ -89,6 +95,11 @@ updated: 2026-10-16
   design system: warm neutral flat surfaces, one maroon brand accent, semantic
   colors only for operational states, stronger content hierarchy, flat
   navigation/tabs/tables/controls, and shadows reserved for floating overlays.
+- The Encode a Report modal is connected to PostgreSQL. It loads real incident
+  types, submits validated manual reports with loading/error states, prevents
+  duplicate clicks, confirms success, opens Live Reports, and refreshes both
+  dashboard and queue data. Written manual locations remain visible even when
+  no coordinates were provided.
 - Normal Administrators receive the operational workspace but cannot navigate
   to or discover the system Settings page; that configuration surface remains
   Super Admin-only.
@@ -121,6 +132,11 @@ updated: 2026-10-16
 ## Mobile app
 
 - The active mobile codebase is Flutter, not React Native.
+- The approved citizen-account flow is phone number plus OTP verification,
+  followed by optional name and barangay fields. Government-ID upload, face
+  capture, and identity-review approval are no longer part of the product flow;
+  their existing Flutter screens are legacy UI to remove during account
+  integration.
 - It has a backend health client and environment-aware base URLs, including the
   Android emulator host address.
 - The application contains onboarding, connectivity handling, reporting flows,
@@ -129,6 +145,12 @@ updated: 2026-10-16
   wired end to end.
 
 ## Verification history
+
+- Manual report intake passed backend Ruff, strict mypy, and all 107 tests plus
+  web lint and production build. PostgreSQL is at the new migration head with
+  no schema drift and six active incident types. A rolled-back database
+  rehearsal created exactly one caller, report, written location, event, and
+  audit row, then confirmed no verification rows remained.
 
 - A repository cleanup removed unused Vite/React template artwork, four
   unreferenced Flutter SVGs, one dead shared web component, five unused web
@@ -183,8 +205,8 @@ updated: 2026-10-16
 - Human-written project memory is in `memory/`.
 - Graphify indexes code from backend, web, mobile, and the monorepo root into one
   combined graph.
-- The combined graph currently contains 2,503 code nodes, 4,590 relationships,
-  and 186 detected communities. Generated graph artifacts remain local and
+- The combined graph currently contains 2,537 code nodes, 4,731 relationships,
+  and 214 detected communities. Generated graph artifacts remain local and
   ignored.
 - `AGENTS.md` directs future coding sessions to read memory and query Graphify
   before broad filesystem searches.

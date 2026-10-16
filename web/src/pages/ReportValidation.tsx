@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import {
   reviewAdminReport,
   type AdminUser,
+  type ManualIntakeChannel,
   type ReportPriority,
 } from "../api/respondaApi";
 import { Icon } from "../components/Icon";
@@ -48,12 +49,18 @@ const emptyForm = (report: Report): ReviewForm => ({
 const mapPriority = (priority: Report["priority"]): MapPoint["priority"] =>
   priority === "CRITICAL" ? "Critical" : priority === "HIGH" ? "High" : "Moderate";
 
-const sourceLabel = (source: Report["source"]) =>
-  source === "app_api"
-    ? "Mobile app (online)"
-    : source === "app_sms"
-      ? "Mobile app (SMS)"
-      : "Manually encoded";
+const sourceLabel = (
+  source: Report["source"],
+  manualChannel?: ManualIntakeChannel | null,
+) => {
+  if (source === "app_api") return "Mobile app (online)";
+  if (source === "app_sms") return "Mobile app (SMS)";
+  if (manualChannel === "phone_call") return "Phone call";
+  if (manualChannel === "walk_in") return "Walk-in";
+  if (manualChannel === "radio_communication") return "Radio communication";
+  if (manualChannel === "other_offline") return "Other offline source";
+  return "Manually encoded";
+};
 
 export function ReportValidation({
   selectedReportId,
@@ -355,10 +362,21 @@ export function ReportValidation({
                           detail.data.people_need_help ? "Yes" : "No",
                         ],
                         [
+                          "Additional assistance",
+                          detail.data.additional_assistance ? "Yes" : "No",
+                        ],
+                        [
                           "Immediate danger",
                           detail.data.immediate_danger ? "Yes" : "No",
                         ],
                         ["Location", selected.location],
+                        [
+                          "Submitted via",
+                          sourceLabel(
+                            selected.source,
+                            detail.data.manual_intake_channel,
+                          ),
+                        ],
                       ].map(([label, value]) => (
                         <div key={label}>
                           <span>{label}</span>

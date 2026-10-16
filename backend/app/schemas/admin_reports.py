@@ -2,19 +2,24 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 PriorityValue = Literal["critical", "high", "medium", "low"]
 ReportSourceValue = Literal["app_api", "app_sms", "manual"]
 VerificationStatusValue = Literal["pending", "verified", "unverified", "invalid"]
 ReportStatusValue = Literal["new", "under_review", "linked", "closed"]
 IncidentStatusValue = Literal["open", "dispatched", "responding", "resolved", "closed"]
+ManualIntakeChannelValue = Literal["phone_call", "walk_in", "radio_communication", "other_offline"]
 
 
 class IncidentTypeSummary(BaseModel):
     incident_type_id: uuid.UUID
     code: str
     name: str
+
+
+class AdminIncidentTypeListResponse(BaseModel):
+    items: list[IncidentTypeSummary]
 
 
 class IncidentSummary(BaseModel):
@@ -25,8 +30,8 @@ class IncidentSummary(BaseModel):
 
 
 class ReportLocationResponse(BaseModel):
-    latitude: float
-    longitude: float
+    latitude: float | None
+    longitude: float | None
     accuracy_meters: float | None
     landmark: str | None
     source: Literal["gps", "manual"]
@@ -39,9 +44,11 @@ class AdminReportListItem(BaseModel):
     incident_type: IncidentTypeSummary
     incident: IncidentSummary | None
     source: ReportSourceValue
+    manual_intake_channel: ManualIntakeChannelValue | None
     description_original: str
     original_language: str | None
     people_need_help: bool
+    additional_assistance: bool
     immediate_danger: bool
     suggested_priority: PriorityValue | None
     final_priority: PriorityValue | None
@@ -146,3 +153,42 @@ class AdminReportReviewResult(BaseModel):
     report_status: ReportStatusValue
     final_priority: PriorityValue | None
     reviewed_at: datetime
+
+
+class AdminManualReportCreateRequest(BaseModel):
+    incident_type_id: uuid.UUID
+    location: str = Field(min_length=1, max_length=255)
+    reporter_contact: str = Field(min_length=7, max_length=30)
+    intake_channel: ManualIntakeChannelValue
+    description: str = Field(min_length=10, max_length=5000)
+    people_need_help: bool
+    additional_assistance: bool
+    immediate_danger: bool
+
+    @field_validator("location", "description")
+    @classmethod
+    def normalize_required_text(cls, value: str) -> str:
+        normalized = " ".join(value.split())
+        if not normalized:
+            raise ValueError("Manual report fields cannot be empty")
+        return normalized
+
+    @field_validator("reporter_contact")
+    @classmethod
+    def normalize_reporter_contact(cls, value: str) -> str:
+        compact = "".join(character for character in value.strip() if character not in " -()")
+        if compact.startswith("09") and len(compact) == 11:
+            compact = f"+63{compact[1:]}"
+        elif compact.startswith("639") and len(compact) == 12:
+            compact = f"+{compact}"
+        digits = compact[1:] if compact.startswith("+") else compact
+        if not digits.isdigit() or not 7 <= len(digits) <= 15:
+            raise ValueError("Enter a valid reporter phone number")
+        return compact
+
+
+class AdminManualReportCreateResult(BaseModel):
+    report_id: uuid.UUID
+    verification_status: VerificationStatusValue
+    report_status: ReportStatusValue
+    received_at: datetime

@@ -9,6 +9,9 @@ from app.core.exceptions import ApplicationError
 from app.main import create_app
 from app.models import AuthSession, User
 from app.schemas.admin_reports import (
+    AdminIncidentTypeListResponse,
+    AdminManualReportCreateRequest,
+    AdminManualReportCreateResult,
     AdminReportDetailResponse,
     AdminReportListItem,
     AdminReportListResponse,
@@ -56,6 +59,33 @@ class FakeAdminReportService:
     def __init__(self) -> None:
         self.filters: AdminReportFilters | None = None
         self.review_call: tuple[uuid.UUID, uuid.UUID, AdminReportReviewRequest, str] | None = None
+        self.create_call: tuple[uuid.UUID, AdminManualReportCreateRequest, str] | None = None
+
+    async def list_active_incident_types(self) -> AdminIncidentTypeListResponse:
+        return AdminIncidentTypeListResponse(
+            items=[
+                IncidentTypeSummary(
+                    incident_type_id=INCIDENT_TYPE_ID,
+                    code="fire",
+                    name="Fire",
+                )
+            ]
+        )
+
+    async def create_manual_report(
+        self,
+        *,
+        staff_id: uuid.UUID,
+        payload: AdminManualReportCreateRequest,
+        ip_address: str,
+    ) -> AdminManualReportCreateResult:
+        self.create_call = (staff_id, payload, ip_address)
+        return AdminManualReportCreateResult(
+            report_id=REPORT_ID,
+            verification_status="pending",
+            report_status="new",
+            received_at=datetime.now(UTC),
+        )
 
     async def list_reports(self, filters: AdminReportFilters) -> AdminReportListResponse:
         self.filters = filters
@@ -119,9 +149,11 @@ def build_report_item() -> AdminReportListItem:
         ),
         incident=None,
         source="app_api",
+        manual_intake_channel=None,
         description_original="Smoke is visible from a nearby house.",
         original_language="en",
         people_need_help=True,
+        additional_assistance=False,
         immediate_danger=True,
         suggested_priority="critical",
         final_priority=None,
@@ -219,6 +251,145 @@ def test_report_list_rejects_oversized_pages() -> None:
 
     assert response.status_code == 422
     assert report_service.filters is None
+
+
+def test_incident_type_list_returns_active_choices() -> None:
+    auth_service = FakeAdminAuthService()
+    report_service = FakeAdminReportService()
+
+    with build_test_client(auth_service, report_service) as client:
+        client.cookies.set(
+            "responda_admin_session",
+            auth_service.token,
+            path="/api/v1/admin",
+        )
+        response = client.get("/api/v1/admin/reports/incident-types")
+
+    assert response.status_code == 200
+    assert response.json()["items"][0]["incident_type_id"] == str(INCIDENT_TYPE_ID)
+    assert response.headers["cache-control"] == "no-store, max-age=0"
+
+
+def test_operations_admin_can_create_a_manual_report() -> None:
+    auth_service = FakeAdminAuthService(role="operations_admin")
+    report_service = FakeAdminReportService()
+
+    with build_test_client(auth_service, report_service) as client:
+        client.cookies.set(
+            "responda_admin_session",
+            auth_service.token,
+            path="/api/v1/admin",
+        )
+        response = client.post(
+            "/api/v1/admin/reports",
+            headers={"Origin": "http://localhost:5173"},
+            json={
+                "incident_type_id": str(INCIDENT_TYPE_ID),
+                "location": "Municipal road near the public market",
+                "reporter_contact": "0917 000 0000",
+                "intake_channel": "phone_call",
+                "description": "A vehicle collision is blocking both lanes.",
+                "people_need_help": True,
+                "additional_assistance": False,
+                "immediate_danger": True,
+            },
+        )
+
+    assert response.status_code == 201
+    assert response.json()["report_id"] == str(REPORT_ID)
+    assert response.headers["cache-control"] == "no-store, max-age=0"
+    assert report_service.create_call is not None
+    assert report_service.create_call[0] == auth_service.user.user_id
+    assert report_service.create_call[1].reporter_contact == "+639170000000"
+
+
+def test_manual_report_rejects_invalid_contact_input() -> None:
+    auth_service = FakeAdminAuthService(role="operations_admin")
+    report_service = FakeAdminReportService()
+
+    with build_test_client(auth_service, report_service) as client:
+        client.cookies.set(
+            "responda_admin_session",
+            auth_service.token,
+            path="/api/v1/admin",
+        )
+        response = client.post(
+            "/api/v1/admin/reports",
+            headers={"Origin": "http://localhost:5173"},
+            json={
+                "incident_type_id": str(INCIDENT_TYPE_ID),
+                "location": "Public market",
+                "reporter_contact": "unknown",
+                "intake_channel": "walk_in",
+                "description": "A person needs emergency assistance.",
+                "people_need_help": True,
+                "additional_assistance": True,
+                "immediate_danger": False,
+            },
+        )
+
+    assert response.status_code == 422
+    assert report_service.create_call is None
+
+
+def test_viewer_cannot_create_manual_reports() -> None:
+    auth_service = FakeAdminAuthService(role="viewer")
+    report_service = FakeAdminReportService()
+
+    with build_test_client(auth_service, report_service) as client:
+        client.cookies.set(
+            "responda_admin_session",
+            auth_service.token,
+            path="/api/v1/admin",
+        )
+        response = client.post(
+            "/api/v1/admin/reports",
+            headers={"Origin": "http://localhost:5173"},
+            json={
+                "incident_type_id": str(INCIDENT_TYPE_ID),
+                "location": "Public market",
+                "reporter_contact": "+639170000000",
+                "intake_channel": "walk_in",
+                "description": "A person needs emergency assistance.",
+                "people_need_help": True,
+                "additional_assistance": True,
+                "immediate_danger": False,
+            },
+        )
+
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "report_creation_forbidden"
+    assert report_service.create_call is None
+
+
+def test_manual_report_rejects_an_untrusted_browser_origin() -> None:
+    auth_service = FakeAdminAuthService(role="admin")
+    report_service = FakeAdminReportService()
+
+    with build_test_client(auth_service, report_service) as client:
+        client.cookies.set(
+            "responda_admin_session",
+            auth_service.token,
+            path="/api/v1/admin",
+        )
+        response = client.post(
+            "/api/v1/admin/reports",
+            headers={"Origin": "https://attacker.example"},
+            json={
+                "incident_type_id": str(INCIDENT_TYPE_ID),
+                "location": "Public market",
+                "reporter_contact": "+639170000000",
+                "intake_channel": "phone_call",
+                "description": "A person needs emergency assistance.",
+                "people_need_help": True,
+                "additional_assistance": False,
+                "immediate_danger": False,
+            },
+        )
+
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "origin_not_allowed"
+    assert report_service.create_call is None
 
 
 def test_report_detail_returns_protected_reporter_data_without_internal_storage_keys() -> None:

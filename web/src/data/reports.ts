@@ -34,9 +34,10 @@ const formatStatus = (report: AdminReportListItem) => {
 };
 
 export const toReport = (report: AdminReportListItem): Report => {
-  const position: [number, number] | null = report.location
-    ? [report.location.latitude, report.location.longitude]
-    : null;
+  const position: [number, number] | null =
+    report.location?.latitude != null && report.location.longitude != null
+      ? [report.location.latitude, report.location.longitude]
+      : null;
   const coordinateLabel = position
     ? `${position[0].toFixed(5)}, ${position[1].toFixed(5)}`
     : "Location not provided";

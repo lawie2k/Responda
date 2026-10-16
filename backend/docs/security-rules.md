@@ -63,6 +63,11 @@ VA101 to FastAPI and PostgreSQL; VA101's Next.js code is a reference, not code t
   data. Store only what the workflow needs and never copy raw values into project memory or graphs.
 - Make externally retried report and SMS ingestion operations idempotent and enforce uniqueness in
   PostgreSQL, not only in application code.
+- Allow only Super Admin and Administrator accounts to encode manual reports. Require a trusted
+  browser origin, an active database incident type, normalized phone contact, bounded written
+  location and description fields, and all safety indicators. Create the caller record when needed,
+  report, written location, report event, and minimal audit entry in one transaction; do not copy
+  caller contact, location text, or incident details into audit metadata.
 
 ## Deletion and retention
 

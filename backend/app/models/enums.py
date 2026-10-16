@@ -31,6 +31,13 @@ class ReportSource(StrEnum):
     MANUAL = "manual"
 
 
+class ManualIntakeChannel(StrEnum):
+    PHONE_CALL = "phone_call"
+    WALK_IN = "walk_in"
+    RADIO_COMMUNICATION = "radio_communication"
+    OTHER_OFFLINE = "other_offline"
+
+
 class VerificationStatus(StrEnum):
     PENDING = "pending"
     VERIFIED = "verified"

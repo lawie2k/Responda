@@ -134,6 +134,15 @@ class Report(SoftDeleteMixin, Base):
     __table_args__ = (
         CheckConstraint("source IN ('app_api','app_sms','manual')", name="source_valid"),
         CheckConstraint(
+            "manual_intake_channel IS NULL OR manual_intake_channel IN "
+            "('phone_call','walk_in','radio_communication','other_offline')",
+            name="manual_intake_channel_valid",
+        ),
+        CheckConstraint(
+            "source = 'manual' OR manual_intake_channel IS NULL",
+            name="manual_intake_channel_source_valid",
+        ),
+        CheckConstraint(
             "verification_status IN ('pending','verified','unverified','invalid')",
             name="verification_status_valid",
         ),
@@ -171,9 +180,13 @@ class Report(SoftDeleteMixin, Base):
         ForeignKey("incidents.incident_id", ondelete="SET NULL"), index=True
     )
     source: Mapped[str] = mapped_column(String(20), nullable=False)
+    manual_intake_channel: Mapped[str | None] = mapped_column(String(30))
     description_original: Mapped[str] = mapped_column(Text, nullable=False)
     original_language: Mapped[str | None] = mapped_column(String(20))
     people_need_help: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false")
+    )
+    additional_assistance: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("false")
     )
     immediate_danger: Mapped[bool] = mapped_column(
@@ -196,6 +209,15 @@ class ReportLocation(SoftDeleteMixin, Base):
         CheckConstraint("latitude BETWEEN -90 AND 90", name="latitude_valid"),
         CheckConstraint("longitude BETWEEN -180 AND 180", name="longitude_valid"),
         CheckConstraint(
+            "(latitude IS NULL AND longitude IS NULL) OR "
+            "(latitude IS NOT NULL AND longitude IS NOT NULL)",
+            name="coordinates_pair_valid",
+        ),
+        CheckConstraint(
+            "latitude IS NOT NULL OR landmark IS NOT NULL",
+            name="location_details_present",
+        ),
+        CheckConstraint(
             "accuracy_meters IS NULL OR accuracy_meters >= 0", name="accuracy_nonnegative"
         ),
         CheckConstraint("source IN ('gps','manual')", name="source_valid"),
@@ -205,8 +227,8 @@ class ReportLocation(SoftDeleteMixin, Base):
     report_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("reports.report_id", ondelete="CASCADE"), nullable=False, unique=True
     )
-    latitude: Mapped[Decimal] = mapped_column(Numeric(9, 6), nullable=False)
-    longitude: Mapped[Decimal] = mapped_column(Numeric(9, 6), nullable=False)
+    latitude: Mapped[Decimal | None] = mapped_column(Numeric(9, 6))
+    longitude: Mapped[Decimal | None] = mapped_column(Numeric(9, 6))
     accuracy_meters: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
     landmark: Mapped[str | None] = mapped_column(String(255))
     source: Mapped[str] = mapped_column(String(10), nullable=False)

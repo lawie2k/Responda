@@ -26,6 +26,11 @@ export type AdminSession = {
 
 export type ReportPriority = "critical" | "high" | "medium" | "low";
 export type ReportSource = "app_api" | "app_sms" | "manual";
+export type ManualIntakeChannel =
+  | "phone_call"
+  | "walk_in"
+  | "radio_communication"
+  | "other_offline";
 export type ReportVerificationStatus =
   | "pending"
   | "verified"
@@ -58,9 +63,11 @@ export type AdminReportListItem = {
     summary: string;
   } | null;
   source: ReportSource;
+  manual_intake_channel: ManualIntakeChannel | null;
   description_original: string;
   original_language: string | null;
   people_need_help: boolean;
+  additional_assistance: boolean;
   immediate_danger: boolean;
   suggested_priority: ReportPriority | null;
   final_priority: ReportPriority | null;
@@ -68,8 +75,8 @@ export type AdminReportListItem = {
   verification_status: ReportVerificationStatus;
   status: ReportWorkflowStatus;
   location: {
-    latitude: number;
-    longitude: number;
+    latitude: number | null;
+    longitude: number | null;
     accuracy_meters: number | null;
     landmark: string | null;
     source: "gps" | "manual";
@@ -78,6 +85,34 @@ export type AdminReportListItem = {
   received_at: string;
   updated_at: string;
   closed_at: string | null;
+};
+
+export type AdminIncidentType = {
+  incident_type_id: string;
+  code: string;
+  name: string;
+};
+
+export type AdminIncidentTypeList = {
+  items: AdminIncidentType[];
+};
+
+export type AdminManualReportCreatePayload = {
+  incident_type_id: string;
+  location: string;
+  reporter_contact: string;
+  intake_channel: ManualIntakeChannel;
+  description: string;
+  people_need_help: boolean;
+  additional_assistance: boolean;
+  immediate_danger: boolean;
+};
+
+export type AdminManualReportCreateResult = {
+  report_id: string;
+  verification_status: ReportVerificationStatus;
+  report_status: ReportWorkflowStatus;
+  received_at: string;
 };
 
 export type AdminReportList = {
@@ -429,6 +464,56 @@ export async function getAdminReports(
     );
   }
   return payload;
+}
+
+export async function getAdminIncidentTypes(
+  signal?: AbortSignal,
+): Promise<AdminIncidentTypeList> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/v1/admin/reports/incident-types`,
+    {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+      signal,
+    },
+  );
+  if (!response.ok) {
+    throw await toApiError(response, "Incident types could not be loaded.");
+  }
+  const payload: unknown = await response.json();
+  if (!isAdminIncidentTypeList(payload)) {
+    throw new RespondaApiError(
+      "The Responda backend returned invalid incident types.",
+    );
+  }
+  return payload;
+}
+
+export async function createAdminManualReport(
+  payload: AdminManualReportCreatePayload,
+): Promise<AdminManualReportCreateResult> {
+  const response = await fetch(`${apiBaseUrl}/api/v1/admin/reports`, {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw await toApiError(response, "The manual report could not be created.");
+  }
+  const result: unknown = await response.json();
+  if (!isAdminManualReportCreateResult(result)) {
+    throw new RespondaApiError(
+      "The Responda backend returned an invalid report result.",
+    );
+  }
+  return result;
 }
 
 export async function getAdminReport(
@@ -850,6 +935,38 @@ function isAdminReportList(value: unknown): value is AdminReportList {
   );
 }
 
+function isAdminIncidentTypeList(
+  value: unknown,
+): value is AdminIncidentTypeList {
+  if (typeof value !== "object" || value === null) return false;
+  const list = value as Record<string, unknown>;
+  return (
+    Array.isArray(list.items) &&
+    list.items.every(
+      (item) =>
+        typeof item === "object" &&
+        item !== null &&
+        typeof (item as Record<string, unknown>).incident_type_id ===
+          "string" &&
+        typeof (item as Record<string, unknown>).code === "string" &&
+        typeof (item as Record<string, unknown>).name === "string",
+    )
+  );
+}
+
+function isAdminManualReportCreateResult(
+  value: unknown,
+): value is AdminManualReportCreateResult {
+  if (typeof value !== "object" || value === null) return false;
+  const result = value as Record<string, unknown>;
+  return (
+    typeof result.report_id === "string" &&
+    result.verification_status === "pending" &&
+    result.report_status === "new" &&
+    typeof result.received_at === "string"
+  );
+}
+
 function isAdminReportListItem(value: unknown): value is AdminReportListItem {
   if (typeof value !== "object" || value === null) return false;
   const report = value as Record<string, unknown>;
@@ -862,6 +979,7 @@ function isAdminReportListItem(value: unknown): value is AdminReportListItem {
     typeof report.verification_status === "string" &&
     typeof report.status === "string" &&
     typeof report.people_need_help === "boolean" &&
+    typeof report.additional_assistance === "boolean" &&
     typeof report.immediate_danger === "boolean" &&
     typeof incidentType === "object" &&
     incidentType !== null &&

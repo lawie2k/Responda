@@ -82,6 +82,8 @@ function Dashboard({
   const [query, setQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [reportRefreshVersion, setReportRefreshVersion] = useState(0);
+  const [reportNotice, setReportNotice] = useState("");
   const [validationTarget, setValidationTarget] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -156,6 +158,12 @@ function Dashboard({
     document.addEventListener("mousedown", closeHeaderMenus);
     return () => document.removeEventListener("mousedown", closeHeaderMenus);
   }, []);
+
+  useEffect(() => {
+    if (!reportNotice) return;
+    const timer = window.setTimeout(() => setReportNotice(""), 4500);
+    return () => window.clearTimeout(timer);
+  }, [reportNotice]);
 
   return (
     <div className="dashboard-shell flex min-h-screen bg-[#f4f2f0]">
@@ -398,6 +406,15 @@ function Dashboard({
             "mx-auto flex max-w-[1600px] flex-col gap-5 px-7 py-7 pb-10 max-[1100px]:px-4 max-[1100px]:py-5 max-[650px]:px-3 max-[650px]:py-4"
           }
         >
+          {reportNotice && (
+            <div
+              className="flex min-h-[42px] items-center gap-2 rounded-xl bg-green-soft px-3 text-[10px] font-semibold text-status-green"
+              role="status"
+            >
+              <Icon name="check" />
+              {reportNotice}
+            </div>
+          )}
           {page === "Overview" && (
             <Overview
               go={setPage}
@@ -410,6 +427,7 @@ function Dashboard({
           )}
           {page === "Live Reports" && (
             <LiveReports
+              key={`live-reports-${reportRefreshVersion}`}
               query={query}
               summaryReports={dashboardReports}
               userRole={session.user.role}
@@ -439,7 +457,18 @@ function Dashboard({
         </div>
       </main>
       {reportModalOpen && (
-        <ReportModal close={() => setReportModalOpen(false)} />
+        <ReportModal
+          close={() => setReportModalOpen(false)}
+          onCreated={(result) => {
+            setReportModalOpen(false);
+            setReportNotice(
+              `Report RSP-${result.report_id.slice(0, 8).toUpperCase()} was created and sent to validation.`,
+            );
+            reportQuery.refetch();
+            setReportRefreshVersion((value) => value + 1);
+            setPage("Live Reports");
+          }}
+        />
       )}
     </div>
   );

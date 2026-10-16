@@ -7,6 +7,36 @@ updated: 2026-10-16
 
 # Work log
 
+## 2026-10-16 — Connect manual report encoding end to end
+
+- Replaced the dashboard's close-only Encode a Report placeholder with a real
+  protected submission flow and database-backed incident-type selector.
+- Added the administrator manual-report endpoint, request validation, phone
+  normalization, written-location support without fake coordinates, offline
+  intake channels, all three safety answers, atomic report history, and a
+  privacy-minimized audit entry.
+- Added and applied the manual-intake migration, including six canonical
+  incident types used by the current web and Flutter reporting choices.
+- The web modal now handles loading, retry, submission errors, duplicate-click
+  prevention, success confirmation, navigation to Live Reports, and queue
+  refresh. Live Reports and Report Validation display the offline channel and
+  additional-assistance answer.
+- Verification: backend Ruff and strict mypy passed; all 107 backend tests
+  passed; web lint and production build passed; Alembic reports no schema
+  drift. A rolled-back PostgreSQL rehearsal confirmed one caller, report,
+  location, event, and audit write with no rows left afterward.
+
+## 2026-10-16 — Simplify citizen registration to phone OTP
+
+- Confirmed that citizen registration uses phone-number OTP verification with
+  optional name and barangay profile fields.
+- Removed government-ID submission, face verification, and staff identity
+  approval from the approved product flow.
+- Marked the existing Flutter ID/face verification screens as legacy UI to
+  remove during the mobile-account backend integration.
+- Updated the next implementation sequence so mobile accounts and sessions
+  precede online report submission.
+
 ## 2026-10-16 — Clean generated and unused project files
 
 - Removed unused Vite/React template artwork, four unreferenced Flutter SVGs,

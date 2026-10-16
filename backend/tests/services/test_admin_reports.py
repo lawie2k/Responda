@@ -7,8 +7,16 @@ from pytest import raises
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ApplicationError
-from app.models import AuditLog, Report, ReportEvent, ReportReview
-from app.schemas.admin_reports import AdminReportReviewRequest
+from app.models import (
+    AuditLog,
+    IncidentType,
+    Report,
+    ReportEvent,
+    ReportLocation,
+    ReportReview,
+    User,
+)
+from app.schemas.admin_reports import AdminManualReportCreateRequest, AdminReportReviewRequest
 from app.services.admin_reports import AdminReportService
 
 
@@ -23,6 +31,12 @@ def database_mock(report: Report | None) -> MagicMock:
     database.execute = AsyncMock(return_value=report_result(report))
     database.commit = AsyncMock()
     return database
+
+
+def scalar_result(value: object | None) -> MagicMock:
+    result = MagicMock()
+    result.scalar_one_or_none.return_value = value
+    return result
 
 
 def pending_report() -> Report:
@@ -157,4 +171,89 @@ def test_non_pending_report_cannot_be_reviewed_again() -> None:
         )
 
     assert error.value.code == "report_not_pending"
+    database.commit.assert_not_awaited()
+
+
+def test_create_manual_report_writes_report_location_event_and_audit_atomically() -> None:
+    incident_type = IncidentType(
+        incident_type_id=uuid.uuid4(),
+        code="fire",
+        name="Fire",
+        default_priority="critical",
+        active=True,
+    )
+    database = MagicMock(spec=AsyncSession)
+    database.execute = AsyncMock(side_effect=[scalar_result(incident_type), scalar_result(None)])
+    database.flush = AsyncMock()
+    database.commit = AsyncMock()
+    service = AdminReportService(database)
+    staff_id = uuid.uuid4()
+    payload = AdminManualReportCreateRequest(
+        incident_type_id=incident_type.incident_type_id,
+        location="Municipal road near the public market",
+        reporter_contact="0917 000 0000",
+        intake_channel="phone_call",
+        description="A vehicle collision is blocking both lanes.",
+        people_need_help=True,
+        additional_assistance=False,
+        immediate_danger=True,
+    )
+
+    result = asyncio.run(
+        service.create_manual_report(
+            staff_id=staff_id,
+            payload=payload,
+            ip_address="127.0.0.1",
+        )
+    )
+
+    reporter = database.add.call_args.args[0]
+    added = database.add_all.call_args.args[0]
+    report = next(item for item in added if isinstance(item, Report))
+    location = next(item for item in added if isinstance(item, ReportLocation))
+    event = next(item for item in added if isinstance(item, ReportEvent))
+    audit = next(item for item in added if isinstance(item, AuditLog))
+    assert isinstance(reporter, User)
+    assert reporter.phone_number == "+639170000000"
+    database.flush.assert_awaited_once()
+    assert report.reporter_id == reporter.user_id
+    assert report.manual_intake_channel == "phone_call"
+    assert report.additional_assistance is False
+    assert location.landmark == "Municipal road near the public market"
+    assert location.latitude is None and location.longitude is None
+    assert event.event_type == "report.created"
+    assert event.actor_user_id == staff_id
+    assert audit.action == "report.manual.created"
+    assert audit.details is not None and "reporter_contact" not in audit.details
+    assert result.report_id == report.report_id
+    database.commit.assert_awaited_once()
+
+
+def test_create_manual_report_rejects_an_inactive_incident_type() -> None:
+    database = MagicMock(spec=AsyncSession)
+    database.execute = AsyncMock(return_value=scalar_result(None))
+    database.commit = AsyncMock()
+    service = AdminReportService(database)
+    payload = AdminManualReportCreateRequest(
+        incident_type_id=uuid.uuid4(),
+        location="Public market",
+        reporter_contact="+639170000000",
+        intake_channel="walk_in",
+        description="A person needs emergency assistance.",
+        people_need_help=True,
+        additional_assistance=True,
+        immediate_danger=False,
+    )
+
+    with raises(ApplicationError) as error:
+        asyncio.run(
+            service.create_manual_report(
+                staff_id=uuid.uuid4(),
+                payload=payload,
+                ip_address="127.0.0.1",
+            )
+        )
+
+    assert error.value.code == "incident_type_not_found"
+    database.add_all.assert_not_called()
     database.commit.assert_not_awaited()
