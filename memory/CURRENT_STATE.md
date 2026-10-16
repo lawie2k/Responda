@@ -12,8 +12,8 @@ updated: 2026-10-16
 - The FastAPI project structure, configuration, exception handling, CORS, async
   database session setup, and `/api/v1` router separation exist.
 - PostgreSQL is configured locally through a private `.env` file.
-- Two Alembic migrations and 18 SQLAlchemy tables exist. The database is at the
-  soft-delete migration head.
+- Four Alembic migrations and 18 SQLAlchemy tables exist. The database is at
+  the response-assignment lifecycle migration head.
 - Mutable operational records use indexed nullable `deleted_at` timestamps:
   users, incident types, incidents, reports, report locations, report
   attachments, SMS gateways/messages, response units/assignments, and
@@ -28,35 +28,42 @@ updated: 2026-10-16
   checks, session limits, and audit records.
 - One active staff account with the `admin` role exists in PostgreSQL. Its
   identity and credentials are not stored in project memory.
-- The confirmed target role model is not implemented yet: the existing `admin`
-  role will represent Super Admin, a new `operations_admin` role will represent
-  normal administrators, and dispatcher accounts will not receive dashboard or
-  response-team assignment access.
+- The administrator role model is implemented end to end. The existing `admin`
+  database value is presented as Super Admin, and `operations_admin` represents
+  a normal Administrator. Only these two roles may create or retain a dashboard
+  session; dispatcher, verifier, viewer, and reporter roles are rejected.
 - Protected staff report-list and report-detail endpoints now exist under
   `/api/v1/admin/reports`. They use the existing revocable staff session,
   validated and capped pagination, search and enum-backed filters, stable safe
   errors, and no-store responses. List responses exclude reporter contact data;
   protected detail responses include it but do not expose attachment storage
   keys or checksums.
-- A protected report-review endpoint now allows only administrators and
-  verifiers to decide pending reports. Each decision locks and version-checks
+- A protected report-review endpoint allows Super Admin and Administrator
+  accounts to decide pending reports. Each decision locks and version-checks
   the report, updates verification/final-priority state, and creates a review,
   report event, and audit entry in one transaction. Verified and unverified
   reports move to `under_review`; invalid reports are closed.
-- Protected incident write endpoints now allow administrators and dispatchers
-  to create an incident from a verified report or link a verified report to an
+- Protected incident write endpoints allow Super Admin and Administrator
+  accounts to create an incident from a verified report or link a verified report to an
   existing active incident of the same type. Both operations lock and
   version-check the report and atomically update the report plus its event and
   audit history. A protected, paginated incident-list endpoint supplies active
   matching incidents to staff clients.
 - A protected response-unit list endpoint supplies the staff dashboard with a
   paginated, searchable, status-filtered roster plus global readiness counts.
-  It excludes soft-deleted units and returns non-cacheable responses to any
-  authenticated staff role. Administrator-only create and edit endpoints now
+  It excludes soft-deleted units and returns non-cacheable responses to either
+  authenticated administrator tier. Create and edit endpoints now
   validate and normalize roster fields, require trusted origins, reject name
   conflicts and stale edits, preserve operational status during edits, and
-  write minimal audit records atomically. Response-unit assignment and dispatch
-  lifecycle endpoints are not implemented yet.
+  write minimal audit records atomically.
+- Protected assignment endpoints now list an incident's assignments, assign an
+  available unit, and transition assignments through acknowledged, responding,
+  completed, or cancelled states. Writes lock and version-check the involved
+  records, atomically synchronize assignment, unit, and incident status, create
+  linked-report events and audit records, and enforce one active assignment per
+  unit with a PostgreSQL partial unique index. Completing the final active
+  assignment resolves the incident; cancelling the final active assignment
+  reopens it.
 - Mobile report creation, gateway ingestion, and notification APIs are not
   implemented yet.
 - The strict app-only SMS acceptance policy is documented and represented in
@@ -82,6 +89,9 @@ updated: 2026-10-16
   design system: warm neutral flat surfaces, one maroon brand accent, semantic
   colors only for operational states, stronger content hierarchy, flat
   navigation/tabs/tables/controls, and shadows reserved for floating overlays.
+- Normal Administrators receive the operational workspace but cannot navigate
+  to or discover the system Settings page; that configuration surface remains
+  Super Admin-only.
 - The Overview report metrics, priority queue, map markers, recent-report table,
   global report search, and Live Reports queue now read from the protected
   report APIs. Live Reports supports server-side search, filters, capped
@@ -90,17 +100,22 @@ updated: 2026-10-16
   the backend, submits real verified/unverified/invalid decisions, respects
   reviewer roles, and handles validation and concurrency failures. Zero-count
   validation alerts, summary cards, and queue badges are hidden while the clear
-  queue empty state remains visible. In Live Reports, administrators and
-  dispatchers can now create an incident from a verified report or choose a
+  queue empty state remains visible. In Live Reports, Super Admin and
+  Administrator accounts can create an incident from a verified report or choose a
   matching active incident and link it; all report and incident views refresh
-  after success, while other roles remain read-only. Response Teams now reads
+  after success. Response Teams now reads
   the real PostgreSQL response-unit roster with search, status filters,
   pagination, refresh, unit details, and explicit loading, error, and empty
   states. Administrators can register available response units and edit their
-  name, type, and contact through a validated dashboard modal; other roles remain
-  read-only. Its responsive workspace places search controls first, a dominant
-  operational-unit roster on the left, and roster totals plus readiness summaries
-  in a stacked right rail. Assignment and lifecycle mutations are not implemented.
+  name, type, and contact through a validated dashboard modal. Its responsive
+  workspace places search controls first, a dominant operational-unit roster on
+  the left, and roster totals plus readiness summaries in a stacked right rail.
+  Linked active incidents in Live Reports now load their current assignments
+  and available response teams, and administrators can assign another available
+  team with optimistic-concurrency protection. Response Teams now resolves the
+  active assignment for each in-service unit and lets administrators record
+  acknowledgment, responding, completion, or confirmed cancellation while
+  refreshing the roster and assignment state after each change.
   Analytics, historical, and incident-map views still contain demonstration data.
 
 ## Mobile app
@@ -115,6 +130,26 @@ updated: 2026-10-16
 
 ## Verification history
 
+- A repository cleanup removed unused Vite/React template artwork, four
+  unreferenced Flutter SVGs, one dead shared web component, five unused web
+  build dependencies, the unused Flutter Cupertino-icons dependency, redundant
+  `.gitkeep` files, and generated component caches/build output. Installed
+  runtime dependencies, IDE configuration, platform folders, and intentional
+  backend/ML scaffolds were preserved. Backend Ruff, strict mypy, and all 99
+  tests passed; web lint, production build, and Knip passed; Flutter analysis
+  and all 71 tests passed.
+- The web assignment integration passed lint and production build. The client
+  validates assignment API responses, uses non-cacheable authenticated calls,
+  handles loading/error/empty states, and surfaces backend concurrency or
+  lifecycle failures without inventing local assignment state.
+- The assignment-lifecycle backend passed Ruff, strict mypy, and all 99 tests.
+  PostgreSQL is at the new migration head with no schema drift, OpenAPI exposes
+  the assignment list/create/transition operations, and a rolled-back database
+  rehearsal verified assigned, acknowledged, responding, and completed states,
+  incident resolution, unit release, four audit records, and no temporary rows.
+- The two-tier administrator phase passed backend Ruff, strict mypy, and all 81
+  tests plus web lint and production build. PostgreSQL is at the new role
+  migration head, and Alembic reports no schema drift.
 - Response-unit roster management passed backend Ruff, strict mypy, and all 75
   tests plus web lint and production build. Alembic reports no schema drift,
   OpenAPI exposes GET/POST/PATCH response-unit operations, and a rolled-back
@@ -148,8 +183,8 @@ updated: 2026-10-16
 - Human-written project memory is in `memory/`.
 - Graphify indexes code from backend, web, mobile, and the monorepo root into one
   combined graph.
-- The combined graph currently contains 2,327 code nodes, 4,180 relationships,
-  and 186 detected communities. Generated graph artifacts remain local and
+- The combined graph currently contains 2,503 code nodes, 4,590 relationships,
+  and 187 detected communities. Generated graph artifacts remain local and
   ignored.
 - `AGENTS.md` directs future coding sessions to read memory and query Graphify
   before broad filesystem searches.

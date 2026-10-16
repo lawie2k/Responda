@@ -175,18 +175,6 @@ export function Metric({
     </Card>
   );
 }
-export function Field({ label }: { label: string }) {
-  return (
-    <button
-      className={
-        "field flex h-[38px] min-w-[145px] items-center justify-between gap-[15px] rounded-[7px] border border-[#d9d5d2] bg-white px-[10px] text-[9px] text-muted"
-      }
-    >
-      {label}
-      <Icon name="chevron" size={13} />
-    </button>
-  );
-}
 export function Switch({
   value,
   onChange,

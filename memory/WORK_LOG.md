@@ -7,8 +7,85 @@ updated: 2026-10-16
 
 # Work log
 
+## 2026-10-16 — Clean generated and unused project files
+
+- Removed unused Vite/React template artwork, four unreferenced Flutter SVGs,
+  one unused shared web component, five unused web build dependencies, and the
+  unused Flutter Cupertino-icons dependency.
+- Removed redundant `.gitkeep` files from populated backend migration and test
+  directories.
+- Cleared generated Flutter build/preview output, Python and test caches, web
+  build output, and stale component-level Graphify caches. Preserved virtual
+  environments, `node_modules`, IDE settings, platform projects, and planned
+  backend/ML scaffolds.
+- Reduced the application folders from roughly 4 GB of generated local state
+  to about 360 MB while keeping both development environments ready to run.
+- Verification: backend Ruff and strict mypy passed with all 99 tests; web lint,
+  production build, Knip dead-code/dependency scan, and zero-vulnerability npm
+  audit passed; Flutter analysis and all 71 tests passed.
+- Refreshed the combined Graphify index to 2,503 nodes, 4,590 relationships,
+  and 187 communities.
+
+## 2026-10-16 — Connect assignment lifecycle to the web dashboard
+
+- Added typed, runtime-validated web API calls for listing, creating, and
+  transitioning incident assignments.
+- Added reusable assignment hooks for one incident and for active assignments
+  across the Response Teams workspace.
+- Live Reports now shows active assignments for a linked incident and lets an
+  administrator assign a currently available response team.
+- Response Teams now shows each in-service unit's incident reference and adds
+  administrator-recorded acknowledgment, responding, completion, and confirmed
+  cancellation controls to the unit detail panel.
+- Assignment and roster data refresh after every mutation, and backend
+  concurrency/lifecycle errors remain visible to staff.
+- Verification: web lint and production build passed; `git diff --check`
+  passed.
+- Refreshed the combined Graphify index to 2,514 nodes, 4,601 relationships,
+  and 205 communities.
+
 Keep entries short. Record outcomes and verification, not a transcript of the
 conversation.
+
+## 2026-10-16 — Implement response-team assignment lifecycle endpoints
+
+- Added protected endpoints to list assignments for an incident, assign an
+  available response unit, and transition an assignment.
+- Enforced `assigned -> acknowledged -> responding -> completed`, with
+  cancellation from active states and rejection of skipped, backward, stale,
+  unavailable-unit, resolved-incident, and unauthorized operations.
+- Synchronized assignment, response-unit, and incident status in one
+  transaction and added linked-report events plus minimal audit records without
+  contact values.
+- Added responding, cancelled, and concurrency timestamps plus a PostgreSQL
+  partial unique index that permits only one active assignment per unit.
+- Completing the final active assignment resolves the incident; cancelling the
+  final active assignment reopens it. Other active teams keep the incident in
+  dispatched or responding status.
+- Backend Ruff, strict mypy, and all 99 tests passed. Alembic reached the new
+  head with no drift, OpenAPI exposes all three operations, and a rolled-back
+  PostgreSQL rehearsal verified the full lifecycle, unit release, four audit
+  records, and zero temporary assignments afterward.
+- Refreshed the combined Graphify index to 2,492 nodes, 4,546 relationships,
+  and 203 communities.
+
+## 2026-10-16 — Implement the two-tier administrator access model
+
+- Added `operations_admin` to the database role constraint while preserving the
+  existing `admin` value for Super Admin accounts.
+- Restricted dashboard login and existing-session validation to `admin` and
+  `operations_admin`; dispatcher, verifier, viewer, and reporter accounts no
+  longer receive dashboard access.
+- Unified report review, incident management, and response-unit roster writes
+  under the two administrator tiers and updated the web role labels and controls.
+- Kept system Settings available only to Super Admin by removing it from normal
+  Administrator navigation and global page search.
+- Added role-boundary tests, applied the migration to PostgreSQL, and confirmed
+  the database is at migration head with no schema drift.
+- Backend Ruff, strict mypy, and all 81 tests passed. Web lint and production
+  build passed; Vite retained its existing large-chunk advisory.
+- Refreshed the combined Graphify index to 2,405 nodes, 4,188 relationships,
+  and 204 communities.
 
 ## 2026-10-16 — Confirm the response-team assignment role model
 
@@ -29,11 +106,15 @@ conversation.
 - Enlarged Operational Units as the primary left-side workspace and stacked the
   total/readiness summary, In Service, and Available Now sections in a right
   rail on laptop and desktop widths.
+- Pinned the page indicator and Previous/Next controls to the bottom edge of the
+  Operational Units box, including its empty state.
+- Applied the same bottom-pinned pagination footer to the Live Reports queue;
+  these are the only current dashboard boxes with Previous/Next pagination.
 - Preserved live PostgreSQL data, filters, pagination, empty states, and
   administrator roster controls.
 - Verification: web lint and production build passed.
-- Refreshed the combined Graphify index to 2,327 nodes, 4,180 relationships,
-  and 186 communities.
+- Refreshed the combined Graphify index to 2,503 nodes, 4,590 relationships,
+  and 187 communities.
 
 ## 2026-10-16 — Add administrator response-unit roster management
 

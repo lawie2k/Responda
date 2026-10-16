@@ -25,7 +25,7 @@ EXPECTED_UPDATED_AT = datetime(2026, 10, 16, 4, 0, tzinfo=UTC)
 
 
 class FakeAdminAuthService:
-    def __init__(self, *, role: str = "viewer") -> None:
+    def __init__(self, *, role: str = "operations_admin") -> None:
         self.user = User(
             user_id=uuid.uuid4(),
             full_name="Incident Operator",
@@ -56,13 +56,11 @@ class FakeAdminIncidentService:
     def __init__(self) -> None:
         self.filters: AdminIncidentFilters | None = None
         self.create_call: tuple[uuid.UUID, AdminIncidentCreateRequest, str] | None = None
-        self.link_call: (
-            tuple[uuid.UUID, uuid.UUID, AdminIncidentReportLinkRequest, str] | None
-        ) = None
+        self.link_call: tuple[uuid.UUID, uuid.UUID, AdminIncidentReportLinkRequest, str] | None = (
+            None
+        )
 
-    async def list_incidents(
-        self, filters: AdminIncidentFilters
-    ) -> AdminIncidentListResponse:
+    async def list_incidents(self, filters: AdminIncidentFilters) -> AdminIncidentListResponse:
         self.filters = filters
         return AdminIncidentListResponse(
             items=[
@@ -156,8 +154,8 @@ def set_session(client: TestClient, auth_service: FakeAdminAuthService) -> None:
     )
 
 
-def test_authenticated_staff_can_list_filtered_incidents() -> None:
-    auth_service = FakeAdminAuthService(role="viewer")
+def test_authenticated_admin_can_list_filtered_incidents() -> None:
+    auth_service = FakeAdminAuthService(role="operations_admin")
     incident_service = FakeAdminIncidentService()
 
     with build_test_client(auth_service, incident_service) as client:
@@ -187,7 +185,7 @@ def test_authenticated_staff_can_list_filtered_incidents() -> None:
 
 
 def test_incident_list_rejects_oversized_pages() -> None:
-    auth_service = FakeAdminAuthService(role="viewer")
+    auth_service = FakeAdminAuthService(role="operations_admin")
     incident_service = FakeAdminIncidentService()
 
     with build_test_client(auth_service, incident_service) as client:
@@ -217,8 +215,8 @@ def test_admin_can_create_incident_from_verified_report() -> None:
     assert incident_service.create_call[0] == auth_service.user.user_id
 
 
-def test_dispatcher_can_link_report_to_existing_incident() -> None:
-    auth_service = FakeAdminAuthService(role="dispatcher")
+def test_operations_admin_can_link_report_to_existing_incident() -> None:
+    auth_service = FakeAdminAuthService(role="operations_admin")
     incident_service = FakeAdminIncidentService()
 
     with build_test_client(auth_service, incident_service) as client:
@@ -255,8 +253,8 @@ def test_incident_operations_require_a_valid_session() -> None:
     assert incident_service.create_call is None
 
 
-def test_verifier_cannot_manage_incidents() -> None:
-    auth_service = FakeAdminAuthService(role="verifier")
+def test_dispatcher_cannot_manage_incidents() -> None:
+    auth_service = FakeAdminAuthService(role="dispatcher")
     incident_service = FakeAdminIncidentService()
 
     with build_test_client(auth_service, incident_service) as client:

@@ -10,15 +10,10 @@ from app.core.config import get_settings
 from app.core.security import PASSWORD_MIN_LENGTH, hash_password, normalize_email
 from app.db.session import create_database_engine, create_session_factory
 from app.models import AuditLog, User
-from app.models.enums import UserRole
+from app.models.enums import ADMINISTRATOR_ROLES, UserRole
 from app.schemas.admin_auth import EmailInput
 
-STAFF_ROLES = (
-    UserRole.ADMIN.value,
-    UserRole.DISPATCHER.value,
-    UserRole.VERIFIER.value,
-    UserRole.VIEWER.value,
-)
+STAFF_ROLES = tuple(sorted(ADMINISTRATOR_ROLES))
 
 
 def parse_arguments() -> argparse.Namespace:

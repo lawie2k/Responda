@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import type { AdminUser } from "../api/respondaApi";
 import type { Page } from "../types";
 import { groups, pageInfo } from "../config/navigation";
+import {
+  administratorRoleLabel,
+  canAccessDashboardPage,
+} from "../config/roles";
 import { Icon } from "./Icon";
 import respondaLogo from "../assets/responda-logo.png";
 
@@ -32,10 +36,15 @@ export function Sidebar({
     .map((part) => part[0])
     .join("")
     .toUpperCase() || user.email.slice(0, 2).toUpperCase();
-  const roleLabel =
-    user.role === "admin"
-      ? "Administrator"
-      : user.role.charAt(0).toUpperCase() + user.role.slice(1);
+  const roleLabel = administratorRoleLabel(user.role);
+  const visibleGroups = groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter(([itemPage]) =>
+        canAccessDashboardPage(user.role, itemPage),
+      ),
+    }))
+    .filter((group) => group.items.length > 0);
 
   useEffect(() => {
     const closeAccountMenu = (event: MouseEvent) => {
@@ -116,7 +125,7 @@ export function Sidebar({
           SYSTEM ONLINE <span>Updated now</span>
         </div>
         <nav>
-          {groups.map((g) => (
+          {visibleGroups.map((g) => (
             <div
               className={
                 "mb-5 grid gap-1 [&>label]:mb-1 [&>label]:px-2 [&>label]:text-[8px] [&>label]:font-bold [&>label]:tracking-[.12em] [&>label]:text-[#b67d87] [&>button]:flex [&>button]:h-10 [&>button]:items-center [&>button]:gap-[10px] [&>button]:border-0 [&>button]:border-l-2 [&>button]:border-l-transparent [&>button]:bg-transparent [&>button]:px-2.5 [&>button]:text-left [&>button]:text-[11px] [&>button]:font-medium [&>button]:text-[#eaced3] [&>button:hover]:border-l-[#b97a85] [&>button:hover]:bg-[#ffffff0a] [&>button:hover]:text-white [&>button.active]:border-l-white [&>button.active]:bg-[#ffffff10] [&>button.active]:text-white [&>button>span]:flex-1 [&>button>b]:min-w-6 [&>button>b]:border border-[#9d5964] [&>button>b]:bg-transparent [&>button>b]:px-1.5 [&>button>b]:py-0.5 [&>button>b]:text-center [&>button>b]:text-[8px] [&>button>b]:text-[#f2dce0]"

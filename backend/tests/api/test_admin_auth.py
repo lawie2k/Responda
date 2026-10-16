@@ -14,10 +14,10 @@ class FakeAdminAuthService:
     def __init__(self) -> None:
         self.user = User(
             user_id=uuid.uuid4(),
-            full_name="Test Dispatcher",
-            email="dispatcher@example.com",
+            full_name="Test Operations Admin",
+            email="operations@example.com",
             password_hash="not-returned",
-            role="dispatcher",
+            role="operations_admin",
             is_active=True,
         )
         self.session = AuthSession(
@@ -74,16 +74,16 @@ def test_login_sets_http_only_cookie_without_returning_token() -> None:
     with build_test_client(service) as client:
         response = client.post(
             "/api/v1/admin/auth/login",
-            json={"email": "dispatcher@example.com", "password": "a-password-value"},
+            json={"email": "operations@example.com", "password": "a-password-value"},
             headers={"Origin": "http://localhost:5173"},
         )
 
     assert response.status_code == 200
     assert response.json()["user"] == {
         "user_id": str(service.user.user_id),
-        "full_name": "Test Dispatcher",
-        "email": "dispatcher@example.com",
-        "role": "dispatcher",
+        "full_name": "Test Operations Admin",
+        "email": "operations@example.com",
+        "role": "operations_admin",
     }
     assert "token" not in response.text
     cookie = response.headers["set-cookie"]
@@ -102,7 +102,7 @@ def test_current_session_uses_the_http_only_cookie() -> None:
         response = client.get("/api/v1/admin/auth/me")
 
     assert response.status_code == 200
-    assert response.json()["user"]["role"] == "dispatcher"
+    assert response.json()["user"]["role"] == "operations_admin"
     assert response.headers["cache-control"] == "no-store, max-age=0"
 
 
@@ -129,7 +129,7 @@ def test_untrusted_browser_origin_is_rejected() -> None:
     with build_test_client(service) as client:
         response = client.post(
             "/api/v1/admin/auth/login",
-            json={"email": "dispatcher@example.com", "password": "a-password-value"},
+            json={"email": "operations@example.com", "password": "a-password-value"},
             headers={"Origin": "https://attacker.example"},
         )
 
@@ -145,12 +145,12 @@ def test_login_is_rate_limited_before_password_verification() -> None:
         for _ in range(2):
             allowed = client.post(
                 "/api/v1/admin/auth/login",
-                json={"email": "dispatcher@example.com", "password": "a-password-value"},
+                json={"email": "operations@example.com", "password": "a-password-value"},
             )
             assert allowed.status_code == 200
         blocked = client.post(
             "/api/v1/admin/auth/login",
-            json={"email": "dispatcher@example.com", "password": "a-password-value"},
+            json={"email": "operations@example.com", "password": "a-password-value"},
         )
 
     assert blocked.status_code == 429

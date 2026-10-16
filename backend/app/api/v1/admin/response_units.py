@@ -10,6 +10,7 @@ from app.api.dependencies import (
     require_trusted_origin,
 )
 from app.core.exceptions import ApplicationError
+from app.models.enums import ADMINISTRATOR_ROLES
 from app.schemas.admin_response_units import (
     AdminResponseUnitCreateRequest,
     AdminResponseUnitListItem,
@@ -29,7 +30,7 @@ def _prevent_response_caching(response: Response) -> None:
 
 
 def _require_response_unit_admin(current: AuthenticatedAdmin) -> None:
-    if current.user.role != "admin":
+    if current.user.role not in ADMINISTRATOR_ROLES:
         raise ApplicationError(
             "This staff account cannot manage the response-unit roster.",
             code="response_unit_management_forbidden",

@@ -91,19 +91,13 @@ export function Settings() {
     {
       name: "Maria Santos",
       email: "maria.santos@pantukan.gov.ph",
-      role: "Administrator",
+      role: "Super Admin",
       active: true,
     },
     {
       name: "Joel Garcia",
       email: "joel.garcia@pantukan.gov.ph",
-      role: "Validator",
-      active: true,
-    },
-    {
-      name: "Ana Reyes",
-      email: "ana.reyes@pantukan.gov.ph",
-      role: "Dispatcher",
+      role: "Administrator",
       active: true,
     },
   ]);
@@ -459,7 +453,7 @@ export function Settings() {
               <SelectField
                 label="Role"
                 value={admin.role}
-                options={["Administrator", "Validator", "Dispatcher", "Viewer"]}
+                options={["Super Admin", "Administrator"]}
                 onChange={(role) => {
                   setAdmins((users) =>
                     users.map((user, userIndex) =>

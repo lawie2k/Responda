@@ -68,7 +68,13 @@ argument:
 
 ```bash
 make create-admin ARGS='--email admin@example.com --full-name "Responda Admin" --role admin'
+make create-admin ARGS='--email operator@example.com --full-name "Operations Admin" --role operations_admin'
 ```
+
+The `admin` database role is displayed as **Super Admin**. The
+`operations_admin` role is displayed as **Administrator**. These are the only
+roles allowed to create a staff-dashboard session; legacy dispatcher, verifier,
+and viewer values do not receive dashboard access.
 
 The admin API exposes:
 
@@ -81,6 +87,9 @@ The admin API exposes:
 - `GET /api/v1/admin/incidents`
 - `POST /api/v1/admin/incidents`
 - `POST /api/v1/admin/incidents/{incident_id}/reports`
+- `GET /api/v1/admin/incidents/{incident_id}/assignments`
+- `POST /api/v1/admin/incidents/{incident_id}/assignments`
+- `POST /api/v1/admin/assignments/{assignment_id}/transitions`
 - `GET /api/v1/admin/response-units`
 - `POST /api/v1/admin/response-units`
 - `PATCH /api/v1/admin/response-units/{unit_id}`

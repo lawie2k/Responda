@@ -1,8 +1,9 @@
 import asyncio
 import uuid
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
-from pytest import raises
+from pytest import mark, raises
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Environment, Settings
@@ -32,13 +33,20 @@ def active_sessions_result(sessions: list[AuthSession]) -> MagicMock:
     return result
 
 
-def test_service_creates_only_a_hashed_session_token() -> None:
+def joined_session_result(session: AuthSession, user: User) -> MagicMock:
+    result = MagicMock()
+    result.one_or_none.return_value = (session, user)
+    return result
+
+
+@mark.parametrize("role", ["admin", "operations_admin"])
+def test_administrator_login_creates_only_a_hashed_session_token(role: str) -> None:
     user = User(
         user_id=uuid.uuid4(),
         full_name="Test Admin",
         email="admin@example.com",
         password_hash=hash_password("correct-long-password"),
-        role="admin",
+        role=role,
         is_active=True,
     )
     database = database_mock(scalar_result(user), active_sessions_result([]))
@@ -63,6 +71,62 @@ def test_service_creates_only_a_hashed_session_token() -> None:
     assert audit.action == "auth.login.succeeded"
     assert "users.deleted_at IS NULL" in str(user_lookup)
     database.commit.assert_awaited_once()
+
+
+@mark.parametrize("role", ["dispatcher", "verifier", "viewer", "reporter"])
+def test_non_administrator_role_cannot_open_a_dashboard_session(role: str) -> None:
+    user = User(
+        user_id=uuid.uuid4(),
+        full_name="Non-admin Staff",
+        email="staff@example.com",
+        password_hash=hash_password("correct-long-password"),
+        role=role,
+        is_active=True,
+    )
+    database = database_mock(scalar_result(user))
+    settings = Settings(environment=Environment.TESTING, debug=False, _env_file=None)
+    service = AdminAuthService(database, settings)
+
+    with raises(ApplicationError) as error:
+        asyncio.run(
+            service.login(
+                email="staff@example.com",
+                password="correct-long-password",
+                ip_address="127.0.0.1",
+                device_name=None,
+            )
+        )
+
+    assert error.value.code == "staff_access_required"
+    assert not any(isinstance(call.args[0], AuthSession) for call in database.add.call_args_list)
+    audit = database.add.call_args.args[0]
+    assert isinstance(audit, AuditLog)
+    assert audit.action == "auth.login.rejected"
+
+
+def test_existing_session_is_rejected_after_role_loses_dashboard_access() -> None:
+    user = User(
+        user_id=uuid.uuid4(),
+        full_name="Former Dashboard Staff",
+        email="former@example.com",
+        password_hash="not-used",
+        role="dispatcher",
+        is_active=True,
+    )
+    session = AuthSession(
+        session_id=uuid.uuid4(),
+        user_id=user.user_id,
+        refresh_token_hash=hash_session_token("existing-token"),
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
+    )
+    database = database_mock(joined_session_result(session, user))
+    settings = Settings(environment=Environment.TESTING, debug=False, _env_file=None)
+    service = AdminAuthService(database, settings)
+
+    with raises(ApplicationError) as error:
+        asyncio.run(service.authenticate("existing-token"))
+
+    assert error.value.code == "invalid_session"
 
 
 def test_service_uses_a_generic_error_for_unknown_email() -> None:

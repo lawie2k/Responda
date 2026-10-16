@@ -125,8 +125,9 @@ dispatches.
 
 ### 2026-10-16 — Make report review an atomic, role-restricted decision
 
-- Only `admin` and `verifier` staff roles may submit report-review decisions;
-  dispatchers and viewers remain read-only for this operation.
+- Only `admin` and `operations_admin` may submit report-review decisions.
+  Legacy dispatcher, verifier, and viewer roles cannot authenticate to the
+  dashboard.
 - Reviews accept only pending, non-deleted reports. The write locks the report
   and compares the detail response's `updated_at` value to prevent stale staff
   screens from overwriting newer decisions.
@@ -139,10 +140,8 @@ dispatches.
 
 ### 2026-10-16 — Restrict incident creation and report linking
 
-- Only `admin` and `dispatcher` staff roles may create incidents or link
-  reports; verifier and viewer accounts remain read-only for incident operations.
-- Any authenticated staff role may read the capped incident list for operational
-  visibility; this does not grant incident mutation authority.
+- Only `admin` and `operations_admin` may create incidents or link reports.
+- Either authenticated administrator tier may read the capped incident list.
 - A report must be verified, have a final priority, remain under review, and be
   unlinked. The caller must provide its last-seen `updated_at` value.
 - New incidents inherit the verified report's incident type and final priority.
@@ -153,16 +152,43 @@ dispatches.
 
 ### 2026-10-16 — Keep response-unit roster reads separate from dispatch writes
 
-- Any authenticated staff role may read the capped response-unit roster and
-  global readiness counts for operational visibility.
+- Either authenticated administrator tier may read the capped response-unit
+  roster and global readiness counts for operational visibility.
 - Roster reads exclude soft-deleted units and use non-cacheable responses.
 - The web dashboard must show database truth, including a genuine empty state,
   instead of inventing local response teams or simulated activity.
-- Only administrators may create units or edit roster identity fields. New units
-  start as `available`; edits use the last-seen `updated_at`, preserve operational
-  status, and commit with a minimal audit record that excludes contact values.
-- Incident assignment and unit-status transitions require explicit future
-  endpoints with their own role, transaction, concurrency, and audit rules.
+- Super Admin and Administrator accounts may create units or edit roster
+  identity fields. New units start as `available`; edits use the last-seen
+  `updated_at`, preserve operational status, and commit with a minimal audit
+  record that excludes contact values.
+- Incident assignment and unit-status transitions use dedicated endpoints with
+  their own role, transaction, concurrency, and audit rules.
+
+### 2026-10-16 — Use an administrator-recorded assignment lifecycle
+
+- Assignments belong to incidents, even when initiated from a linked report, so
+  duplicate reports do not dispatch duplicate response teams.
+- Only Super Admin and Administrator accounts manage assignments. Response
+  teams do not receive dashboard accounts; administrators record confirmations
+  received through radio or phone.
+- The required sequence is `assigned -> acknowledged -> responding ->
+  completed`. Cancellation is allowed from any active state, but other skipped
+  or backward transitions are rejected.
+- Assignment creation locks the incident and unit, uses the incident's
+  last-seen `updated_at`, and accepts only available units and active incidents.
+  A PostgreSQL partial unique index prevents one unit from holding two active
+  assignments.
+- Every transition locks the assignment, unit, and incident and uses the
+  assignment's last-seen `updated_at`. Changes to all three records plus linked
+  report events and a minimal audit entry commit in one transaction.
+- Completing the final active assignment resolves the incident and releases the
+  unit. Cancelling the final active assignment reopens the incident and releases
+  the unit. Other active teams keep the incident dispatched or responding.
+- The dashboard starts dispatch from a report that is already linked to an
+  active incident, while acknowledgment, responding, completion, and
+  cancellation are recorded from the assigned unit's Response Teams detail.
+  Both surfaces read and refresh server state; neither derives lifecycle state
+  only in the browser.
 
 ### Use strict app-only SMS ingestion
 

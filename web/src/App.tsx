@@ -7,6 +7,7 @@ import { ReportModal } from "./components/ReportModal";
 import { Sidebar } from "./components/Sidebar";
 import { Button } from "./components/ui";
 import { pageInfo } from "./config/navigation";
+import { canAccessDashboardPage } from "./config/roles";
 import { toReport } from "./data/reports";
 import { useAdminReports } from "./hooks/useAdminReports";
 import { Analytics } from "./pages/Analytics";
@@ -129,13 +130,16 @@ function Dashboard({
       normalizedQuery
         ? (Object.keys(pageInfo) as Page[])
             .filter((name) =>
+              canAccessDashboardPage(session.user.role, name),
+            )
+            .filter((name) =>
               `${name} ${pageInfo[name][1]}`
                 .toLowerCase()
                 .includes(normalizedQuery),
             )
             .slice(0, 4)
         : [],
-    [normalizedQuery],
+    [normalizedQuery, session.user.role],
   );
   const unreadCount = notifications.filter(
     (notification) => !notification.read,

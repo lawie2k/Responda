@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, StringConstraints
 
@@ -28,7 +28,7 @@ class AdminUserResponse(BaseModel):
     user_id: uuid.UUID
     full_name: str
     email: str
-    role: str
+    role: Literal["admin", "operations_admin"]
 
 
 class AdminSessionResponse(BaseModel):

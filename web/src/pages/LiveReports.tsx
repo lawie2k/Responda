@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  createAdminAssignment,
   createAdminIncident,
   linkAdminReportToIncident,
   type AdminIncidentListItem,
@@ -8,6 +9,7 @@ import {
   type ReportPriority,
 } from "../api/respondaApi";
 import { Icon } from "../components/Icon";
+import { isAdministratorRole } from "../config/roles";
 import { MiniMap } from "../components/Map";
 import { ReportTable } from "../components/ReportTable";
 import {
@@ -20,8 +22,10 @@ import {
 } from "../components/ui";
 import { tone, toReport, type Report } from "../data/reports";
 import type { MapPoint } from "../data/mapData";
+import { useAdminAssignments } from "../hooks/useAdminAssignments";
 import { useAdminIncidents } from "../hooks/useAdminIncidents";
 import { useAdminReportDetail, useAdminReports } from "../hooks/useAdminReports";
+import { useAdminResponseUnits } from "../hooks/useAdminResponseUnits";
 
 type ReportTab = "All" | "Needs validation" | "Critical" | "Dispatched";
 
@@ -182,6 +186,167 @@ function IncidentManagement({
   );
 }
 
+function IncidentDispatch({
+  incident,
+  incidentStatus,
+  incidentError,
+  retryIncident,
+  onComplete,
+}: {
+  incident: AdminIncidentListItem | null;
+  incidentStatus: "idle" | "loading" | "ready" | "error";
+  incidentError: string | null;
+  retryIncident: () => void;
+  onComplete: (message: string) => void;
+}) {
+  const incidentId = incident?.incident_id ?? null;
+  const assignments = useAdminAssignments(incidentId, Boolean(incidentId));
+  const units = useAdminResponseUnits({
+    pageSize: 100,
+    statuses: ["available"],
+  });
+  const [unitId, setUnitId] = useState("");
+  const [incidentUpdatedAtOverride, setIncidentUpdatedAtOverride] =
+    useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const activeAssignments =
+    assignments.data?.items.filter((assignment) =>
+      ["assigned", "acknowledged", "responding"].includes(assignment.status),
+    ) ?? [];
+
+  const assignUnit = async () => {
+    if (!incident || !unitId) {
+      setError("Select an available response team first.");
+      return;
+    }
+    setSubmitting(true);
+    setError("");
+    try {
+      const result = await createAdminAssignment(incident.incident_id, {
+        unit_id: unitId,
+        expected_incident_updated_at:
+          incidentUpdatedAtOverride || incident.updated_at,
+      });
+      setIncidentUpdatedAtOverride(result.incident_updated_at);
+      setUnitId("");
+      assignments.refetch();
+      units.refetch();
+      onComplete(
+        `${result.assignment.unit.name} was assigned to INC-${incident.incident_id.slice(0, 8).toUpperCase()}.`,
+      );
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "The response team could not be assigned.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="grid gap-3 rounded-[13px] border border-[#dfd8d5] bg-white p-3">
+      <div>
+        <b className="block text-[10px] text-maroon">DISPATCH RESPONSE TEAM</b>
+        <span className="text-[9px] leading-[1.45] text-muted">
+          Assign an available unit. Status updates are recorded from Response Teams.
+        </span>
+      </div>
+
+      {incidentStatus === "error" ? (
+        <div className="grid gap-2 rounded-[10px] bg-red-soft p-2 text-[9px] text-priority-red">
+          <span>{incidentError}</span>
+          <Button variant="secondary" onClick={retryIncident}>
+            Reload incident
+          </Button>
+        </div>
+      ) : !incident ? (
+        <div className="rounded-[10px] bg-amber-soft px-3 py-2 text-[9px] text-priority-amber">
+          {incidentStatus === "ready"
+            ? "The current incident record was not found in the active queue. Reload the report before dispatching."
+            : "Loading the current incident record…"}
+        </div>
+      ) : assignments.status === "error" ? (
+        <div className="grid gap-2 rounded-[10px] bg-red-soft p-2 text-[9px] text-priority-red">
+          <span>{assignments.error}</span>
+          <Button variant="secondary" onClick={assignments.refetch}>
+            Reload assignments
+          </Button>
+        </div>
+      ) : (
+        <>
+          {activeAssignments.length > 0 && (
+            <div className="grid gap-1.5 rounded-[10px] bg-soft-gray p-2.5">
+              {activeAssignments.map((assignment) => (
+                <div
+                  className="flex items-center justify-between gap-2 text-[9px]"
+                  key={assignment.assignment_id}
+                >
+                  <b className="truncate">{assignment.unit.name}</b>
+                  <Badge tone={assignment.status === "responding" ? "maroon" : "blue"}>
+                    {assignment.status.toUpperCase()}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {units.status === "error" ? (
+            <div className="grid gap-2 rounded-[10px] bg-red-soft p-2 text-[9px] text-priority-red">
+              <span>{units.error}</span>
+              <Button variant="secondary" onClick={units.refetch}>
+                Reload available teams
+              </Button>
+            </div>
+          ) : (
+            <div className="grid gap-2">
+              <SelectField
+                label={
+                  units.status === "loading"
+                    ? "Loading available teams…"
+                    : units.data.items.length
+                      ? "Select available response team"
+                      : "No response teams are available"
+                }
+                value={unitId}
+                options={
+                  units.data?.items.map((unit) => ({
+                    value: unit.unit_id,
+                    label: `${unit.name} • ${unit.unit_type}`,
+                  })) ?? []
+                }
+                onChange={(value) => {
+                  setUnitId(value);
+                  setError("");
+                }}
+              />
+              <Button
+                icon="truck"
+                disabled={submitting || !unitId || units.status !== "ready"}
+                onClick={() => void assignUnit()}
+              >
+                {submitting ? "Assigning…" : "Assign response team"}
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+
+      {error && (
+        <div
+          className="rounded-[10px] bg-red-soft px-3 py-2 text-[9px] text-priority-red"
+          role="alert"
+        >
+          {error}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ReportDetail({
   report,
   detail,
@@ -208,7 +373,7 @@ function ReportDetail({
   onIncidentChanged: (message: string) => void;
 }) {
   const canVerify = report.verificationStatus === "pending";
-  const canManageIncidents = userRole === "admin" || userRole === "dispatcher";
+  const canManageIncidents = isAdministratorRole(userRole);
   const isReadyForIncident = Boolean(
     detail?.verification_status === "verified" &&
       detail.status === "under_review" &&
@@ -318,12 +483,32 @@ function ReportDetail({
           Open in Report Validation
         </Button>
       ) : detail?.incident ? (
-        <div className="flex min-h-[62px] items-center gap-[10px] rounded-xl bg-green-soft px-[11px] py-[9px] text-status-green [&>.icon]:size-[30px] [&>.icon]:rounded-[10px] [&>.icon]:bg-white [&>.icon]:p-1.5 [&_div]:grid [&_div]:gap-0.5 [&_b]:text-[10px] [&_span]:text-[9px] [&_span]:text-muted">
-          <Icon name="check" />
-          <div>
-            <b>Linked to INC-{detail.incident.incident_id.slice(0, 8).toUpperCase()}</b>
-            <span>{detail.incident.summary}</span>
+        <div className="grid gap-2.5">
+          <div className="flex min-h-[62px] items-center gap-[10px] rounded-xl bg-green-soft px-[11px] py-[9px] text-status-green [&>.icon]:size-[30px] [&>.icon]:rounded-[10px] [&>.icon]:bg-white [&>.icon]:p-1.5 [&_div]:grid [&_div]:gap-0.5 [&_b]:text-[10px] [&_span]:text-[9px] [&_span]:text-muted">
+            <Icon name="check" />
+            <div>
+              <b>Linked to INC-{detail.incident.incident_id.slice(0, 8).toUpperCase()}</b>
+              <span>{detail.incident.summary}</span>
+            </div>
           </div>
+          {canManageIncidents &&
+            ["open", "dispatched", "responding"].includes(
+              detail.incident.status,
+            ) && (
+              <IncidentDispatch
+                key={detail.incident.incident_id}
+                incident={
+                  incidents.find(
+                    (incident) =>
+                      incident.incident_id === detail.incident?.incident_id,
+                  ) ?? null
+                }
+                incidentStatus={incidentStatus}
+                incidentError={incidentError}
+                retryIncident={retryIncidents}
+                onComplete={onIncidentChanged}
+              />
+            )}
         </div>
       ) : isReadyForIncident && canManageIncidents && detail ? (
         <IncidentManagement
@@ -338,7 +523,7 @@ function ReportDetail({
         />
       ) : isReadyForIncident ? (
         <div className="rounded-xl bg-amber-soft px-[11px] py-[10px] text-[9px] text-priority-amber">
-          This report is verified. An administrator or dispatcher must create or
+          This report is verified. An authorized administrator must create or
           link its incident.
         </div>
       ) : (
@@ -424,10 +609,15 @@ export function LiveReports({
     rows.find((report) => report.id === effectiveSelectedId) ?? null;
   const detailState = useAdminReportDetail(selected?.id ?? null);
   const canManageSelectedIncident = Boolean(
-    (userRole === "admin" || userRole === "dispatcher") &&
-      detailState.data?.verification_status === "verified" &&
-      detailState.data.status === "under_review" &&
-      !detailState.data.incident,
+    isAdministratorRole(userRole) &&
+      detailState.data &&
+      ((detailState.data.verification_status === "verified" &&
+        detailState.data.status === "under_review" &&
+        !detailState.data.incident) ||
+        (detailState.data.incident &&
+          ["open", "dispatched", "responding"].includes(
+            detailState.data.incident.status,
+          ))),
   );
   const incidentQuery = useAdminIncidents(
     {
@@ -610,7 +800,7 @@ export function LiveReports({
         </div>
       )}
       <div className="grid grid-cols-[minmax(0,1fr)_348px] gap-4 max-[1180px]:grid-cols-1 [&>.card:first-child]:overflow-auto">
-        <Card>
+        <Card className="flex min-h-[520px] flex-col">
           <SectionHead
             title="Active report queue"
             subtitle={`${reportQuery.data?.total ?? 0} matching • Sorted by latest`}
@@ -618,7 +808,7 @@ export function LiveReports({
             onAction={exportRows}
           />
           {reportQuery.status === "error" && !rows.length ? (
-            <div className="flex min-h-[310px] flex-col items-center justify-center gap-2 text-center text-priority-red">
+            <div className="flex min-h-[310px] flex-1 flex-col items-center justify-center gap-2 text-center text-priority-red">
               <Icon name="alert" />
               <b className="text-xs">Report queue unavailable</b>
               <span className="text-[9px]">{reportQuery.error}</span>
@@ -627,41 +817,17 @@ export function LiveReports({
               </Button>
             </div>
           ) : reportQuery.status === "loading" && !rows.length ? (
-            <div className="grid min-h-[310px] place-items-center text-[10px] text-muted">
+            <div className="grid min-h-[310px] flex-1 place-items-center text-[10px] text-muted">
               Loading reports…
             </div>
           ) : rows.length ? (
-            <>
-              <ReportTable
-                rows={rows}
-                onSelect={setSelectedId}
-                selectedId={selected?.id}
-              />
-              <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-[9px] text-muted">
-                <span>
-                  Page {reportQuery.data?.page ?? page} of{" "}
-                  {Math.max(reportQuery.data?.total_pages ?? 0, 1)}
-                </span>
-                <div className="flex gap-2">
-                  <Button
-                    variant="secondary"
-                    disabled={page <= 1}
-                    onClick={() => setPage((value) => Math.max(1, value - 1))}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    disabled={page >= (reportQuery.data?.total_pages ?? 0)}
-                    onClick={() => setPage((value) => value + 1)}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
-            </>
+            <ReportTable
+              rows={rows}
+              onSelect={setSelectedId}
+              selectedId={selected?.id}
+            />
           ) : (
-            <div className="flex min-h-[310px] flex-col items-center justify-center gap-[7px] text-center text-muted">
+            <div className="flex min-h-[310px] flex-1 flex-col items-center justify-center gap-[7px] text-center text-muted">
               <Icon name="search" />
               <b className="text-xs text-[#1c1c1e]">
                 No reports match these filters
@@ -672,6 +838,30 @@ export function LiveReports({
               <Button variant="secondary" onClick={resetFilters}>
                 Reset filters
               </Button>
+            </div>
+          )}
+          {reportQuery.data && (
+            <div className="mt-auto flex items-center justify-between border-t border-border pt-3 text-[9px] text-muted">
+              <span>
+                Page {reportQuery.data.page} of{" "}
+                {Math.max(reportQuery.data.total_pages, 1)}
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  disabled={page <= 1}
+                  onClick={() => setPage((value) => Math.max(1, value - 1))}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="secondary"
+                  disabled={page >= reportQuery.data.total_pages}
+                  onClick={() => setPage((value) => value + 1)}
+                >
+                  Next
+                </Button>
+              </div>
             </div>
           )}
         </Card>

@@ -35,7 +35,7 @@ class User(SoftDeleteMixin, Base):
     __tablename__ = "users"
     __table_args__ = (
         CheckConstraint(
-            "role IN ('reporter','admin','dispatcher','verifier','viewer')",
+            "role IN ('reporter','admin','operations_admin','dispatcher','verifier','viewer')",
             name="role_valid",
         ),
         CheckConstraint("phone_number IS NOT NULL OR email IS NOT NULL", name="contact_present"),
@@ -397,6 +397,14 @@ class ResponseAssignment(SoftDeleteMixin, Base):
             "status IN ('assigned','acknowledged','responding','completed','cancelled')",
             name="status_valid",
         ),
+        Index(
+            "uq_response_assignments_unit_active",
+            "unit_id",
+            unique=True,
+            postgresql_where=text(
+                "deleted_at IS NULL AND status IN ('assigned','acknowledged','responding')"
+            ),
+        ),
     )
 
     assignment_id: Mapped[uuid.UUID] = uuid_primary_key()
@@ -414,7 +422,10 @@ class ResponseAssignment(SoftDeleteMixin, Base):
     )
     assigned_at: Mapped[datetime] = created_at_column()
     acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    responding_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = created_at_column()
 
 
 class ReportEvent(Base):

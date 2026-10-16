@@ -25,7 +25,7 @@ INCIDENT_TYPE_ID = uuid.UUID("00000000-0000-0000-0000-000000000201")
 
 
 class FakeAdminAuthService:
-    def __init__(self, *, role: str = "viewer") -> None:
+    def __init__(self, *, role: str = "operations_admin") -> None:
         self.user = User(
             user_id=uuid.uuid4(),
             full_name="Report Viewer",
@@ -262,8 +262,8 @@ def test_report_queries_exclude_soft_deleted_reports_by_default() -> None:
     assert "reports.deleted_at IS NULL" in str(conditions[0])
 
 
-def test_admin_can_review_a_pending_report() -> None:
-    auth_service = FakeAdminAuthService(role="admin")
+def test_operations_admin_can_review_a_pending_report() -> None:
+    auth_service = FakeAdminAuthService(role="operations_admin")
     report_service = FakeAdminReportService()
 
     with build_test_client(auth_service, report_service) as client:
@@ -319,7 +319,7 @@ def test_viewer_cannot_review_reports() -> None:
 
 
 def test_verified_review_requires_priority_and_confirmed_location() -> None:
-    auth_service = FakeAdminAuthService(role="verifier")
+    auth_service = FakeAdminAuthService(role="operations_admin")
     report_service = FakeAdminReportService()
 
     with build_test_client(auth_service, report_service) as client:

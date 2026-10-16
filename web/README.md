@@ -1,6 +1,6 @@
 # Responda Web Dashboard
 
-React/Vite dashboard for Responda administrators and emergency-response staff.
+React/Vite dashboard for Responda Super Admin and Administrator accounts.
 
 ## Connect to the backend
 
@@ -38,9 +38,11 @@ npm run lint
 npm run build
 ```
 
-The dashboard now uses the real backend for health checks and staff authentication. Its report cards
-and statistics still use demonstration data until the protected admin report endpoints are
-implemented.
+The dashboard uses the real backend for health checks, administrator
+authentication, reports, report review, incident linking, and the response-unit
+roster. The `admin` role appears as **Super Admin**, while `operations_admin`
+appears as **Administrator**. Analytics, historical records, incident-map data,
+and organization settings still include demonstration content.
 
 ## React and Vite notes
 

@@ -18,14 +18,7 @@ from app.core.security import (
     verify_password,
 )
 from app.models import AuditLog, AuthSession, User
-from app.models.enums import UserRole
-
-ADMIN_ROLES = {
-    UserRole.ADMIN.value,
-    UserRole.DISPATCHER.value,
-    UserRole.VERIFIER.value,
-    UserRole.VIEWER.value,
-}
+from app.models.enums import ADMINISTRATOR_ROLES
 
 
 @dataclass(frozen=True, slots=True)
@@ -87,7 +80,7 @@ class AdminAuthService:
                 status_code=403,
             )
 
-        if user.role not in ADMIN_ROLES:
+        if user.role not in ADMINISTRATOR_ROLES:
             await self._record_audit(
                 action="auth.login.rejected",
                 actor_user_id=user.user_id,
@@ -149,7 +142,7 @@ class AdminAuthService:
         now = datetime.now(UTC)
         if auth_session.revoked_at is not None or auth_session.expires_at <= now:
             raise self._invalid_session_error()
-        if not user.is_active or user.role not in ADMIN_ROLES:
+        if not user.is_active or user.role not in ADMINISTRATOR_ROLES:
             raise self._invalid_session_error()
         return AuthenticatedAdmin(user=user, session=auth_session)
 

@@ -15,6 +15,9 @@ VA101 to FastAPI and PostgreSQL; VA101's Next.js code is a reference, not code t
   forwarding headers.
 - Require a valid active staff session and an explicit allowed role on every admin operation. A
   hidden button in the web interface is not authorization.
+- Allow only `admin` (Super Admin) and `operations_admin` (Administrator) accounts to create or
+  retain a web-dashboard session. Dispatcher, verifier, viewer, and reporter roles do not receive
+  dashboard access.
 - Record successful and failed login decisions, logouts, and privileged changes in `audit_logs`.
   Never include a password or session token in an audit entry.
 
@@ -27,7 +30,8 @@ VA101 to FastAPI and PostgreSQL; VA101's Next.js code is a reference, not code t
   records that belong to the same operation.
 - For staff report review, lock the pending report and require the caller's last-seen `updated_at`
   value. Reject stale or repeated decisions instead of overwriting a newer review.
-- Allow only administrators and dispatchers to create incidents or link reports. Lock the report,
+- Allow only Super Admin and Administrator accounts to review reports, create incidents, or link
+  reports. Lock the report,
   require its last-seen `updated_at`, and accept only verified reports with a final priority that
   have not already been linked.
 - Existing incident links must target a non-deleted open, dispatched, or responding incident with
@@ -37,9 +41,20 @@ VA101 to FastAPI and PostgreSQL; VA101's Next.js code is a reference, not code t
   soft-deleted incidents and incident types.
 - Staff response-unit lists must be authenticated, paginated, capped, non-cacheable, and exclude
   soft-deleted units. Roster visibility does not grant assignment or status-transition authority.
-- Only administrators may create or edit response-unit roster identity fields. Require a trusted
-  browser origin, preserve unit status during edits, reject stale updates, and commit each unit
-  write with a minimal audit record that excludes contact details.
+- Only Super Admin and Administrator accounts may create or edit response-unit roster identity
+  fields. Require a trusted browser origin, preserve unit status during edits, reject stale
+  updates, and commit each unit write with a minimal audit record that excludes contact details.
+- Only Super Admin and Administrator accounts may create or transition response assignments.
+  Assignment creation must lock the incident and unit, require the incident's last-seen
+  `updated_at`, accept only active incidents and available non-deleted units, and enforce at most
+  one active assignment per unit in PostgreSQL.
+- Assignment transitions must lock the incident, unit, and assignment, require the assignment's
+  last-seen `updated_at`, and follow `assigned -> acknowledged -> responding -> completed`, with
+  cancellation permitted from any active state. Administrators record radio or phone updates;
+  response units do not receive dashboard accounts.
+- Assignment, unit, and incident status changes, linked-report events, and minimal audit records
+  must commit atomically. Completing the final active assignment resolves the incident; cancelling
+  the final active assignment reopens it. Never place unit contact details in events or audits.
 - Return stable public error codes and safe messages. Log internal exceptions server-side without
   exposing stack traces, SQL, secrets, or report contents to clients.
 - Allow only explicit CORS origins when cookies are enabled. Reject unsafe browser requests from

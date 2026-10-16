@@ -4,9 +4,18 @@ from enum import StrEnum
 class UserRole(StrEnum):
     REPORTER = "reporter"
     ADMIN = "admin"
+    OPERATIONS_ADMIN = "operations_admin"
     DISPATCHER = "dispatcher"
     VERIFIER = "verifier"
     VIEWER = "viewer"
+
+
+ADMINISTRATOR_ROLES = frozenset(
+    {
+        UserRole.ADMIN.value,
+        UserRole.OPERATIONS_ADMIN.value,
+    }
+)
 
 
 class Priority(StrEnum):

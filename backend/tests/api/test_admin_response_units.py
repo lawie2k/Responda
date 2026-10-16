@@ -23,7 +23,7 @@ UPDATED_AT = datetime(2026, 10, 16, 5, 0, tzinfo=UTC)
 
 
 class FakeAdminAuthService:
-    def __init__(self, *, role: str = "viewer") -> None:
+    def __init__(self, *, role: str = "operations_admin") -> None:
         self.user = User(
             user_id=uuid.uuid4(),
             full_name="Response Viewer",
@@ -164,7 +164,7 @@ def set_session(client: TestClient, auth_service: FakeAdminAuthService) -> None:
     )
 
 
-def test_authenticated_staff_can_list_filtered_response_units() -> None:
+def test_authenticated_admin_can_list_filtered_response_units() -> None:
     auth_service = FakeAdminAuthService()
     response_unit_service = FakeAdminResponseUnitService()
 
@@ -217,8 +217,8 @@ def test_response_unit_list_rejects_oversized_pages() -> None:
     assert response_unit_service.filters is None
 
 
-def test_admin_can_register_a_response_unit() -> None:
-    auth_service = FakeAdminAuthService(role="admin")
+def test_operations_admin_can_register_a_response_unit() -> None:
+    auth_service = FakeAdminAuthService(role="operations_admin")
     response_unit_service = FakeAdminResponseUnitService()
 
     with build_test_client(auth_service, response_unit_service) as client:

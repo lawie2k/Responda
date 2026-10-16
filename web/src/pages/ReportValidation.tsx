@@ -5,6 +5,7 @@ import {
   type ReportPriority,
 } from "../api/respondaApi";
 import { Icon } from "../components/Icon";
+import { isAdministratorRole } from "../config/roles";
 import { MiniMap } from "../components/Map";
 import {
   Badge,
@@ -117,7 +118,7 @@ export function ReportValidation({
       ? storedForm
       : emptyForm(selected)
     : null;
-  const canReview = userRole === "admin" || userRole === "verifier";
+  const canReview = isAdministratorRole(userRole);
   const allChecksComplete = form?.checks.every(Boolean) ?? false;
   const notesPresent = Boolean(form?.notes.trim());
 
@@ -204,8 +205,8 @@ export function ReportValidation({
       {!canReview && (
         <div className="flex min-h-12 items-center gap-2 rounded-xl bg-amber-soft px-3 text-[10px] text-priority-amber">
           <Icon name="alert" />
-          Your {userRole} account can view reports but only administrators and
-          verifiers can submit review decisions.
+          This account can view reports but only authorized administrators can
+          submit review decisions.
         </div>
       )}
 

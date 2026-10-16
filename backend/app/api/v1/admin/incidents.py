@@ -10,6 +10,7 @@ from app.api.dependencies import (
     require_trusted_origin,
 )
 from app.core.exceptions import ApplicationError
+from app.models.enums import ADMINISTRATOR_ROLES
 from app.schemas.admin_incidents import (
     AdminIncidentCreateRequest,
     AdminIncidentLinkResult,
@@ -20,7 +21,6 @@ from app.services.admin_auth import AuthenticatedAdmin
 from app.services.admin_incidents import AdminIncidentFilters
 
 router = APIRouter(prefix="/incidents")
-INCIDENT_OPERATOR_ROLES = {"admin", "dispatcher"}
 IncidentStatusQuery = Literal["open", "dispatched", "responding", "resolved", "closed"]
 
 
@@ -30,7 +30,7 @@ def _prevent_response_caching(response: Response) -> None:
 
 
 def _require_incident_operator(current: AuthenticatedAdmin) -> None:
-    if current.user.role not in INCIDENT_OPERATOR_ROLES:
+    if current.user.role not in ADMINISTRATOR_ROLES:
         raise ApplicationError(
             "This staff account cannot manage incidents.",
             code="incident_operation_forbidden",

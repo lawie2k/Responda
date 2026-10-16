@@ -10,6 +10,7 @@ from app.api.dependencies import (
     require_trusted_origin,
 )
 from app.core.exceptions import ApplicationError
+from app.models.enums import ADMINISTRATOR_ROLES
 from app.schemas.admin_reports import (
     AdminReportDetailResponse,
     AdminReportListResponse,
@@ -26,7 +27,6 @@ ReportStatusQuery = Literal["new", "under_review", "linked", "closed"]
 VerificationStatusQuery = Literal["pending", "verified", "unverified", "invalid"]
 ReportSourceQuery = Literal["app_api", "app_sms", "manual"]
 IncidentStatusQuery = Literal["open", "dispatched", "responding", "resolved", "closed"]
-REPORT_REVIEWER_ROLES = {"admin", "verifier"}
 
 
 def _prevent_response_caching(response: Response) -> None:
@@ -35,7 +35,7 @@ def _prevent_response_caching(response: Response) -> None:
 
 
 def _require_report_reviewer(current: AuthenticatedAdmin) -> None:
-    if current.user.role not in REPORT_REVIEWER_ROLES:
+    if current.user.role not in ADMINISTRATOR_ROLES:
         raise ApplicationError(
             "This staff account cannot review reports.",
             code="report_review_forbidden",

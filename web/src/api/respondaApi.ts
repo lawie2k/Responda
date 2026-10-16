@@ -16,7 +16,7 @@ export type AdminUser = {
   user_id: string;
   full_name: string;
   email: string;
-  role: "admin" | "dispatcher" | "verifier" | "viewer";
+  role: "admin" | "operations_admin";
 };
 
 export type AdminSession = {
@@ -256,6 +256,49 @@ export type AdminResponseUnitUpdatePayload =
   AdminResponseUnitCreatePayload & {
     expected_updated_at: string;
   };
+
+export type AssignmentStatus =
+  | "assigned"
+  | "acknowledged"
+  | "responding"
+  | "completed"
+  | "cancelled";
+
+export type AssignmentTransitionStatus = Exclude<AssignmentStatus, "assigned">;
+
+export type AdminAssignmentListItem = {
+  assignment_id: string;
+  incident_id: string;
+  unit: {
+    unit_id: string;
+    name: string;
+    unit_type: string;
+    contact: string;
+    status: ResponseUnitStatus;
+  };
+  assigned_by_staff_id: string;
+  status: AssignmentStatus;
+  assigned_at: string;
+  acknowledged_at: string | null;
+  responding_at: string | null;
+  completed_at: string | null;
+  cancelled_at: string | null;
+  updated_at: string;
+};
+
+export type AdminAssignmentList = {
+  items: AdminAssignmentListItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+};
+
+export type AdminAssignmentMutationResult = {
+  assignment: AdminAssignmentListItem;
+  incident_status: IncidentStatus;
+  incident_updated_at: string;
+};
 
 export class RespondaApiError extends Error {
   readonly status?: number;
@@ -543,6 +586,91 @@ export async function updateAdminResponseUnit(
   );
 }
 
+export async function getAdminAssignments(
+  incidentId: string,
+  query: { page?: number; pageSize?: number } = {},
+  signal?: AbortSignal,
+): Promise<AdminAssignmentList> {
+  const parameters = new URLSearchParams();
+  if (query.page !== undefined) parameters.set("page", String(query.page));
+  if (query.pageSize !== undefined) {
+    parameters.set("page_size", String(query.pageSize));
+  }
+  const queryString = parameters.toString();
+  const response = await fetch(
+    `${apiBaseUrl}/api/v1/admin/incidents/${encodeURIComponent(incidentId)}/assignments${queryString ? `?${queryString}` : ""}`,
+    {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+      signal,
+    },
+  );
+  if (!response.ok) {
+    throw await toApiError(response, "The response assignments could not be loaded.");
+  }
+  const result: unknown = await response.json();
+  if (!isAdminAssignmentList(result)) {
+    throw new RespondaApiError(
+      "The Responda backend returned an invalid assignment list.",
+    );
+  }
+  return result;
+}
+
+export async function createAdminAssignment(
+  incidentId: string,
+  payload: { unit_id: string; expected_incident_updated_at: string },
+): Promise<AdminAssignmentMutationResult> {
+  return submitAssignmentOperation(
+    `${apiBaseUrl}/api/v1/admin/incidents/${encodeURIComponent(incidentId)}/assignments`,
+    payload,
+    "The response unit could not be assigned.",
+  );
+}
+
+export async function transitionAdminAssignment(
+  assignmentId: string,
+  payload: {
+    expected_updated_at: string;
+    status: AssignmentTransitionStatus;
+  },
+): Promise<AdminAssignmentMutationResult> {
+  return submitAssignmentOperation(
+    `${apiBaseUrl}/api/v1/admin/assignments/${encodeURIComponent(assignmentId)}/transitions`,
+    payload,
+    "The assignment status could not be updated.",
+  );
+}
+
+async function submitAssignmentOperation(
+  url: string,
+  payload: object,
+  fallbackMessage: string,
+): Promise<AdminAssignmentMutationResult> {
+  const response = await fetch(url, {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw await toApiError(response, fallbackMessage);
+  }
+  const result: unknown = await response.json();
+  if (!isAdminAssignmentMutationResult(result)) {
+    throw new RespondaApiError(
+      "The Responda backend returned an invalid assignment result.",
+    );
+  }
+  return result;
+}
+
 async function submitResponseUnitOperation(
   url: string,
   method: "POST" | "PATCH",
@@ -705,10 +833,7 @@ function isAdminSession(value: unknown): value is AdminSession {
     typeof user.user_id === "string" &&
     typeof user.full_name === "string" &&
     typeof user.email === "string" &&
-    (user.role === "admin" ||
-      user.role === "dispatcher" ||
-      user.role === "verifier" ||
-      user.role === "viewer")
+    (user.role === "admin" || user.role === "operations_admin")
   );
 }
 
@@ -870,5 +995,82 @@ function isAdminResponseUnitListItem(
       typeof unit.location_updated_at === "string") &&
     typeof unit.created_at === "string" &&
     typeof unit.updated_at === "string"
+  );
+}
+
+function isAdminAssignmentList(value: unknown): value is AdminAssignmentList {
+  if (typeof value !== "object" || value === null) return false;
+  const list = value as Record<string, unknown>;
+  return (
+    Array.isArray(list.items) &&
+    list.items.every(isAdminAssignmentListItem) &&
+    typeof list.total === "number" &&
+    typeof list.page === "number" &&
+    typeof list.page_size === "number" &&
+    typeof list.total_pages === "number"
+  );
+}
+
+function isAdminAssignmentListItem(
+  value: unknown,
+): value is AdminAssignmentListItem {
+  if (typeof value !== "object" || value === null) return false;
+  const assignment = value as Record<string, unknown>;
+  const unit = assignment.unit;
+  return (
+    typeof assignment.assignment_id === "string" &&
+    typeof assignment.incident_id === "string" &&
+    typeof assignment.assigned_by_staff_id === "string" &&
+    isAssignmentStatus(assignment.status) &&
+    typeof assignment.assigned_at === "string" &&
+    typeof assignment.updated_at === "string" &&
+    typeof unit === "object" &&
+    unit !== null &&
+    typeof (unit as Record<string, unknown>).unit_id === "string" &&
+    typeof (unit as Record<string, unknown>).name === "string" &&
+    typeof (unit as Record<string, unknown>).unit_type === "string" &&
+    typeof (unit as Record<string, unknown>).contact === "string" &&
+    isResponseUnitStatus((unit as Record<string, unknown>).status)
+  );
+}
+
+function isAdminAssignmentMutationResult(
+  value: unknown,
+): value is AdminAssignmentMutationResult {
+  if (typeof value !== "object" || value === null) return false;
+  const result = value as Record<string, unknown>;
+  return (
+    isAdminAssignmentListItem(result.assignment) &&
+    isIncidentStatus(result.incident_status) &&
+    typeof result.incident_updated_at === "string"
+  );
+}
+
+function isAssignmentStatus(value: unknown): value is AssignmentStatus {
+  return (
+    value === "assigned" ||
+    value === "acknowledged" ||
+    value === "responding" ||
+    value === "completed" ||
+    value === "cancelled"
+  );
+}
+
+function isIncidentStatus(value: unknown): value is IncidentStatus {
+  return (
+    value === "open" ||
+    value === "dispatched" ||
+    value === "responding" ||
+    value === "resolved" ||
+    value === "closed"
+  );
+}
+
+function isResponseUnitStatus(value: unknown): value is ResponseUnitStatus {
+  return (
+    value === "available" ||
+    value === "assigned" ||
+    value === "responding" ||
+    value === "offline"
   );
 }
