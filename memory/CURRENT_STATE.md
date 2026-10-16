@@ -28,6 +28,10 @@ updated: 2026-10-16
   checks, session limits, and audit records.
 - One active staff account with the `admin` role exists in PostgreSQL. Its
   identity and credentials are not stored in project memory.
+- The confirmed target role model is not implemented yet: the existing `admin`
+  role will represent Super Admin, a new `operations_admin` role will represent
+  normal administrators, and dispatcher accounts will not receive dashboard or
+  response-team assignment access.
 - Protected staff report-list and report-detail endpoints now exist under
   `/api/v1/admin/reports`. They use the existing revocable staff session,
   validated and capped pagination, search and enum-backed filters, stable safe
@@ -44,7 +48,14 @@ updated: 2026-10-16
   existing active incident of the same type. Both operations lock and
   version-check the report and atomically update the report plus its event and
   audit history. A protected, paginated incident-list endpoint supplies active
-  matching incidents to staff clients. Response-unit assignment and dispatch
+  matching incidents to staff clients.
+- A protected response-unit list endpoint supplies the staff dashboard with a
+  paginated, searchable, status-filtered roster plus global readiness counts.
+  It excludes soft-deleted units and returns non-cacheable responses to any
+  authenticated staff role. Administrator-only create and edit endpoints now
+  validate and normalize roster fields, require trusted origins, reject name
+  conflicts and stale edits, preserve operational status during edits, and
+  write minimal audit records atomically. Response-unit assignment and dispatch
   lifecycle endpoints are not implemented yet.
 - Mobile report creation, gateway ingestion, and notification APIs are not
   implemented yet.
@@ -54,8 +65,10 @@ updated: 2026-10-16
 ## Web dashboard
 
 - The React/Vite dashboard has a responsive staff login page wired to the real
-  admin login, session, and logout endpoints. Its left hero panel uses the
-  supplied MDRRMO Operation Center photo with a responsive maroon treatment.
+  admin login, session, and logout endpoints. Its restrained civic layout uses
+  one flat maroon accent, the supplied MDRRMO Operation Center photo, clear
+  form-first hierarchy, and Pantukan-specific operational copy without
+  decorative gradients or unnecessary card shadows.
 - It restores valid `HttpOnly` cookie sessions on reload, clears session-scoped
   client caches on login/logout, displays the authenticated staff identity, and
   guards browser history so repeated Back actions do not show the login page
@@ -65,6 +78,10 @@ updated: 2026-10-16
   action plus outside-click and Escape-key dismissal.
 - The dashboard also calls the backend health endpoint and displays
   `Backend connected` when FastAPI and PostgreSQL are available.
+- All nine authenticated dashboard tabs now share a restrained civic operations
+  design system: warm neutral flat surfaces, one maroon brand accent, semantic
+  colors only for operational states, stronger content hierarchy, flat
+  navigation/tabs/tables/controls, and shadows reserved for floating overlays.
 - The Overview report metrics, priority queue, map markers, recent-report table,
   global report search, and Live Reports queue now read from the protected
   report APIs. Live Reports supports server-side search, filters, capped
@@ -76,9 +93,15 @@ updated: 2026-10-16
   queue empty state remains visible. In Live Reports, administrators and
   dispatchers can now create an incident from a verified report or choose a
   matching active incident and link it; all report and incident views refresh
-  after success, while other roles remain read-only. Unrelated response-team,
-  analytics, historical, and incident-map views still contain demonstration
-  data.
+  after success, while other roles remain read-only. Response Teams now reads
+  the real PostgreSQL response-unit roster with search, status filters,
+  pagination, refresh, unit details, and explicit loading, error, and empty
+  states. Administrators can register available response units and edit their
+  name, type, and contact through a validated dashboard modal; other roles remain
+  read-only. Its responsive workspace places search controls first, a dominant
+  operational-unit roster on the left, and roster totals plus readiness summaries
+  in a stacked right rail. Assignment and lifecycle mutations are not implemented.
+  Analytics, historical, and incident-map views still contain demonstration data.
 
 ## Mobile app
 
@@ -92,6 +115,17 @@ updated: 2026-10-16
 
 ## Verification history
 
+- Response-unit roster management passed backend Ruff, strict mypy, and all 75
+  tests plus web lint and production build. Alembic reports no schema drift,
+  OpenAPI exposes GET/POST/PATCH response-unit operations, and a rolled-back
+  PostgreSQL verification confirmed create, edit, status preservation, and two
+  audit records.
+
+- The response-unit roster phase passed backend Ruff, strict mypy, and all 65
+  tests; web lint and production build passed. OpenAPI exposes the protected
+  response-unit GET operation, Alembic reports no schema drift, and the
+  configured PostgreSQL roster query completed successfully with the current
+  empty roster.
 - The Live Reports incident integration passed all 61 backend tests, backend
   Ruff and strict mypy, web lint and production build. Alembic reports no schema
   drift, OpenAPI exposes GET/POST on the incident collection, and the configured
@@ -114,8 +148,8 @@ updated: 2026-10-16
 - Human-written project memory is in `memory/`.
 - Graphify indexes code from backend, web, mobile, and the monorepo root into one
   combined graph.
-- The combined graph currently contains 2,236 code nodes, 3,897 relationships,
-  and 185 detected communities. Generated graph artifacts remain local and
+- The combined graph currently contains 2,327 code nodes, 4,180 relationships,
+  and 186 detected communities. Generated graph artifacts remain local and
   ignored.
 - `AGENTS.md` directs future coding sessions to read memory and query Graphify
   before broad filesystem searches.

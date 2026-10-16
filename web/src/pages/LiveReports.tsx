@@ -507,7 +507,7 @@ export function LiveReports({
         onAction={openModal}
       />
       <Card className="relative flex min-h-14 flex-wrap items-center gap-2 overflow-visible px-[10px] py-2 [&_.filter-search]:min-w-[210px]">
-        <div className="flex gap-[3px] rounded-[11px] bg-soft-gray p-[3px] [&>button]:h-8 [&>button]:rounded-[9px] [&>button]:border-0 [&>button]:bg-transparent [&>button]:px-3 [&>button]:text-[9px] [&>button]:text-muted [&>button.active]:bg-white [&>button.active]:text-maroon [&>button.active]:shadow-[0_2px_6px_#0001]">
+        <div className="flex gap-1 border-b border-[#dcd7d4] [&>button]:h-8 [&>button]:border-0 [&>button]:border-b-2 [&>button]:border-transparent [&>button]:bg-transparent [&>button]:px-3 [&>button]:text-[9px] [&>button]:text-muted [&>button.active]:border-maroon [&>button.active]:text-maroon">
           {(
             ["All", "Needs validation", "Critical", "Dispatched"] as ReportTab[]
           ).map((value, index) => (

@@ -1,464 +1,681 @@
-import { useMemo, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
+import {
+  createAdminResponseUnit,
+  updateAdminResponseUnit,
+  type AdminResponseUnitListItem,
+  type AdminUser,
+  type ResponseUnitStatus,
+} from "../api/respondaApi";
 import { Icon } from "../components/Icon";
 import {
   Badge,
   Button,
   Card,
-  Metric,
   PageTitle,
   SectionHead,
   SelectField,
 } from "../components/ui";
+import { useAdminResponseUnits } from "../hooks/useAdminResponseUnits";
 
-type TeamStatus = "AVAILABLE" | "ON ROUTE" | "ON SITE" | "DEPLOYED";
+const PAGE_SIZE = 20;
+const editorInputClasses =
+  "h-10 w-full rounded-[7px] border border-border bg-white px-3 text-[10px] outline-0 placeholder:text-muted focus:border-maroon";
 
-type Team = {
-  id: string;
-  name: string;
-  status: TeamStatus;
-  specialty: string;
-  leader: string;
-  assignment: string;
-  tone: string;
-  eta: string;
-  needsAttention?: boolean;
+const statusMeta: Record<
+  ResponseUnitStatus,
+  { label: string; tone: string; detail: string }
+> = {
+  available: { label: "AVAILABLE", tone: "green", detail: "Ready" },
+  assigned: { label: "ASSIGNED", tone: "blue", detail: "Assigned" },
+  responding: { label: "RESPONDING", tone: "maroon", detail: "Responding" },
+  offline: { label: "OFFLINE", tone: "amber", detail: "Unavailable" },
 };
 
-const initialTeams: Team[] = [
-  {
-    id: "TEAM-001",
-    name: "Rescue Alpha",
-    status: "ON ROUTE",
-    specialty: "Search & rescue",
-    leader: "R. Villanueva",
-    assignment: "Road Accident • Kingking Highway",
-    tone: "maroon",
-    eta: "4 min",
-  },
-  {
-    id: "TEAM-002",
-    name: "Medical 1",
-    status: "AVAILABLE",
-    specialty: "Emergency medical",
-    leader: "D. Flores",
-    assignment: "Available",
-    tone: "green",
-    eta: "0 min",
-  },
-  {
-    id: "TEAM-003",
-    name: "Flood Unit",
-    status: "ON SITE",
-    specialty: "Flood response",
-    leader: "J. Ramos",
-    assignment: "Flash Flood • Magnaga Riverside",
-    tone: "blue",
-    eta: "On site",
-  },
-  {
-    id: "TEAM-004",
-    name: "Rescue Bravo",
-    status: "DEPLOYED",
-    specialty: "Road clearing",
-    leader: "A. Mercado",
-    assignment: "Landslide • Bongabong Slope",
-    tone: "orange",
-    eta: "12 min",
-    needsAttention: true,
-  },
-  {
-    id: "TEAM-005",
-    name: "Logistics 2",
-    status: "AVAILABLE",
-    specialty: "Transport & supplies",
-    leader: "M. Santos",
-    assignment: "Available",
-    tone: "green",
-    eta: "8 min",
-  },
-  {
-    id: "TEAM-006",
-    name: "Medical 2",
-    status: "DEPLOYED",
-    specialty: "Emergency medical",
-    leader: "C. Reyes",
-    assignment: "Medical • Matiao Public Market",
-    tone: "blue",
-    eta: "6 min",
-  },
-];
+function unitReference(unitId: string) {
+  return `UNIT-${unitId.slice(0, 8).toUpperCase()}`;
+}
 
-const teamToneClasses: Record<string, string> = {
-  maroon: "bg-blush text-maroon",
-  red: "bg-red-soft text-priority-red",
-  orange: "bg-orange-soft text-priority-orange",
-  amber: "bg-amber-soft text-priority-amber",
-  green: "bg-green-soft text-status-green",
-  blue: "bg-blue-soft text-status-blue",
-};
+function formatTimestamp(value: string | null) {
+  if (!value) return "Not recorded";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Not recorded";
+  return new Intl.DateTimeFormat("en-PH", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
 
-export function ResponseTeams() {
-  const [teams, setTeams] = useState(initialTeams);
-  const [statusFilter, setStatusFilter] = useState("");
-  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
-  const [addTeamOpen, setAddTeamOpen] = useState(false);
-  const [activity, setActivity] = useState([
-    ["1:42 PM", "Rescue Alpha", "Departed for Kingking Highway"],
-    ["1:38 PM", "Flood Unit", "Arrived at Magnaga riverside"],
-    ["1:31 PM", "Medical 1", "Returned to available status"],
-  ]);
-  const [draftTeam, setDraftTeam] = useState({
+function locationLabel(unit: AdminResponseUnitListItem) {
+  if (unit.current_latitude === null || unit.current_longitude === null) {
+    return "No location reported";
+  }
+  return `${unit.current_latitude.toFixed(5)}, ${unit.current_longitude.toFixed(5)}`;
+}
+
+function UnitCard({
+  unit,
+  onSelect,
+}: {
+  unit: AdminResponseUnitListItem;
+  onSelect: () => void;
+}) {
+  const meta = statusMeta[unit.status];
+  return (
+    <Card className="flex min-h-[230px] flex-col">
+      <div className="flex items-center justify-between gap-3">
+        <span className="grid size-11 shrink-0 place-items-center rounded-[10px] bg-[#f3efed] text-maroon">
+          <Icon name="users" />
+        </span>
+        <Badge tone={meta.tone}>{meta.label}</Badge>
+      </div>
+      <h3 className="mb-1 mt-3 text-sm">{unit.name}</h3>
+      <p className="m-0 text-[9px] text-muted">{unit.unit_type}</p>
+      <div className="mt-4 grid gap-2 border-t border-border pt-3 text-[9px]">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-muted">Contact</span>
+          <b className="truncate">{unit.contact}</b>
+        </div>
+        <div className="flex items-start justify-between gap-3">
+          <span className="shrink-0 text-muted">Last location</span>
+          <b className="text-right">{locationLabel(unit)}</b>
+        </div>
+      </div>
+      <div className="mt-auto pt-4">
+        <Button variant="secondary" onClick={onSelect}>
+          View unit
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+export function ResponseTeams({ role }: { role: AdminUser["role"] }) {
+  const [statusFilter, setStatusFilter] = useState<ResponseUnitStatus | "">("");
+  const [localSearch, setLocalSearch] = useState("");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
+  const [editor, setEditor] = useState<{
+    mode: "create" | "edit";
+    unit: AdminResponseUnitListItem | null;
+  } | null>(null);
+  const [editorFields, setEditorFields] = useState({
     name: "",
-    specialty: "",
-    leader: "",
-    status: "AVAILABLE" as TeamStatus,
+    unitType: "",
+    contact: "",
   });
+  const [editorError, setEditorError] = useState("");
+  const [savingUnit, setSavingUnit] = useState(false);
+  const [feedback, setFeedback] = useState("");
 
-  const availableTeams = teams.filter((team) => team.status === "AVAILABLE");
-  const deployedTeams = teams.filter((team) => team.status !== "AVAILABLE");
-  const visibleTeams = useMemo(
-    () =>
-      teams.filter((team) => {
-        if (!statusFilter) return true;
-        if (statusFilter === "DEPLOYED") return team.status !== "AVAILABLE";
-        return team.status === statusFilter;
-      }),
-    [statusFilter, teams],
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setSearch(localSearch.trim());
+      setPage(1);
+    }, 250);
+    return () => window.clearTimeout(timeout);
+  }, [localSearch]);
+
+  const roster = useAdminResponseUnits({
+    page,
+    pageSize: PAGE_SIZE,
+    search: search || undefined,
+    statuses: statusFilter ? [statusFilter] : undefined,
+  });
+  const data = roster.data;
+  const counts = data?.counts ?? {
+    total: 0,
+    available: 0,
+    assigned: 0,
+    responding: 0,
+    offline: 0,
+  };
+  const selectedUnit = data?.items.find(
+    (unit) => unit.unit_id === selectedUnitId,
   );
-  const selectedTeam = teams.find((team) => team.id === selectedTeamId);
-  const canAddTeam = Boolean(
-    draftTeam.name.trim() &&
-    draftTeam.specialty.trim() &&
-    draftTeam.leader.trim(),
-  );
-  const addTeam = () => {
-    if (!canAddTeam) return;
-    const newTeam: Team = {
-      id: `TEAM-${String(teams.length + 1).padStart(3, "0")}`,
-      name: draftTeam.name.trim(),
-      specialty: draftTeam.specialty.trim(),
-      leader: draftTeam.leader.trim(),
-      status: draftTeam.status,
-      assignment:
-        draftTeam.status === "AVAILABLE" ? "Available" : "Awaiting details",
-      tone: draftTeam.status === "AVAILABLE" ? "green" : "blue",
-      eta: draftTeam.status === "AVAILABLE" ? "Ready" : "Active",
-    };
-    setTeams((current) => [...current, newTeam]);
-    setActivity((current) => [
-      ["Now", newTeam.name, "Added to the response-team roster"],
-      ...current,
-    ]);
-    setDraftTeam({
-      name: "",
-      specialty: "",
-      leader: "",
-      status: "AVAILABLE",
+  const inService =
+    data?.items.filter(
+      (unit) => unit.status === "assigned" || unit.status === "responding",
+    ) ?? [];
+  const available =
+    data?.items.filter((unit) => unit.status === "available") ?? [];
+  const hasFilters = Boolean(statusFilter || localSearch.trim());
+
+  const resetFilters = () => {
+    setLocalSearch("");
+    setSearch("");
+    setStatusFilter("");
+    setPage(1);
+  };
+
+  const openCreateEditor = () => {
+    setEditor({ mode: "create", unit: null });
+    setEditorFields({ name: "", unitType: "", contact: "" });
+    setEditorError("");
+    setFeedback("");
+  };
+
+  const openEditEditor = (unit: AdminResponseUnitListItem) => {
+    setSelectedUnitId(null);
+    setEditor({ mode: "edit", unit });
+    setEditorFields({
+      name: unit.name,
+      unitType: unit.unit_type,
+      contact: unit.contact,
     });
-    setAddTeamOpen(false);
+    setEditorError("");
+    setFeedback("");
+  };
+
+  const closeEditor = () => {
+    if (savingUnit) return;
+    setEditor(null);
+    setEditorError("");
+  };
+
+  const submitUnit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editor || savingUnit) return;
+    const payload = {
+      name: editorFields.name.trim(),
+      unit_type: editorFields.unitType.trim(),
+      contact: editorFields.contact.trim(),
+    };
+    if (!payload.name || !payload.unit_type || !payload.contact) {
+      setEditorError("Name, unit type, and contact are required.");
+      return;
+    }
+
+    setSavingUnit(true);
+    setEditorError("");
+    try {
+      const saved =
+        editor.mode === "create"
+          ? await createAdminResponseUnit(payload)
+          : await updateAdminResponseUnit(editor.unit!.unit_id, {
+              ...payload,
+              expected_updated_at: editor.unit!.updated_at,
+            });
+      setFeedback(
+        editor.mode === "create"
+          ? `${saved.name} was registered and is available for assignment.`
+          : `${saved.name}'s roster details were updated.`,
+      );
+      setEditor(null);
+      setPage(1);
+      roster.refetch();
+    } catch (error) {
+      setEditorError(
+        error instanceof Error
+          ? error.message
+          : "The response-unit details could not be saved.",
+      );
+    } finally {
+      setSavingUnit(false);
+    }
   };
 
   return (
     <>
       <PageTitle
         title="Response Teams"
-        subtitle="Manage the team roster, readiness, and current incident assignments."
-        action="Add team"
-        onAction={() => setAddTeamOpen(true)}
+        subtitle="View the response-unit roster, readiness, contact details, and latest reported location."
+        action={role === "admin" ? "Register unit" : undefined}
+        onAction={openCreateEditor}
       />
 
-      <div className="grid grid-cols-4 gap-4 max-[1180px]:grid-cols-2 max-[650px]:grid-cols-1">
-        <Metric
-          icon="users"
-          title="Total teams"
-          value={String(teams.length)}
-          sub="MDRRMO operational units"
-          tone="maroon"
-        />
-        <Metric
-          icon="truck"
-          title="Deployed"
-          value={String(deployedTeams.length)}
-          sub="Across active incidents"
-          tone="blue"
-        />
-        <Metric
-          icon="verify"
-          title="Available"
-          value={String(availableTeams.length)}
-          sub="Ready for assignment"
-          tone="green"
-        />
-        <Metric
-          icon="alert"
-          title="Needs attention"
-          value={String(teams.filter((team) => team.needsAttention).length)}
-          sub="Vehicle maintenance due"
-          tone="amber"
-        />
-      </div>
-
-      <div className="grid grid-cols-[minmax(0,2fr)_minmax(360px,1fr)] gap-4 max-[1180px]:grid-cols-1">
-        <div>
-          <div className="mb-3 flex h-10 items-center justify-between gap-3 [&_h3]:m-0 [&_h3]:text-sm [&_p]:my-0.5 [&_p]:text-[9px] [&_p]:text-muted">
-            <div>
-              <h3>Operational units</h3>
-              <p>{visibleTeams.length} teams match the current status</p>
-            </div>
-            <SelectField
-              label="All statuses"
-              value={statusFilter}
-              options={["AVAILABLE", "DEPLOYED", "ON ROUTE", "ON SITE"]}
-              onChange={setStatusFilter}
-            />
-          </div>
-
-          <div className="mb-3 grid grid-cols-2 gap-3 max-[650px]:grid-cols-1">
-            {visibleTeams.map((team) => (
-              <Card
-                className="[&>div:first-child]:flex [&>div:first-child]:items-center [&>div:first-child]:justify-between [&_h3]:mt-[10px] [&_h3]:mb-[3px] [&_h3]:text-sm [&>p]:text-[9px] [&>p]:text-muted [&>div:not(:first-child)]:my-[7px] [&>div:not(:first-child)]:flex [&>div:not(:first-child)]:justify-between [&>div:not(:first-child)]:text-[9px] [&>div_span]:text-muted [&_.button]:mt-[10px] [&_.button]:w-full"
-                key={team.id}
-              >
-                <div>
-                  <span
-                    className={`grid size-11 shrink-0 place-items-center rounded-[14px] ${teamToneClasses[team.tone]}`}
-                  >
-                    <Icon name="users" />
-                  </span>
-                  <Badge tone={team.tone}>{team.status}</Badge>
-                </div>
-                <h3>{team.name}</h3>
-                <p>{team.specialty}</p>
-                <div>
-                  <span>Team leader</span>
-                  <b>{team.leader}</b>
-                </div>
-                <div>
-                  <span>Current assignment</span>
-                  <b>{team.assignment}</b>
-                </div>
-                <Button
-                  variant="secondary"
-                  onClick={() => setSelectedTeamId(team.id)}
-                >
-                  View team
-                </Button>
-              </Card>
-            ))}
-            {!visibleTeams.length && (
-              <Card className="col-span-full grid min-h-40 place-items-center text-[10px] text-muted">
-                No teams match this status.
-              </Card>
-            )}
-          </div>
-
-          <Card className="p-4">
-            <SectionHead
-              title="Recent team activity"
-              subtitle="Latest status changes"
-            />
-            {activity.slice(0, 5).map((entry, index) => (
-              <div
-                className="grid min-h-7 grid-cols-[45px_100px_1fr] items-center gap-2 border-b border-[#f0f0f1] text-[9px] last:border-0 [&_span]:text-muted [&_p]:text-muted"
-                key={`${entry[0]}-${entry[1]}-${index}`}
-              >
-                <span>{entry[0]}</span>
-                <b>{entry[1]}</b>
-                <p>{entry[2]}</p>
-              </div>
-            ))}
-          </Card>
+      {feedback && (
+        <div className="flex min-h-11 items-center justify-between border border-[#b9ddc7] border-l-[3px] border-l-status-green bg-white px-3 text-[10px] text-status-green">
+          <b>{feedback}</b>
+          <button
+            aria-label="Dismiss roster message"
+            className="border-0 bg-transparent text-base text-status-green"
+            onClick={() => setFeedback("")}
+          >
+            ×
+          </button>
         </div>
+      )}
 
-        <div className="side-stack flex flex-col gap-3 max-[1180px]:grid max-[1180px]:grid-cols-2 max-[900px]:grid-cols-1">
-          <Card className="p-4">
-            <SectionHead
-              title="Current assignments"
-              subtitle={`${deployedTeams.length} teams assigned to active incidents`}
-            />
-            {deployedTeams.map((team) => (
-              <button
-                className="mt-2.5 grid min-h-[92px] w-full gap-2 rounded-[14px] border border-transparent bg-soft-gray p-3 text-left transition-colors hover:border-maroon hover:bg-blush"
-                key={team.id}
-                onClick={() => setSelectedTeamId(team.id)}
-              >
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <span className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-white text-maroon">
-                    <Icon name="truck" />
-                  </span>
-                  <div className="grid min-w-0 flex-1 gap-0.5">
-                    <b className="truncate text-[10px]">{team.name}</b>
-                    <small className="truncate text-[8px] text-muted">
-                      {team.specialty}
-                    </small>
-                  </div>
-                  <Badge tone={team.tone}>{team.status}</Badge>
-                </div>
-                <span className="flex items-start gap-1.5 border-t border-border pt-2 text-[9px] leading-[1.45] text-muted">
-                  <Icon name="pin" size={13} />
-                  <strong className="font-semibold text-[#1c1c1e]">
-                    {team.assignment}
-                  </strong>
+      <Card className="flex items-center gap-3 max-[760px]:flex-col max-[760px]:items-stretch">
+        <label className="relative flex-1">
+          <span className="sr-only">Search response units</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted">
+            <Icon name="search" size={15} />
+          </span>
+          <input
+            className="h-[38px] w-full rounded-[10px] border border-border bg-white pl-9 pr-3 text-[10px] outline-0 placeholder:text-muted focus:border-maroon focus:shadow-[0_0_0_3px_rgba(122,31,43,.08)]"
+            onChange={(event) => setLocalSearch(event.target.value)}
+            placeholder="Search by unit name, type, or contact"
+            value={localSearch}
+          />
+        </label>
+        <SelectField
+          label="All statuses"
+          onChange={(value) => {
+            setStatusFilter(value as ResponseUnitStatus | "");
+            setPage(1);
+          }}
+          options={[
+            { label: "Available", value: "available" },
+            { label: "Assigned", value: "assigned" },
+            { label: "Responding", value: "responding" },
+            { label: "Offline", value: "offline" },
+          ]}
+          value={statusFilter}
+        />
+        <Button variant="secondary" onClick={roster.refetch}>
+          Refresh roster
+        </Button>
+      </Card>
+
+      <div className="grid grid-cols-[minmax(0,2.4fr)_minmax(320px,0.9fr)] items-stretch gap-4 max-[1050px]:grid-cols-1">
+        <Card className="flex min-h-[650px] flex-col overflow-visible p-5 max-[1050px]:min-h-[480px] max-[650px]:min-h-[360px]">
+          <SectionHead
+            title="Operational units"
+            subtitle={
+              data
+                ? `${data.total} unit${data.total === 1 ? "" : "s"} match the current view`
+                : "Loading the live response-unit roster"
+            }
+          />
+
+          {roster.status === "loading" && (
+            <div className="grid min-h-64 flex-1 place-items-center text-[10px] text-muted">
+              Loading response units…
+            </div>
+          )}
+
+          {roster.status === "error" && (
+            <div className="grid min-h-64 flex-1 place-items-center gap-3 text-center">
+              <div>
+                <b className="block text-sm">The roster could not be loaded</b>
+                <p className="mt-1 text-[10px] text-muted">{roster.error}</p>
+              </div>
+              <Button variant="secondary" onClick={roster.refetch}>
+                Try again
+              </Button>
+            </div>
+          )}
+
+          {roster.status === "ready" && !roster.data.items.length && (
+            <div className="grid min-h-64 flex-1 place-items-center text-center">
+              <div className="max-w-sm">
+                <span className="mx-auto grid size-12 place-items-center rounded-[15px] bg-soft-gray text-maroon">
+                  <Icon name="users" size={22} />
                 </span>
-              </button>
-            ))}
+                <b className="mt-3 block text-sm">
+                  {hasFilters
+                    ? "No units match these filters"
+                    : "No response units have been registered"}
+                </b>
+                <p className="mt-1 text-[10px] leading-5 text-muted">
+                  {hasFilters
+                    ? "Clear the filters to return to the full roster."
+                    : "Units will appear here after they are added to the database."}
+                </p>
+                {hasFilters && (
+                  <div className="mt-3">
+                    <Button variant="secondary" onClick={resetFilters}>
+                      Clear filters
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {roster.status === "ready" && roster.data.items.length > 0 && (
+            <>
+              <div className="grid grid-cols-2 gap-3 max-[650px]:grid-cols-1">
+                {roster.data.items.map((unit) => (
+                  <UnitCard
+                    key={unit.unit_id}
+                    onSelect={() => setSelectedUnitId(unit.unit_id)}
+                    unit={unit}
+                  />
+                ))}
+              </div>
+              <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-[9px] text-muted">
+                <span>
+                  Page {roster.data.page} of {Math.max(roster.data.total_pages, 1)}
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    disabled={roster.data.page <= 1}
+                    variant="secondary"
+                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    disabled={roster.data.page >= roster.data.total_pages}
+                    variant="secondary"
+                    onClick={() => setPage((current) => current + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </Card>
+
+        <aside className="flex min-h-[650px] min-w-0 flex-col gap-4 max-[1050px]:min-h-0">
+          <Card className="overflow-hidden p-0">
+            <div className="flex min-h-[158px] flex-col border-t-[3px] border-t-maroon px-5 py-4">
+              <span className="text-[8px] font-bold tracking-[.11em] text-muted">
+                TOTAL UNITS · ACTIVE RESPONSE ROSTER
+              </span>
+              <strong className="mt-3 block text-[38px] font-semibold leading-none tracking-[-.055em] text-[#211b1d]">
+                {counts.total}
+              </strong>
+              <p className="mb-0 mt-1.5 text-[9px] text-muted">
+                Registered units available to Pantukan MDRRMO
+              </p>
+              <div className="mt-auto border-t border-border pt-2.5 text-[7px] uppercase tracking-[.07em] text-muted">
+                Live roster status from PostgreSQL
+              </div>
+            </div>
+            <div className="grid grid-rows-3 border-t border-border max-[1050px]:grid-cols-3 max-[1050px]:grid-rows-none max-[650px]:grid-cols-1">
+              {[
+                {
+                  label: "IN SERVICE",
+                  value: counts.assigned + counts.responding,
+                  detail: "Assigned or responding",
+                },
+                {
+                  label: "AVAILABLE",
+                  value: counts.available,
+                  detail: "Ready for assignment",
+                },
+                {
+                  label: "OFFLINE",
+                  value: counts.offline,
+                  detail: "Currently unavailable",
+                },
+              ].map((item, index) => (
+                <div
+                  className={`grid min-h-[72px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 max-[1050px]:min-h-[86px] max-[1050px]:grid-cols-1 max-[1050px]:items-start max-[650px]:min-h-0 max-[650px]:grid-cols-[minmax(0,1fr)_auto] max-[650px]:items-center ${index > 0 ? "border-t border-border max-[1050px]:border-l max-[1050px]:border-t-0 max-[650px]:border-l-0 max-[650px]:border-t" : ""}`}
+                  key={item.label}
+                >
+                  <div>
+                    <span className="block text-[8px] font-bold tracking-[.1em] text-muted">
+                      {item.label}
+                    </span>
+                    <p className="mb-0 mt-1.5 text-[8px] text-muted">
+                      {item.detail}
+                    </p>
+                  </div>
+                  <strong className="text-[20px] font-semibold leading-none tracking-[-.04em] text-[#211b1d]">
+                    {item.value}
+                  </strong>
+                </div>
+              ))}
+            </div>
           </Card>
 
-          <Card>
+          <Card className="p-4">
             <SectionHead
-              title="Available now"
-              subtitle="Units ready for a future assignment"
+              title="In service"
+              subtitle={`${counts.assigned + counts.responding} assigned or responding`}
             />
-            {availableTeams.map((team) => (
-              <button
-                className="mt-2 flex h-[58px] w-full items-center gap-2 rounded-xl border border-transparent bg-green-soft p-[9px] text-left transition-colors hover:border-status-green [&>span]:grid [&>span]:size-8 [&>span]:place-items-center [&>span]:rounded-[10px] [&>span]:bg-white [&>span]:text-status-green [&>div]:grid [&>div]:flex-1 [&>div]:gap-[3px] [&_small]:text-[9px] [&_small]:text-muted [&>strong]:text-[9px] [&>strong]:text-status-green"
-                key={team.id}
-                onClick={() => setSelectedTeamId(team.id)}
-              >
-                <span>
-                  <Icon name="users" />
-                </span>
-                <div>
-                  <b>{team.name}</b>
-                  <small>{team.specialty}</small>
-                </div>
-                <strong>{team.eta}</strong>
-              </button>
-            ))}
-            {!availableTeams.length && (
-              <p className="text-[9px] text-muted">
-                No response team is currently available.
+            {inService.map((unit) => {
+              const meta = statusMeta[unit.status];
+              return (
+                <button
+                  className="mt-2.5 grid min-h-[82px] w-full gap-2 rounded-[14px] border border-transparent bg-soft-gray p-3 text-left transition-colors hover:border-maroon hover:bg-blush"
+                  key={unit.unit_id}
+                  onClick={() => setSelectedUnitId(unit.unit_id)}
+                >
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-white text-maroon">
+                      <Icon name="truck" />
+                    </span>
+                    <div className="grid min-w-0 flex-1 gap-0.5">
+                      <b className="truncate text-[10px]">{unit.name}</b>
+                      <small className="truncate text-[8px] text-muted">
+                        {unit.unit_type}
+                      </small>
+                    </div>
+                    <Badge tone={meta.tone}>{meta.label}</Badge>
+                  </div>
+                  <span className="border-t border-border pt-2 text-[8px] text-muted">
+                    Assignment details will appear after dispatch is connected.
+                  </span>
+                </button>
+              );
+            })}
+            {!inService.length && (
+              <p className="text-[9px] leading-5 text-muted">
+                No assigned or responding units appear on this page.
               </p>
             )}
           </Card>
-        </div>
+
+          <Card className="flex flex-1 flex-col p-4">
+            <SectionHead
+              title="Available now"
+              subtitle={`${counts.available} unit${counts.available === 1 ? "" : "s"} ready for assignment`}
+            />
+            {available.map((unit) => (
+              <button
+                className="mt-2 flex min-h-[58px] w-full items-center gap-2 rounded-xl border border-transparent bg-green-soft p-[9px] text-left transition-colors hover:border-status-green"
+                key={unit.unit_id}
+                onClick={() => setSelectedUnitId(unit.unit_id)}
+              >
+                <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-white text-status-green">
+                  <Icon name="users" />
+                </span>
+                <div className="grid min-w-0 flex-1 gap-[3px]">
+                  <b className="truncate text-[10px]">{unit.name}</b>
+                  <small className="truncate text-[9px] text-muted">
+                    {unit.unit_type}
+                  </small>
+                </div>
+                <strong className="text-[9px] text-status-green">Ready</strong>
+              </button>
+            ))}
+            {!available.length && (
+              <p className="text-[9px] leading-5 text-muted">
+                No available units appear on this page.
+              </p>
+            )}
+          </Card>
+        </aside>
       </div>
 
-      {selectedTeam && (
+      {editor && (
         <div
+          aria-modal="true"
+          className="fixed inset-0 z-[120] grid place-items-center bg-[#23090f7a] p-5 backdrop-blur"
+          onMouseDown={closeEditor}
+          role="dialog"
+        >
+          <Card className="w-[min(560px,100%)] p-0">
+            <form
+              className="grid gap-0"
+              onMouseDown={(event) => event.stopPropagation()}
+              onSubmit={submitUnit}
+            >
+              <div className="flex items-start justify-between border-b border-border px-6 py-5 max-[650px]:px-5">
+                <div>
+                  <span className="text-[8px] font-bold tracking-[.12em] text-maroon">
+                    RESPONSE-UNIT ROSTER
+                  </span>
+                  <h2 className="mb-0 mt-2 text-xl">
+                    {editor.mode === "create"
+                      ? "Register response unit"
+                      : "Edit response unit"}
+                  </h2>
+                  <p className="mb-0 mt-1.5 text-[9px] text-muted">
+                    {editor.mode === "create"
+                      ? "Add a deployable unit to the Pantukan MDRRMO roster."
+                      : "Update roster identity and contact information."}
+                  </p>
+                </div>
+                <button
+                  aria-label="Close response-unit editor"
+                  className="grid size-9 place-items-center rounded-[7px] border border-border bg-white text-lg text-maroon"
+                  disabled={savingUnit}
+                  onClick={closeEditor}
+                  type="button"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="grid gap-4 px-6 py-5 max-[650px]:px-5">
+                <label className="grid gap-1.5 text-[9px] font-semibold text-[#3c3335]">
+                  Unit name
+                  <input
+                    autoFocus
+                    className={editorInputClasses}
+                    maxLength={150}
+                    onChange={(event) =>
+                      setEditorFields((current) => ({
+                        ...current,
+                        name: event.target.value,
+                      }))
+                    }
+                    placeholder="Example: Rescue Alpha"
+                    required
+                    value={editorFields.name}
+                  />
+                </label>
+                <label className="grid gap-1.5 text-[9px] font-semibold text-[#3c3335]">
+                  Unit type
+                  <input
+                    className={editorInputClasses}
+                    maxLength={80}
+                    onChange={(event) =>
+                      setEditorFields((current) => ({
+                        ...current,
+                        unitType: event.target.value,
+                      }))
+                    }
+                    placeholder="Example: Search and rescue"
+                    required
+                    value={editorFields.unitType}
+                  />
+                </label>
+                <label className="grid gap-1.5 text-[9px] font-semibold text-[#3c3335]">
+                  Contact channel
+                  <input
+                    className={editorInputClasses}
+                    maxLength={100}
+                    onChange={(event) =>
+                      setEditorFields((current) => ({
+                        ...current,
+                        contact: event.target.value,
+                      }))
+                    }
+                    placeholder="Radio call sign or dispatch contact"
+                    required
+                    value={editorFields.contact}
+                  />
+                </label>
+
+                <div className="border-l-2 border-maroon bg-[#fbf7f7] px-3 py-2.5 text-[9px] leading-5 text-muted">
+                  {editor.mode === "create"
+                    ? "New units start as available. Assignment and operational-status changes use the separate dispatch workflow."
+                    : "Editing these details does not change the unit's operational status or current assignment."}
+                </div>
+
+                {editorError && (
+                  <div
+                    className="border border-[#efc7c4] bg-white px-3 py-2.5 text-[9px] text-priority-red"
+                    role="alert"
+                  >
+                    {editorError}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 border-t border-border px-6 py-4 max-[650px]:grid max-[650px]:grid-cols-2 max-[650px]:px-5">
+                <button
+                  className="button min-h-10 rounded-[7px] border border-[#d9d3d1] bg-white px-4 text-[11px] font-semibold text-[#352b2d] disabled:opacity-45"
+                  disabled={savingUnit}
+                  onClick={closeEditor}
+                  type="button"
+                >
+                  Cancel
+                </button>
+                <Button disabled={savingUnit}>
+                  {savingUnit
+                    ? "Saving…"
+                    : editor.mode === "create"
+                      ? "Register unit"
+                      : "Save changes"}
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
+
+      {selectedUnit && (
+        <div
+          aria-modal="true"
           className="fixed inset-0 z-[110] grid place-items-center bg-[#23090f7a] p-5 backdrop-blur"
-          onMouseDown={() => setSelectedTeamId(null)}
+          onMouseDown={() => setSelectedUnitId(null)}
+          role="dialog"
         >
           <Card className="max-h-[calc(100vh-40px)] w-[min(620px,100%)] overflow-y-auto p-7 max-[650px]:p-5">
             <div onMouseDown={(event) => event.stopPropagation()}>
               <div className="flex items-start gap-4">
-                <span
-                  className={`grid size-14 shrink-0 place-items-center rounded-[17px] ${teamToneClasses[selectedTeam.tone]}`}
-                >
+                <span className="grid size-14 shrink-0 place-items-center rounded-[12px] bg-[#f3efed] text-maroon">
                   <Icon name="users" size={25} />
                 </span>
-                <div className="flex-1">
+                <div className="min-w-0 flex-1">
                   <span className="text-[9px] font-bold tracking-[.04em] text-muted">
-                    {selectedTeam.id}
+                    {unitReference(selectedUnit.unit_id)}
                   </span>
-                  <h2 className="my-1.5 text-xl">{selectedTeam.name}</h2>
-                  <Badge tone={selectedTeam.tone}>{selectedTeam.status}</Badge>
+                  <h2 className="my-1.5 truncate text-xl">{selectedUnit.name}</h2>
+                  <Badge tone={statusMeta[selectedUnit.status].tone}>
+                    {statusMeta[selectedUnit.status].label}
+                  </Badge>
                 </div>
                 <button
+                  aria-label="Close unit details"
                   className="mt-2 grid size-10 shrink-0 place-items-center rounded-xl border-0 bg-soft-gray text-xl text-maroon"
-                  onClick={() => setSelectedTeamId(null)}
+                  onClick={() => setSelectedUnitId(null)}
                 >
                   ×
                 </button>
               </div>
               <div className="my-6 h-px w-full bg-border" />
-              <div className="flex flex-col gap-5 px-1 py-1">
+              <div className="grid grid-cols-2 gap-5 px-1 py-1 max-[650px]:grid-cols-1">
                 {[
-                  ["Specialty", selectedTeam.specialty],
-                  ["Team leader", selectedTeam.leader],
-                  ["Current assignment", selectedTeam.assignment],
-                  ["Estimated availability", selectedTeam.eta],
+                  ["Unit type", selectedUnit.unit_type],
+                  ["Contact", selectedUnit.contact],
+                  ["Operational state", statusMeta[selectedUnit.status].detail],
+                  ["Last location", locationLabel(selectedUnit)],
+                  [
+                    "Location updated",
+                    formatTimestamp(selectedUnit.location_updated_at),
+                  ],
+                  ["Roster updated", formatTimestamp(selectedUnit.updated_at)],
                 ].map(([label, value]) => (
                   <div className="flex flex-col gap-1.5" key={label}>
                     <span className="text-[9px] font-bold tracking-[.04em] text-muted">
                       {label.toUpperCase()}
                     </span>
-                    <b className="text-[13px] leading-[1.5]">{value}</b>
+                    <b className="break-words text-[13px] leading-[1.5]">{value}</b>
                   </div>
                 ))}
               </div>
-              <div className="mt-7 flex justify-end gap-2 border-t border-border pt-5 max-[650px]:flex-col-reverse max-[650px]:[&_.button]:w-full">
-                <Button
-                  variant="secondary"
-                  onClick={() => setSelectedTeamId(null)}
-                >
+              <div className="mt-7 flex justify-end gap-2 border-t border-border pt-5 max-[650px]:grid max-[650px]:grid-cols-1 max-[650px]:[&_.button]:w-full">
+                {role === "admin" && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => openEditEditor(selectedUnit)}
+                  >
+                    Edit unit
+                  </Button>
+                )}
+                <Button variant="secondary" onClick={() => setSelectedUnitId(null)}>
                   Close
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {addTeamOpen && (
-        <div
-          className="fixed inset-0 z-[110] grid place-items-center bg-[#23090f7a] p-5 backdrop-blur"
-          onMouseDown={() => setAddTeamOpen(false)}
-        >
-          <Card className="w-[min(500px,100%)] p-5">
-            <div
-              className="grid gap-3"
-              onMouseDown={(event) => event.stopPropagation()}
-            >
-              <div>
-                <h2 className="m-0 text-lg">Add response team</h2>
-                <p className="mt-1 text-[9px] text-muted">
-                  Add a new operational unit to the team roster.
-                </p>
-              </div>
-              {[
-                ["Team name", "name", "Example: Rescue Charlie"],
-                ["Specialty", "specialty", "Example: Search and rescue"],
-                ["Team leader", "leader", "Full name or call sign"],
-              ].map(([label, key, placeholder]) => (
-                <label
-                  className="grid gap-1 text-[9px] font-semibold"
-                  key={key}
-                >
-                  {label}
-                  <input
-                    className="h-10 rounded-[10px] border border-border px-3 text-[11px] outline-0 focus:border-maroon"
-                    value={draftTeam[key as "name" | "specialty" | "leader"]}
-                    onChange={(event) =>
-                      setDraftTeam((current) => ({
-                        ...current,
-                        [key]: event.target.value,
-                      }))
-                    }
-                    placeholder={placeholder}
-                  />
-                </label>
-              ))}
-              <label className="grid gap-1 text-[9px] font-semibold">
-                Initial status
-                <select
-                  className="h-10 rounded-[10px] border border-border px-3 text-[11px] outline-0 focus:border-maroon"
-                  value={draftTeam.status}
-                  onChange={(event) =>
-                    setDraftTeam((current) => ({
-                      ...current,
-                      status: event.target.value as TeamStatus,
-                    }))
-                  }
-                >
-                  <option value="AVAILABLE">Available</option>
-                  <option value="DEPLOYED">Deployed</option>
-                </select>
-              </label>
-              {!canAddTeam && (
-                <span className="text-[8px] text-muted">
-                  Complete the team name, specialty, and leader.
-                </span>
-              )}
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => setAddTeamOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button icon="plus" disabled={!canAddTeam} onClick={addTeam}>
-                  Add team
                 </Button>
               </div>
             </div>

@@ -10,6 +10,7 @@ from app.db.session import get_database_session
 from app.services.admin_auth import AdminAuthService, AuthenticatedAdmin
 from app.services.admin_incidents import AdminIncidentService
 from app.services.admin_reports import AdminReportService
+from app.services.admin_response_units import AdminResponseUnitService
 
 DatabaseSession = Annotated[AsyncSession, Depends(get_database_session)]
 
@@ -35,6 +36,10 @@ def get_admin_report_service(database: DatabaseSession) -> AdminReportService:
 
 def get_admin_incident_service(database: DatabaseSession) -> AdminIncidentService:
     return AdminIncidentService(database)
+
+
+def get_admin_response_unit_service(database: DatabaseSession) -> AdminResponseUnitService:
+    return AdminResponseUnitService(database)
 
 
 async def get_current_admin(
@@ -64,6 +69,9 @@ AdminIncidentServiceDependency = Annotated[
     AdminIncidentService, Depends(get_admin_incident_service)
 ]
 AdminReportServiceDependency = Annotated[AdminReportService, Depends(get_admin_report_service)]
+AdminResponseUnitServiceDependency = Annotated[
+    AdminResponseUnitService, Depends(get_admin_response_unit_service)
+]
 CurrentAdmin = Annotated[AuthenticatedAdmin, Depends(get_current_admin)]
 SettingsDependency = Annotated[Settings, Depends(get_settings_from_request)]
 LoginRateLimiterDependency = Annotated[LoginRateLimiter, Depends(get_admin_login_rate_limiter)]

@@ -40,7 +40,7 @@ export const groups: { label: string; items: [Page, IconName, number?][] }[] = [
     label: "OPERATIONS",
     items: [
       ["Overview", "dashboard"],
-      ["Live Reports", "reports", 12],
+      ["Live Reports", "reports"],
       ["Incident Map", "map"],
       ["Report Validation", "verify"],
       ["Response Teams", "users"],

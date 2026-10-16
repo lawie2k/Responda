@@ -12,18 +12,11 @@ const badgeToneClasses: Record<string, string> = {
 };
 
 const buttonVariantClasses = {
-  primary: "bg-maroon text-white hover:bg-deep",
-  secondary: "bg-blush text-maroon hover:bg-[#f0dde0]",
-  danger: "bg-red-soft text-priority-red hover:bg-[#ffd4d1]",
-};
-
-const metricToneClasses: Record<string, string> = {
-  maroon: "bg-blush text-maroon",
-  red: "bg-red-soft text-priority-red",
-  orange: "bg-orange-soft text-priority-orange",
-  amber: "bg-amber-soft text-priority-amber",
-  green: "bg-green-soft text-status-green",
-  blue: "bg-blue-soft text-status-blue",
+  primary: "border border-maroon bg-maroon text-white hover:border-deep hover:bg-deep",
+  secondary:
+    "border border-[#d9d3d1] bg-white text-[#352b2d] hover:border-maroon hover:text-maroon",
+  danger:
+    "border border-[#efc7c4] bg-white text-priority-red hover:bg-red-soft",
 };
 
 export function Badge({
@@ -37,7 +30,7 @@ export function Badge({
 }) {
   return (
     <span
-      className={`inline-flex min-h-[22px] items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-1 text-[8px] font-bold [&_i]:size-[5px] [&_i]:rounded-full [&_i]:bg-current ${badgeToneClasses[tone] ?? badgeToneClasses.maroon}`}
+      className={`inline-flex min-h-[22px] items-center gap-1.5 whitespace-nowrap rounded-[5px] px-2 py-1 text-[8px] font-bold tracking-[.015em] [&_i]:size-[5px] [&_i]:rounded-full [&_i]:bg-current ${badgeToneClasses[tone] ?? badgeToneClasses.maroon}`}
     >
       {dot && <i />}
       {children}
@@ -59,7 +52,7 @@ export function Button({
 }) {
   return (
     <button
-      className={`button inline-flex min-h-10 items-center justify-center gap-[7px] whitespace-nowrap rounded-xl border-0 px-4 text-[11px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${buttonVariantClasses[variant]}`}
+      className={`button inline-flex min-h-10 items-center justify-center gap-[7px] whitespace-nowrap rounded-[7px] px-4 text-[11px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${buttonVariantClasses[variant]}`}
       disabled={disabled}
       onClick={onClick}
     >
@@ -77,7 +70,7 @@ export function Card({
 }) {
   return (
     <section
-      className={`card min-w-0 rounded-[18px] border border-[rgba(230,230,232,.75)] bg-white px-[14px] py-[13px] shadow-card ${className}`}
+      className={`card min-w-0 rounded-[10px] border border-[#dedad8] bg-white px-4 py-[15px] ${className}`}
     >
       {children}
     </section>
@@ -97,7 +90,7 @@ export function SectionHead({
   return (
     <div
       className={
-        "section-head mb-2 flex min-h-[38px] items-center justify-between gap-[10px] [&_h3]:m-0 [&_h3]:text-[15px] [&_p]:my-0.5 [&_p]:text-[9px] [&_p]:text-muted [&>button]:flex [&>button]:h-8 [&>button]:items-center [&>button]:gap-[5px] [&>button]:rounded-[10px] [&>button]:border-0 [&>button]:bg-blush [&>button]:px-[10px] [&>button]:text-[10px] [&>button]:font-semibold [&>button]:text-maroon"
+        "section-head mb-3 flex min-h-[40px] items-center justify-between gap-[10px] border-b border-[#ece8e6] pb-3 [&_h3]:m-0 [&_h3]:text-[14px] [&_h3]:font-semibold [&_p]:my-0.5 [&_p]:text-[9px] [&_p]:text-muted [&>button]:flex [&>button]:h-8 [&>button]:items-center [&>button]:gap-[5px] [&>button]:border-0 [&>button]:bg-transparent [&>button]:px-0 [&>button]:text-[9px] [&>button]:font-semibold [&>button]:text-maroon"
       }
     >
       <div>
@@ -129,7 +122,7 @@ export function PageTitle({
   return (
     <div
       className={
-        "flex min-h-[52px] items-center justify-between max-[650px]:flex-col max-[650px]:items-start max-[650px]:gap-2 [&>div]:min-w-0 [&_h2]:m-0 [&_h2]:text-[19px] max-[650px]:[&_h2]:text-[17px] [&_p]:my-1 [&_p]:text-[11px] [&_p]:text-muted"
+        "flex min-h-[68px] items-center justify-between border-b border-[#dcd7d4] pb-4 max-[650px]:flex-col max-[650px]:items-start max-[650px]:gap-3 [&>div]:min-w-0 [&_h2]:m-0 [&_h2]:text-[24px] [&_h2]:font-semibold [&_h2]:tracking-[-.025em] max-[650px]:[&_h2]:text-[20px] [&_p]:mb-0 [&_p]:mt-1.5 [&_p]:text-[10px] [&_p]:text-muted"
       }
     >
       <div>
@@ -163,23 +156,21 @@ export function Metric({
 }) {
   return (
     <Card
-      className={
-        "flex h-[104px] items-center gap-3 [&>div>b]:my-[3px] [&>div>b]:block [&>div>b]:text-2xl [&_p]:m-0 [&_p]:text-[9px] [&_p]:text-muted"
-      }
+      className={`metric-card flex h-[112px] flex-col justify-between border-l-[3px] ${tone === "maroon" ? "border-l-maroon" : "border-l-[#d8d3d0]"}`}
     >
-      <span
-        className={`grid size-11 shrink-0 place-items-center rounded-[14px] ${metricToneClasses[tone] ?? metricToneClasses.maroon}`}
-      >
-        <Icon name={icon} size={22} />
-      </span>
-      <div>
-        <span
-          className={"block text-[9px] font-bold tracking-[.04em] text-muted"}
-        >
+      <div className="flex items-center justify-between gap-3">
+        <span className="block text-[9px] font-bold tracking-[.08em] text-muted">
           {title}
         </span>
-        <b>{value}</b>
-        <p>{sub}</p>
+        <span className="text-[#81787a]">
+          <Icon name={icon} size={17} />
+        </span>
+      </div>
+      <div>
+        <b className="block text-[26px] leading-none tracking-[-.035em]">
+          {value}
+        </b>
+        <p className="mb-0 mt-2 text-[9px] text-muted">{sub}</p>
       </div>
     </Card>
   );
@@ -188,7 +179,7 @@ export function Field({ label }: { label: string }) {
   return (
     <button
       className={
-        "field flex h-[38px] min-w-[145px] items-center justify-between gap-[15px] rounded-[10px] border border-border bg-white px-[10px] text-[9px] text-muted"
+        "field flex h-[38px] min-w-[145px] items-center justify-between gap-[15px] rounded-[7px] border border-[#d9d5d2] bg-white px-[10px] text-[9px] text-muted"
       }
     >
       {label}
@@ -231,7 +222,7 @@ export function SelectField({
   return (
     <label
       className={
-        "relative flex h-[38px] min-w-[145px] items-center text-muted max-[650px]:shrink-0 max-[650px]:min-w-[150px] [&_select]:h-full [&_select]:w-full [&_select]:cursor-pointer [&_select]:appearance-none [&_select]:rounded-[10px] [&_select]:border [&_select]:border-border [&_select]:bg-white [&_select]:py-0 [&_select]:pl-[10px] [&_select]:pr-[31px] [&_select]:text-[9px] [&_select]:text-muted [&_select]:outline-0 focus-within:[&_select]:border-maroon focus-within:[&_select]:shadow-[0_0_0_3px_rgba(122,31,43,.08)] [&>.icon]:pointer-events-none [&>.icon]:absolute [&>.icon]:right-[9px] [&>.icon]:rotate-90"
+        "relative flex h-[38px] min-w-[145px] items-center text-muted max-[650px]:shrink-0 max-[650px]:min-w-[150px] [&_select]:h-full [&_select]:w-full [&_select]:cursor-pointer [&_select]:appearance-none [&_select]:rounded-[7px] [&_select]:border [&_select]:border-[#d9d5d2] [&_select]:bg-white [&_select]:py-0 [&_select]:pl-[10px] [&_select]:pr-[31px] [&_select]:text-[9px] [&_select]:text-muted [&_select]:outline-0 focus-within:[&_select]:border-maroon focus-within:[&_select]:shadow-[0_0_0_3px_rgba(122,31,43,.08)] [&>.icon]:pointer-events-none [&>.icon]:absolute [&>.icon]:right-[9px] [&>.icon]:rotate-90"
       }
     >
       <select

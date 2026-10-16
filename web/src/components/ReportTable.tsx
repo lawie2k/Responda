@@ -15,7 +15,7 @@ export function ReportTable({
     <div className={"min-w-[700px]"}>
       <div
         className={
-          "grid min-h-[42px] grid-cols-[90px_1.1fr_1.3fr_100px_110px_70px_24px] items-center gap-2 border-b border-[#f0f0f1] px-2 text-[10px] [&>strong]:text-maroon h-7 min-h-7 rounded-[9px] border-0 bg-soft-gray text-[8px] font-bold text-muted"
+          "grid h-8 min-h-8 grid-cols-[90px_1.1fr_1.3fr_100px_110px_70px_24px] items-center gap-2 border-y border-[#e5e1df] bg-[#f7f5f3] px-2 text-[8px] font-bold tracking-[.04em] text-muted [&>strong]:text-maroon"
         }
       >
         <span>REFERENCE</span>
@@ -28,7 +28,7 @@ export function ReportTable({
       </div>
       {rows.map((r) => (
         <div
-          className={`grid min-h-[42px] grid-cols-[90px_1.1fr_1.3fr_100px_110px_70px_24px] items-center gap-2 border-b border-[#f0f0f1] px-2 text-[10px] [&>strong]:text-maroon ${onSelect ? "cursor-pointer rounded-[9px] outline-0 transition-[background,box-shadow] hover:bg-[#faf5f6] focus-visible:shadow-[inset_0_0_0_2px_#7a1f2b]" : ""} ${selectedId === r.id ? "bg-blush shadow-[inset_3px_0_0_#7a1f2b]" : ""}`}
+          className={`grid min-h-[48px] grid-cols-[90px_1.1fr_1.3fr_100px_110px_70px_24px] items-center gap-2 border-b border-[#ece8e6] px-2 text-[10px] [&>strong]:text-maroon ${onSelect ? "cursor-pointer outline-0 transition-colors hover:bg-[#faf7f6] focus-visible:shadow-[inset_0_0_0_2px_#7a1f2b]" : ""} ${selectedId === r.id ? "bg-[#fbf4f5] shadow-[inset_3px_0_0_#7a1f2b]" : ""}`}
           key={r.id}
           role={onSelect ? "button" : undefined}
           tabIndex={onSelect ? 0 : undefined}

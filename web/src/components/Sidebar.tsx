@@ -79,12 +79,12 @@ export function Sidebar({
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-[120] flex w-60 flex-col justify-between bg-deep p-5 text-white transition-transform max-[1100px]:-translate-x-full max-[1100px]:shadow-[20px_0_45px_#28050c40] ${open ? "max-[1100px]:translate-x-0" : ""}`}
+        className={`fixed inset-y-0 left-0 z-[120] flex w-60 flex-col justify-between border-r border-[#63232d] bg-[#3d1017] px-4 py-5 text-white transition-transform max-[1100px]:-translate-x-full max-[1100px]:shadow-[20px_0_45px_#28050c40] ${open ? "max-[1100px]:translate-x-0" : ""}`}
       >
       <div>
         <div
           className={
-            "flex h-[62px] items-center gap-3 [&>span]:grid [&>span]:size-[46px] [&>span]:shrink-0 [&>span]:place-items-center [&>span]:overflow-hidden [&>span]:rounded-[15px] [&>span]:bg-white [&>span]:p-1.5 [&>span>img]:size-full [&>span>img]:object-contain [&_b]:block [&_b]:text-[17px] [&_small]:mt-1 [&_small]:block [&_small]:text-[9px] [&_small]:font-semibold [&_small]:text-[#d9abb3]"
+            "flex h-[58px] items-center gap-3 border-b border-white/15 pb-4 [&>span]:grid [&>span]:size-9 [&>span]:shrink-0 [&>span]:place-items-center [&>span]:overflow-hidden [&>span]:rounded-[8px] [&>span]:bg-white [&>span]:p-1 [&>span>img]:size-full [&>span>img]:object-contain [&_b]:block [&_b]:text-[16px] [&_b]:tracking-[.025em] [&_small]:mt-1 [&_small]:block [&_small]:text-[8px] [&_small]:font-semibold [&_small]:tracking-[.08em] [&_small]:text-[#d9abb3]"
           }
         >
           <span>
@@ -109,7 +109,7 @@ export function Sidebar({
         </div>
         <div
           className={
-            "my-[10px] mb-[18px] flex h-[34px] items-center gap-2 rounded-[11px] bg-deep-2 px-[10px] text-[9px] font-bold text-[#bfefd2] [&>i]:size-[7px] [&>i]:rounded-full [&>i]:bg-[#56d98c] [&>span]:ml-auto [&>span]:text-[8px] [&>span]:font-normal [&>span]:text-[#d9abb3]"
+            "mb-6 mt-4 flex h-7 items-center gap-2 border-l-2 border-[#56d98c] px-2 text-[8px] font-bold tracking-[.06em] text-[#bfefd2] [&>i]:hidden [&>span]:ml-auto [&>span]:text-[8px] [&>span]:font-normal [&>span]:tracking-normal [&>span]:text-[#d9abb3]"
           }
         >
           <i />
@@ -119,7 +119,7 @@ export function Sidebar({
           {groups.map((g) => (
             <div
               className={
-                "mb-[14px] grid gap-[5px] [&>label]:px-1 [&>label]:text-[9px] [&>label]:font-bold [&>label]:tracking-[.08em] [&>label]:text-[#b67d87] [&>button]:flex [&>button]:h-11 [&>button]:items-center [&>button]:gap-[11px] [&>button]:rounded-xl [&>button]:border-0 [&>button]:bg-transparent [&>button]:px-3 [&>button]:text-left [&>button]:text-xs [&>button]:font-medium [&>button]:text-[#eaced3] [&>button:hover]:bg-[#6b1925] [&>button:hover]:text-white [&>button.active]:bg-[#6b1925] [&>button.active]:text-white [&>button>span]:flex-1 [&>button>b]:min-w-7 [&>button>b]:rounded-xl [&>button>b]:bg-white [&>button>b]:p-[5px] [&>button>b]:text-center [&>button>b]:text-[9px] [&>button>b]:text-maroon"
+                "mb-5 grid gap-1 [&>label]:mb-1 [&>label]:px-2 [&>label]:text-[8px] [&>label]:font-bold [&>label]:tracking-[.12em] [&>label]:text-[#b67d87] [&>button]:flex [&>button]:h-10 [&>button]:items-center [&>button]:gap-[10px] [&>button]:border-0 [&>button]:border-l-2 [&>button]:border-l-transparent [&>button]:bg-transparent [&>button]:px-2.5 [&>button]:text-left [&>button]:text-[11px] [&>button]:font-medium [&>button]:text-[#eaced3] [&>button:hover]:border-l-[#b97a85] [&>button:hover]:bg-[#ffffff0a] [&>button:hover]:text-white [&>button.active]:border-l-white [&>button.active]:bg-[#ffffff10] [&>button.active]:text-white [&>button>span]:flex-1 [&>button>b]:min-w-6 [&>button>b]:border border-[#9d5964] [&>button>b]:bg-transparent [&>button>b]:px-1.5 [&>button>b]:py-0.5 [&>button>b]:text-center [&>button>b]:text-[8px] [&>button>b]:text-[#f2dce0]"
               }
               key={g.label}
             >
@@ -146,7 +146,7 @@ export function Sidebar({
       </div>
       <div className="relative" ref={accountMenuRef}>
         {logoutError && (
-          <p className="mb-2 rounded-[10px] bg-[#791f2d] px-2.5 py-2 text-[8px] leading-3 text-[#ffe8ec]" role="alert">
+          <p className="mb-2 border-l-2 border-[#ff9eaa] bg-[#791f2d] px-2.5 py-2 text-[8px] leading-3 text-[#ffe8ec]" role="alert">
             {logoutError}
           </p>
         )}
@@ -154,9 +154,9 @@ export function Sidebar({
           <div
             id="sidebar-account-menu"
             role="menu"
-            className="absolute bottom-[calc(100%+10px)] left-0 z-30 w-full overflow-hidden rounded-[14px] border border-[#eadde0] bg-white p-2 text-[#27191c] shadow-[0_18px_45px_rgba(20,3,8,.28)]"
+            className="absolute bottom-[calc(100%+10px)] left-0 z-30 w-full overflow-hidden rounded-[9px] border border-[#eadde0] bg-white p-2 text-[#27191c] shadow-[0_18px_45px_rgba(20,3,8,.28)]"
           >
-            <div className="rounded-[11px] bg-soft-gray px-3 py-2.5">
+            <div className="border-l-2 border-status-green bg-soft-gray px-3 py-2.5">
               <span className="mb-1 flex items-center gap-1.5 text-[8px] font-bold tracking-[.06em] text-status-green">
                 <i className="size-1.5 rounded-full bg-status-green" />
                 SIGNED IN SECURELY
@@ -165,14 +165,14 @@ export function Sidebar({
               <span className="mt-1 block truncate text-[8px] text-muted">
                 {user.email}
               </span>
-              <span className="mt-2 inline-flex rounded-full bg-white px-2 py-1 text-[8px] font-semibold text-maroon">
+              <span className="mt-2 inline-flex border border-[#dedad8] bg-white px-2 py-1 text-[8px] font-semibold text-maroon">
                 {roleLabel}
               </span>
             </div>
             <button
               type="button"
               role="menuitem"
-              className="mt-2 flex h-10 w-full items-center gap-2 rounded-[10px] border-0 bg-transparent px-3 text-left text-[10px] font-semibold text-priority-red hover:bg-red-soft disabled:cursor-wait disabled:opacity-50"
+              className="mt-2 flex h-10 w-full items-center gap-2 rounded-[6px] border-0 bg-transparent px-3 text-left text-[10px] font-semibold text-priority-red hover:bg-red-soft disabled:cursor-wait disabled:opacity-50"
               disabled={loggingOut}
               onClick={() => void logout()}
             >
@@ -187,7 +187,7 @@ export function Sidebar({
         )}
         <button
           type="button"
-          className="flex min-h-[78px] w-full items-center gap-[9px] rounded-[14px] border border-transparent bg-deep-2 p-[11px] text-left text-white transition hover:border-[#9b4d5a] hover:bg-[#641724] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e8b9c1] [&>.avatar]:grid [&>.avatar]:size-[38px] [&>.avatar]:shrink-0 [&>.avatar]:place-items-center [&>.avatar]:rounded-full [&>.avatar]:bg-blush [&>.avatar]:text-[11px] [&>.avatar]:font-bold [&>.avatar]:text-maroon [&>.copy]:min-w-0 [&>.copy]:flex-1 [&_b]:block [&_b]:truncate [&_b]:text-[11px] [&_small]:mt-[3px] [&_small]:block [&_small]:truncate [&_small]:text-[9px] [&_small]:text-[#d9abb3]"
+          className="flex min-h-[68px] w-full items-center gap-[9px] border border-white/15 bg-transparent p-2.5 text-left text-white transition hover:border-[#b16a76] hover:bg-[#ffffff08] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e8b9c1] [&>.avatar]:grid [&>.avatar]:size-8 [&>.avatar]:shrink-0 [&>.avatar]:place-items-center [&>.avatar]:bg-white [&>.avatar]:text-[10px] [&>.avatar]:font-bold [&>.avatar]:text-maroon [&>.copy]:min-w-0 [&>.copy]:flex-1 [&_b]:block [&_b]:truncate [&_b]:text-[10px] [&_small]:mt-[3px] [&_small]:block [&_small]:truncate [&_small]:text-[8px] [&_small]:text-[#d9abb3]"
           aria-haspopup="menu"
           aria-expanded={accountMenuOpen}
           aria-controls="sidebar-account-menu"
@@ -203,7 +203,7 @@ export function Sidebar({
           </span>
           <span
             aria-hidden="true"
-            className={`pointer-events-none grid size-7 shrink-0 place-items-center rounded-[9px] text-[#d9abb3] transition-transform ${accountMenuOpen ? "rotate-[-90deg]" : "rotate-90"}`}
+            className={`pointer-events-none grid size-7 shrink-0 place-items-center text-[#d9abb3] transition-transform ${accountMenuOpen ? "rotate-[-90deg]" : "rotate-90"}`}
           >
             <Icon name="chevron" size={15} />
           </span>

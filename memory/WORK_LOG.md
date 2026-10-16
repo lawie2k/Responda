@@ -10,6 +10,123 @@ updated: 2026-10-16
 Keep entries short. Record outcomes and verification, not a transcript of the
 conversation.
 
+## 2026-10-16 — Confirm the response-team assignment role model
+
+- Confirmed that the existing `admin` role will be presented as Super Admin and
+  that normal administrators will use a new `operations_admin` role.
+- Confirmed that dispatcher accounts do not receive a dashboard or assignment
+  authority and that responders are response units/teams, not individual user
+  accounts.
+- Confirmed that admins initiate assignment from a report while the database
+  links the team to the incident to prevent duplicate deployments.
+- Recorded this as the next implementation phase; no role migration or access
+  change has been applied yet.
+
+## 2026-10-16 — Reorganize the Response Teams workspace
+
+- Moved roster search, status filtering, and refresh controls to the top of the
+  page.
+- Enlarged Operational Units as the primary left-side workspace and stacked the
+  total/readiness summary, In Service, and Available Now sections in a right
+  rail on laptop and desktop widths.
+- Preserved live PostgreSQL data, filters, pagination, empty states, and
+  administrator roster controls.
+- Verification: web lint and production build passed.
+- Refreshed the combined Graphify index to 2,327 nodes, 4,180 relationships,
+  and 186 communities.
+
+## 2026-10-16 — Add administrator response-unit roster management
+
+- Added administrator-only POST and PATCH response-unit endpoints with trusted
+  origin checks, normalized length-limited fields, reserved-name conflict
+  handling, row locking and stale-edit protection, no-store responses, and
+  atomic minimal audit records that exclude contact values.
+- New units start as available; editing name, type, or contact deliberately
+  preserves operational status for the future dispatch-lifecycle workflow.
+- Added the dashboard registration/edit modal, role-gated controls, safe errors,
+  success feedback, and automatic live-roster refresh after each write.
+- Verification: backend Ruff and strict mypy passed, all 75 backend tests passed,
+  web lint and production build passed, Alembic found no schema drift, OpenAPI
+  exposes GET/POST/PATCH operations, and a rolled-back PostgreSQL check confirmed
+  create, edit, status preservation, and two audit records.
+- Refreshed the combined Graphify index to 2,327 nodes, 4,180 relationships,
+  and 187 communities.
+
+## 2026-10-16 — Apply the video hierarchy to Response Teams
+
+- Replaced the four equal response-unit metric cards with one large total-roster
+  metric and three smaller in-service, available, and offline metrics.
+- Removed decorative metric icons and retained the flat maroon accent, specific
+  operational copy, neutral surfaces, and shadow-free static containers.
+- Preserved the live PostgreSQL roster, filters, pagination, unit details, and
+  loading, error, and empty states.
+- Verification: web lint, production build, and whitespace checks passed.
+- Refreshed the combined Graphify index to 2,277 nodes, 4,038 relationships,
+  and 191 communities.
+
+## 2026-10-16 — Strengthen the Overview command hierarchy
+
+- Replaced the generic Overview greeting and separate metric-card grid with a
+  date-scoped municipal operations header and one consolidated command summary.
+- Applied the reference video's hierarchy literally: one flat accent, one large
+  primary metric with three smaller secondary metrics, numbers as the visual
+  hero, no card shadows, and specific operational copy instead of a generic
+  welcome message.
+- Made the live map and numbered priority queue the primary focal area, enlarged
+  the map, simplified the validation notice, and flattened the response-team
+  summary and progress treatment.
+- Preserved all existing live report data, navigation, loading, error, and empty
+  behavior while removing decorative multi-colored card icons.
+- Verification: web lint, production build, and whitespace checks passed.
+- Refreshed the combined Graphify index to 2,277 nodes, 4,039 relationships,
+  and 187 communities.
+
+## 2026-10-16 — Restyle every authenticated dashboard tab
+
+- Applied the reference video's restrained hierarchy across Overview, Live
+  Reports, Incident Map, Report Validation, Response Teams, Mobile Accounts,
+  Analytics, Historical Records, and Settings.
+- Reworked shared cards, metrics, buttons, fields, page headings, sidebar,
+  header, tables, tabs, badges, status indicators, and dropdown treatment around
+  neutral surfaces and one maroon brand accent while retaining meaningful
+  emergency-state colors.
+- Completed authenticated visual QA on all nine desktop tabs and a mobile-width
+  pass; the temporary QA account and its associated session/audit data were
+  removed afterward.
+- Verification: web lint, production build, and whitespace checks passed.
+- Refreshed the combined Graphify index to 2,279 nodes, 4,043 relationships,
+  and 184 communities.
+
+## 2026-10-16 — Restyle the staff login with a restrained civic hierarchy
+
+- Reworked the login page using the supplied design-reference video's rules:
+  one flat accent, a clear primary/secondary hierarchy, shadows only when
+  structurally meaningful, fewer decorative treatments, and specific copy.
+- Replaced the generic marketing headline with Pantukan emergency-operations
+  language while preserving the existing authentication, password visibility,
+  connection-status, error, and responsive behavior.
+- Verification: the running Vite page was visually reviewed, and web lint and
+  production build passed.
+- Refreshed the combined Graphify index; it remains at 2,279 nodes, 4,042
+  relationships, and 180 communities.
+
+## 2026-10-16 — Connect Response Teams to the response-unit roster
+
+- Added an authenticated, paginated response-unit list endpoint with search,
+  repeated status filters, global readiness counts, no-store responses, and
+  soft-delete exclusion.
+- Replaced the Response Teams page's simulated teams, assignments, activity,
+  and local add flow with the real PostgreSQL roster, including search, status
+  filters, pagination, refresh, details, and loading/error/empty states.
+- Kept the phase read-only; assignment and unit lifecycle mutations remain the
+  next dispatch phase.
+- Verification: backend Ruff and strict mypy passed, all 65 backend tests
+  passed, web lint and production build passed, Alembic found no schema drift,
+  OpenAPI exposes the roster operation, and the configured PostgreSQL query
+  succeeded with zero current response units.
+- Refreshed the combined Graphify index to 2,279 nodes, 4,042 relationships,
+  and 180 communities.
+
 ## 2026-10-16 — Connect Live Reports to incident operations
 
 - Added a protected, paginated incident-list endpoint with search, status, and

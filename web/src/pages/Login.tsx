@@ -42,65 +42,69 @@ export function Login({
   };
 
   return (
-    <main className="relative flex min-h-screen overflow-hidden bg-[#f7f4f5] max-[900px]:flex-col">
-      <section className="relative flex min-h-screen w-[46%] flex-col overflow-hidden bg-deep px-[clamp(32px,5vw,78px)] py-[clamp(32px,6vh,68px)] text-white max-[900px]:min-h-[330px] max-[900px]:w-full max-[900px]:px-7 max-[900px]:py-7 max-[560px]:min-h-[280px]">
+    <main className="grid min-h-screen bg-[#f4f1ef] text-[#251c1e] min-[901px]:grid-cols-[42%_58%]">
+      <section className="relative flex min-h-[360px] overflow-hidden bg-deep text-white max-[900px]:min-h-[320px]">
         <img
           src={operationCenterPhoto}
           alt=""
           aria-hidden="true"
-          className="absolute inset-0 size-full object-cover object-[56%_center] min-[901px]:translate-y-[4%] min-[901px]:scale-[1.28]"
+          className="absolute inset-0 size-full object-cover object-[56%_center]"
         />
-        <div className="absolute inset-0 bg-[#3e0711]/65" />
-        <div className="absolute -left-24 top-[18%] size-[360px] rounded-full bg-[#9d344522] blur-2xl max-[900px]:-left-12 max-[900px]:size-48 max-[560px]:-left-8 max-[560px]:size-36" />
-        <div className="absolute -bottom-48 -right-24 size-[480px] rounded-full border-[80px] border-[#7f263455] max-[900px]:-bottom-24 max-[900px]:-right-12 max-[900px]:size-64 max-[900px]:border-[44px] max-[560px]:-bottom-16 max-[560px]:-right-8 max-[560px]:size-44 max-[560px]:border-[30px]" />
+        <div className="absolute inset-0 bg-[#3f0c14]/80" />
 
-        <div className="relative z-10 flex items-center gap-3.5">
-          <span className="grid size-14 place-items-center rounded-[18px] bg-white p-2 shadow-[0_14px_36px_rgba(0,0,0,.2)]">
+        <div className="relative z-10 flex min-h-full w-full flex-col px-[clamp(28px,5vw,72px)] py-[clamp(28px,5vh,54px)] max-[560px]:px-6 max-[560px]:py-6">
+          <div className="flex items-center gap-3">
             <img
               src={respondaLogo}
               alt="RESPONDA logo"
-              className="size-full object-contain"
+              className="size-10 rounded-[10px] bg-white p-1.5"
             />
-          </span>
-          <div>
-            <b className="block text-xl tracking-[.04em]">RESPONDA</b>
-            <span className="mt-0.5 block text-[10px] font-semibold tracking-[.16em] text-[#d7aeb5]">
-              MDRRMO PANTUKAN
-            </span>
+            <div>
+              <b className="block text-[17px] tracking-[.035em]">RESPONDA</b>
+              <span className="mt-0.5 block text-[9px] font-semibold tracking-[.16em] text-[#d9bbc0]">
+                MDRRMO PANTUKAN
+              </span>
+            </div>
           </div>
-        </div>
 
-        <div className="relative z-10 flex max-w-[520px] flex-1 flex-col justify-center min-[901px]:-translate-y-32 max-[900px]:mt-6">
-          <h1 className="m-0 max-w-[500px] text-[clamp(34px,4.4vw,64px)] font-semibold leading-[1.03] tracking-[-.045em]">
-            Ready when every second matters.
-          </h1>
-          <p className="mt-6 max-w-[460px] text-[13px] leading-6 text-[#d7bfc4] max-[900px]:mb-0 max-[560px]:mt-3 max-[560px]:text-[11px] max-[560px]:leading-5">
-            A protected workspace for validating reports, coordinating response
-            teams, and monitoring incidents across Pantukan.
-          </p>
+          <div className="mt-14 max-w-[470px] border-l-2 border-white/70 pl-5 max-[560px]:mt-10">
+            <span className="text-[9px] font-bold tracking-[.18em] text-[#e2c7cc]">
+              MUNICIPAL EMERGENCY OPERATIONS
+            </span>
+            <h1 className="mb-0 mt-3 text-[clamp(30px,3.5vw,48px)] font-semibold leading-[1.08] tracking-[-.035em]">
+              Pantukan emergency operations console
+            </h1>
+            <p className="mb-0 mt-4 max-w-[420px] text-[12px] leading-6 text-[#e3d2d5] max-[560px]:text-[11px] max-[560px]:leading-5">
+              Review incoming reports, verify incidents, and coordinate response
+              units from one protected staff workspace.
+            </p>
+          </div>
+
+          <div className="mt-auto flex items-center justify-between gap-4 border-t border-white/20 pt-4 text-[9px] text-[#d9bbc0]">
+            <span>Pantukan, Davao de Oro</span>
+            <span>Authorized MDRRMO staff</span>
+          </div>
         </div>
       </section>
 
-      <section className="relative flex min-h-screen flex-1 items-center justify-center px-6 py-10 max-[900px]:min-h-0 max-[900px]:py-12 max-[560px]:px-4">
-        <div className="w-full max-w-[430px]">
-          <div className="mb-9 flex items-center justify-between">
-            <div>
-              <span className="text-[10px] font-bold tracking-[.16em] text-maroon">
-                STAFF PORTAL
-              </span>
-              <h2 className="mb-2 mt-2 text-[30px] tracking-[-.035em] text-[#27191c]">
-                Welcome back
-              </h2>
-              <p className="m-0 text-[12px] leading-5 text-muted">
-                Sign in with your authorized MDRRMO account.
-              </p>
-            </div>
-          </div>
+      <section className="flex min-h-screen items-center justify-center px-[clamp(28px,7vw,112px)] py-12 max-[900px]:min-h-0 max-[560px]:px-5 max-[560px]:py-9">
+        <div className="w-full max-w-[410px]">
+          <header className="mb-10">
+            <span className="text-[9px] font-bold tracking-[.18em] text-maroon">
+              AUTHORIZED STAFF ACCESS
+            </span>
+            <h2 className="mb-3 mt-3 text-[32px] leading-tight tracking-[-.035em] text-[#251c1e] max-[560px]:text-[28px]">
+              Sign in to RESPONDA
+            </h2>
+            <p className="m-0 max-w-[360px] text-[12px] leading-5 text-muted">
+              Use your MDRRMO account to open the Pantukan operations dashboard.
+            </p>
+          </header>
 
           <form className="grid gap-5" onSubmit={submit} noValidate>
             <label className="grid gap-2 text-[11px] font-semibold text-[#3a2b2e]">
               Email address
-              <span className="flex h-12 items-center gap-3 rounded-[13px] border border-[#ddd5d7] bg-white px-3.5 text-muted shadow-[0_2px_7px_rgba(65,24,34,.03)] transition focus-within:border-maroon focus-within:shadow-[0_0_0_4px_rgba(122,31,43,.08)]">
+              <span className="flex h-12 items-center gap-3 border border-[#d9d1d2] bg-[#fbfaf9] px-3.5 text-muted transition focus-within:border-maroon focus-within:outline focus-within:outline-[3px] focus-within:outline-[#7a1f2b14]">
                 <Icon name="mail" size={17} />
                 <input
                   className="h-full min-w-0 flex-1 border-0 bg-transparent text-[12px] text-[#27191c] outline-0 placeholder:text-[#a79ea0]"
@@ -119,7 +123,7 @@ export function Login({
 
             <label className="grid gap-2 text-[11px] font-semibold text-[#3a2b2e]">
               Password
-              <span className="flex h-12 items-center gap-3 rounded-[13px] border border-[#ddd5d7] bg-white px-3.5 text-muted shadow-[0_2px_7px_rgba(65,24,34,.03)] transition focus-within:border-maroon focus-within:shadow-[0_0_0_4px_rgba(122,31,43,.08)]">
+              <span className="flex h-12 items-center gap-3 border border-[#d9d1d2] bg-[#fbfaf9] px-3.5 text-muted transition focus-within:border-maroon focus-within:outline focus-within:outline-[3px] focus-within:outline-[#7a1f2b14]">
                 <Icon name="lock" size={17} />
                 <input
                   className="h-full min-w-0 flex-1 border-0 bg-transparent text-[12px] text-[#27191c] outline-0 placeholder:text-[#a79ea0]"
@@ -132,7 +136,7 @@ export function Login({
                 />
                 <button
                   type="button"
-                  className="grid size-8 place-items-center rounded-lg border-0 bg-transparent text-muted hover:bg-soft-gray hover:text-maroon"
+                  className="grid size-8 place-items-center border-0 bg-transparent text-muted hover:text-maroon"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   aria-pressed={showPassword}
                   onClick={() => setShowPassword((visible) => !visible)}
@@ -144,7 +148,7 @@ export function Login({
 
             {error && (
               <div
-                className="flex items-start gap-2.5 rounded-[12px] border border-[#f3c8cc] bg-[#fff1f2] px-3.5 py-3 text-[10px] leading-4 text-[#9b2433]"
+                className="flex items-start gap-2.5 border-l-[3px] border-priority-red bg-[#fff1f2] px-3.5 py-3 text-[10px] leading-4 text-[#9b2433]"
                 role="alert"
                 aria-live="polite"
               >
@@ -154,7 +158,7 @@ export function Login({
             )}
 
             <button
-              className="mt-1 flex h-12 items-center justify-center gap-2 rounded-[13px] border-0 bg-maroon text-[12px] font-bold text-white shadow-[0_12px_28px_rgba(84,19,29,.2)] transition hover:bg-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-1 flex h-12 items-center justify-center gap-2 border-0 bg-maroon text-[12px] font-bold text-white transition-colors hover:bg-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon disabled:cursor-not-allowed disabled:opacity-55"
               type="submit"
               disabled={submitting || !email.trim() || !password}
             >
@@ -165,14 +169,14 @@ export function Login({
                 </>
               ) : (
                 <>
-                  Sign in securely
+                  Sign in
                   <Icon name="chevron" size={15} />
                 </>
               )}
             </button>
           </form>
 
-          <div className="mt-7 flex items-center justify-between gap-3 border-t border-[#e5dee0] pt-5 text-[9px] text-muted">
+          <div className="mt-8 flex items-center justify-between gap-3 border-t border-[#dcd5d6] pt-5 text-[9px] text-muted max-[560px]:items-start">
             <button
               type="button"
               className="flex items-center gap-2 border-0 bg-transparent p-0 text-[9px] text-muted"
@@ -188,7 +192,7 @@ export function Login({
                   ? "Checking server…"
                   : "Server unavailable · Retry"}
             </button>
-            <span>Authorized personnel only</span>
+            <span>Staff use only</span>
           </div>
         </div>
       </section>

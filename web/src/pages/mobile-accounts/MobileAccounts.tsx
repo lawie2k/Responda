@@ -8,10 +8,10 @@ import {
 } from "../../data/mobileAccounts";
 
 const accentClasses: Record<string, string> = {
-  blue: "bg-blue-soft text-status-blue",
-  amber: "bg-amber-soft text-priority-amber",
-  green: "bg-green-soft text-status-green",
-  rose: "bg-blush text-maroon",
+  blue: "bg-[#f3efed] text-maroon",
+  amber: "bg-[#f3efed] text-maroon",
+  green: "bg-[#f3efed] text-maroon",
+  rose: "bg-[#f3efed] text-maroon",
 };
 
 const statusLabel: Record<MobileAccountStatus, string> = {
@@ -90,11 +90,11 @@ export function MobileAccounts() {
         subtitle="Monitor accounts activated through mobile-number OTP verification."
       />
 
-      <div className="flex min-h-[58px] items-center gap-3 rounded-[16px] bg-blue-soft px-4 py-3 text-status-blue max-[650px]:items-start">
+      <div className="flex min-h-[58px] items-center gap-3 border border-[#dedad8] border-l-[3px] border-l-maroon bg-white px-4 py-3 text-maroon max-[650px]:items-start">
         <Icon name="phone" />
         <div className="min-w-0 flex-1">
           <b className="block text-[10px]">Phone OTP activates the account</b>
-          <span className="mt-1 block text-[9px] leading-[1.45] text-[#315f86]">
+          <span className="mt-1 block text-[9px] leading-[1.45] text-muted">
             Users no longer submit a valid ID or face photo. MDRRMO staff do not
             approve account creation; this page is for account monitoring and
             administrative flags.
@@ -104,7 +104,7 @@ export function MobileAccounts() {
       </div>
 
       <Card className="flex min-h-[58px] items-center gap-[9px] overflow-x-auto px-[10px] py-2 max-[650px]:items-stretch [&_.account-search]:min-w-[230px] [&_.account-search]:flex-1 max-[650px]:[&_.account-search]:shrink-0">
-        <div className="flex gap-[3px] rounded-[11px] bg-soft-gray p-[3px] [&>button]:h-8 [&>button]:rounded-[9px] [&>button]:border-0 [&>button]:bg-transparent [&>button]:px-3 [&>button]:text-[9px] [&>button]:text-muted [&>button.active]:bg-white [&>button.active]:text-maroon [&>button.active]:shadow-[0_2px_6px_#0001]">
+        <div className="flex gap-1 border-b border-[#dcd7d4] [&>button]:h-8 [&>button]:border-0 [&>button]:border-b-2 [&>button]:border-transparent [&>button]:bg-transparent [&>button]:px-3 [&>button]:text-[9px] [&>button]:text-muted [&>button.active]:border-maroon [&>button.active]:text-maroon">
           {(
             ["ALL", "ACTIVE", "NEEDS_ATTENTION", "SUSPENDED"] as const
           ).map((status) => (
@@ -195,18 +195,18 @@ export function MobileAccounts() {
           </div>
 
           <div className="grid grid-cols-2 gap-3 max-[650px]:grid-cols-1">
-            <div className="flex min-h-[116px] flex-col gap-2 rounded-[14px] bg-green-soft p-3">
+            <div className="flex min-h-[116px] flex-col gap-2 border border-border border-l-[3px] border-l-status-green bg-white p-3">
               <div className="flex items-center justify-between gap-2">
-                <span className="grid size-9 place-items-center rounded-[11px] bg-white text-status-green"><Icon name="phone" size={17} /></span>
+                <span className="grid size-9 place-items-center text-status-green"><Icon name="phone" size={17} /></span>
                 <Badge tone="green">OTP VERIFIED</Badge>
               </div>
               <b className="text-[12px]">{selected.phone}</b>
               <span className="text-[8px] text-muted">Verified {selected.phoneVerified}</span>
             </div>
-            <div className="flex min-h-[116px] flex-col gap-2 rounded-[14px] bg-blue-soft p-3">
+            <div className="flex min-h-[116px] flex-col gap-2 border border-border border-l-[3px] border-l-maroon bg-white p-3">
               <div className="flex items-center justify-between gap-2">
-                <span className="grid size-9 place-items-center rounded-[11px] bg-white text-status-blue"><Icon name="shield" size={17} /></span>
-                <Badge tone="blue" dot={false}>CONSENT SAVED</Badge>
+                <span className="grid size-9 place-items-center text-maroon"><Icon name="shield" size={17} /></span>
+                <Badge tone="maroon" dot={false}>CONSENT SAVED</Badge>
               </div>
               <b className="text-[11px]">Privacy notice accepted</b>
               <span className="text-[8px] text-muted">{selected.privacyAccepted}</span>

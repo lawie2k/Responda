@@ -9,9 +9,13 @@ updated: 2026-10-16
 
 The next backend-focused sequence is:
 
-1. Implement protected available-response-unit listing.
-2. Implement response-unit assignment and dispatch lifecycle transitions.
-3. Connect response-team actions to the real web dashboard endpoints.
+1. Add the `operations_admin` role, present the existing `admin` role as Super
+   Admin, and restrict dashboard authentication and permissions to the approved
+   administrator tiers.
+2. Define and implement response-unit assignment and dispatch lifecycle
+   transitions with role checks, concurrency protection, and audit history.
+3. Connect response-team assignment and lifecycle actions to those real web
+   dashboard endpoints.
 4. Freeze the mobile report request/response contract and report status values.
 5. Implement the minimum authentication or reporter-identity boundary needed by
    report submission.

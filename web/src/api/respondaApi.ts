@@ -205,6 +205,58 @@ export type AdminIncidentLinkResult = {
   linked_at: string;
 };
 
+export type ResponseUnitStatus =
+  | "available"
+  | "assigned"
+  | "responding"
+  | "offline";
+
+export type AdminResponseUnitListItem = {
+  unit_id: string;
+  name: string;
+  unit_type: string;
+  contact: string;
+  status: ResponseUnitStatus;
+  current_latitude: number | null;
+  current_longitude: number | null;
+  location_updated_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdminResponseUnitList = {
+  items: AdminResponseUnitListItem[];
+  counts: {
+    total: number;
+    available: number;
+    assigned: number;
+    responding: number;
+    offline: number;
+  };
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+};
+
+export type AdminResponseUnitsQuery = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  statuses?: ResponseUnitStatus[];
+};
+
+export type AdminResponseUnitCreatePayload = {
+  name: string;
+  unit_type: string;
+  contact: string;
+};
+
+export type AdminResponseUnitUpdatePayload =
+  AdminResponseUnitCreatePayload & {
+    expected_updated_at: string;
+  };
+
 export class RespondaApiError extends Error {
   readonly status?: number;
 
@@ -428,6 +480,92 @@ export async function getAdminIncidents(
   if (!isAdminIncidentList(result)) {
     throw new RespondaApiError(
       "The Responda backend returned an invalid incident list.",
+    );
+  }
+  return result;
+}
+
+export async function getAdminResponseUnits(
+  query: AdminResponseUnitsQuery = {},
+  signal?: AbortSignal,
+): Promise<AdminResponseUnitList> {
+  const parameters = new URLSearchParams();
+  if (query.page !== undefined) parameters.set("page", String(query.page));
+  if (query.pageSize !== undefined) {
+    parameters.set("page_size", String(query.pageSize));
+  }
+  if (query.search?.trim()) parameters.set("search", query.search.trim());
+  query.statuses?.forEach((value) => parameters.append("unit_status", value));
+
+  const queryString = parameters.toString();
+  const response = await fetch(
+    `${apiBaseUrl}/api/v1/admin/response-units${queryString ? `?${queryString}` : ""}`,
+    {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+      signal,
+    },
+  );
+  if (!response.ok) {
+    throw await toApiError(response, "The response-unit roster could not be loaded.");
+  }
+  const result: unknown = await response.json();
+  if (!isAdminResponseUnitList(result)) {
+    throw new RespondaApiError(
+      "The Responda backend returned an invalid response-unit list.",
+    );
+  }
+  return result;
+}
+
+export async function createAdminResponseUnit(
+  payload: AdminResponseUnitCreatePayload,
+): Promise<AdminResponseUnitListItem> {
+  return submitResponseUnitOperation(
+    `${apiBaseUrl}/api/v1/admin/response-units`,
+    "POST",
+    payload,
+    "The response unit could not be registered.",
+  );
+}
+
+export async function updateAdminResponseUnit(
+  unitId: string,
+  payload: AdminResponseUnitUpdatePayload,
+): Promise<AdminResponseUnitListItem> {
+  return submitResponseUnitOperation(
+    `${apiBaseUrl}/api/v1/admin/response-units/${encodeURIComponent(unitId)}`,
+    "PATCH",
+    payload,
+    "The response unit could not be updated.",
+  );
+}
+
+async function submitResponseUnitOperation(
+  url: string,
+  method: "POST" | "PATCH",
+  payload: object,
+  fallbackMessage: string,
+): Promise<AdminResponseUnitListItem> {
+  const response = await fetch(url, {
+    method,
+    credentials: "include",
+    cache: "no-store",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw await toApiError(response, fallbackMessage);
+  }
+  const result: unknown = await response.json();
+  if (!isAdminResponseUnitListItem(result)) {
+    throw new RespondaApiError(
+      "The Responda backend returned an invalid response-unit result.",
     );
   }
   return result;
@@ -684,5 +822,53 @@ function isAdminIncidentLinkResult(
     typeof result.report_status === "string" &&
     (result.operation === "created" || result.operation === "linked") &&
     typeof result.linked_at === "string"
+  );
+}
+
+function isAdminResponseUnitList(
+  value: unknown,
+): value is AdminResponseUnitList {
+  if (typeof value !== "object" || value === null) return false;
+  const list = value as Record<string, unknown>;
+  const counts = list.counts;
+  return (
+    Array.isArray(list.items) &&
+    list.items.every(isAdminResponseUnitListItem) &&
+    typeof counts === "object" &&
+    counts !== null &&
+    typeof (counts as Record<string, unknown>).total === "number" &&
+    typeof (counts as Record<string, unknown>).available === "number" &&
+    typeof (counts as Record<string, unknown>).assigned === "number" &&
+    typeof (counts as Record<string, unknown>).responding === "number" &&
+    typeof (counts as Record<string, unknown>).offline === "number" &&
+    typeof list.total === "number" &&
+    typeof list.page === "number" &&
+    typeof list.page_size === "number" &&
+    typeof list.total_pages === "number"
+  );
+}
+
+function isAdminResponseUnitListItem(
+  value: unknown,
+): value is AdminResponseUnitListItem {
+  if (typeof value !== "object" || value === null) return false;
+  const unit = value as Record<string, unknown>;
+  return (
+    typeof unit.unit_id === "string" &&
+    typeof unit.name === "string" &&
+    typeof unit.unit_type === "string" &&
+    typeof unit.contact === "string" &&
+    (unit.status === "available" ||
+      unit.status === "assigned" ||
+      unit.status === "responding" ||
+      unit.status === "offline") &&
+    (unit.current_latitude === null ||
+      typeof unit.current_latitude === "number") &&
+    (unit.current_longitude === null ||
+      typeof unit.current_longitude === "number") &&
+    (unit.location_updated_at === null ||
+      typeof unit.location_updated_at === "string") &&
+    typeof unit.created_at === "string" &&
+    typeof unit.updated_at === "string"
   );
 }

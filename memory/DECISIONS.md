@@ -9,6 +9,31 @@ updated: 2026-10-15
 
 ## Active decisions
 
+### 2026-10-16 — Use two administrator tiers for dashboard operations
+
+- Keep the existing `admin` database value and display it as **Super Admin**.
+- Add `operations_admin` as the database value for normal administrators.
+- Super Admin and Administrator use the same staff dashboard and may assign
+  response teams; dispatcher accounts do not receive their own dashboard or
+  assignment authority.
+- A responder means a response unit/team, not an individual responder account.
+- Begin assignment from the relevant verified report in the UI, but persist the
+  assignment against its incident so multiple reports of one emergency do not
+  cause duplicate deployments.
+- Super Admin retains staff-account and system-configuration authority; normal
+  administrators handle operational reports, incidents, teams, and assignments.
+
+### 2026-10-16 — Use a restrained civic dashboard hierarchy
+
+- Maroon is the single brand accent over warm neutral surfaces throughout the
+  authenticated staff workspace.
+- Priority, availability, verification, and health colors remain available only
+  where they communicate real operational meaning.
+- Avoid decorative gradients, equal-weight colored icon tiles, and default card
+  shadows; reserve shadows for floating menus and overlays.
+- Shared UI components establish the hierarchy across every dashboard tab so
+  new pages inherit the same visual language.
+
 ### 2026-10-15 — Use a hybrid project-memory system
 
 - Obsidian notes store concise human-readable state, decisions, architecture,
@@ -125,6 +150,19 @@ dispatches.
   `open`, `dispatched`, or `responding`.
 - Incident/report updates, report events, and audit records commit atomically.
   Audit metadata excludes the incident summary and raw report content.
+
+### 2026-10-16 — Keep response-unit roster reads separate from dispatch writes
+
+- Any authenticated staff role may read the capped response-unit roster and
+  global readiness counts for operational visibility.
+- Roster reads exclude soft-deleted units and use non-cacheable responses.
+- The web dashboard must show database truth, including a genuine empty state,
+  instead of inventing local response teams or simulated activity.
+- Only administrators may create units or edit roster identity fields. New units
+  start as `available`; edits use the last-seen `updated_at`, preserve operational
+  status, and commit with a minimal audit record that excludes contact values.
+- Incident assignment and unit-status transitions require explicit future
+  endpoints with their own role, transaction, concurrency, and audit rules.
 
 ### Use strict app-only SMS ingestion
 

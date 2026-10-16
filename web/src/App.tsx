@@ -154,7 +154,7 @@ function Dashboard({
   }, []);
 
   return (
-    <div className={"flex min-h-screen"}>
+    <div className="dashboard-shell flex min-h-screen bg-[#f4f2f0]">
       <Sidebar
         page={page}
         go={setPage}
@@ -165,18 +165,18 @@ function Dashboard({
       />
       <main
         className={
-          "ml-60 min-w-0 w-[calc(100%-15rem)] max-[1100px]:ml-0 max-[1100px]:w-full"
+          "ml-60 min-w-0 w-[calc(100%-15rem)] bg-[#f4f2f0] max-[1100px]:ml-0 max-[1100px]:w-full"
         }
       >
         <header
           className={
-            "sticky top-0 z-[100] flex h-[76px] items-center gap-5 border-b border-border bg-white px-7 max-[1100px]:px-4 max-[650px]:h-auto max-[650px]:min-h-[76px] max-[650px]:flex-wrap max-[650px]:gap-2 max-[650px]:py-3"
+            "sticky top-0 z-[100] flex h-[72px] items-center gap-5 border-b border-[#dcd7d4] bg-[#fdfcfb]/95 px-7 backdrop-blur-sm max-[1100px]:px-4 max-[650px]:h-auto max-[650px]:min-h-[72px] max-[650px]:flex-wrap max-[650px]:gap-2 max-[650px]:py-3"
           }
         >
           <button
             aria-label="Open navigation"
             className={
-              "hidden size-10 shrink-0 place-items-center rounded-[10px] border-0 bg-soft-gray text-[#1c1c1e] max-[1100px]:grid"
+              "hidden size-10 shrink-0 place-items-center rounded-[7px] border border-[#d9d5d2] bg-white text-[#1c1c1e] max-[1100px]:grid"
             }
             onClick={() => setSidebarOpen(true)}
           >
@@ -184,11 +184,11 @@ function Dashboard({
           </button>
           <div
             className={
-              "min-w-0 flex-1 [&_h1]:m-0 [&_h1]:mb-[3px] [&_h1]:truncate [&_h1]:text-xl [&_p]:m-0 [&_p]:truncate [&_p]:text-[10px] [&_p]:text-muted max-[1100px]:[&_p]:hidden max-[650px]:[&_h1]:text-base"
+              "min-w-0 flex-1 [&_h1]:m-0 [&_h1]:truncate [&_h1]:text-[12px] [&_h1]:font-semibold [&_p]:mb-0 [&_p]:mt-1 [&_p]:truncate [&_p]:text-[8px] [&_p]:font-bold [&_p]:tracking-[.12em] [&_p]:text-maroon max-[650px]:[&_h1]:text-[11px]"
             }
           >
             <h1>{info[0]}</h1>
-            <p>{info[1]}</p>
+            <p>RESPONDA OPERATIONS</p>
           </div>
           <BackendStatus />
           <div
@@ -200,7 +200,7 @@ function Dashboard({
               className="relative w-[248px] max-[1100px]:w-[180px] max-[650px]:flex-1"
               ref={searchRef}
             >
-              <label className="flex h-10 w-full items-center gap-2 rounded-xl bg-soft-gray px-3 text-muted [&_input]:w-full [&_input]:border-0 [&_input]:bg-transparent [&_input]:text-[10px] [&_input]:outline-0">
+              <label className="flex h-10 w-full items-center gap-2 rounded-[7px] border border-[#d9d5d2] bg-white px-3 text-muted [&_input]:w-full [&_input]:border-0 [&_input]:bg-transparent [&_input]:text-[10px] [&_input]:outline-0">
                 <Icon name="search" />
                 <input
                   aria-label="Search RESPONDA"
@@ -233,7 +233,7 @@ function Dashboard({
                 )}
               </label>
               {searchOpen && normalizedQuery && (
-                <div className="absolute right-0 top-[calc(100%+8px)] z-[120] w-[360px] overflow-hidden rounded-[16px] border border-border bg-white p-2 shadow-[0_16px_40px_rgba(28,28,30,.16)] max-[650px]:left-0 max-[650px]:right-auto max-[650px]:w-[min(360px,calc(100vw-70px))]">
+                <div className="absolute right-0 top-[calc(100%+8px)] z-[120] w-[360px] overflow-hidden rounded-[10px] border border-[#d9d5d2] bg-white p-2 shadow-[0_16px_40px_rgba(28,28,30,.14)] max-[650px]:left-0 max-[650px]:right-auto max-[650px]:w-[min(360px,calc(100vw-70px))]">
                   {!!matchingPages.length && (
                     <div>
                       <span className="block px-2 pb-1 pt-1 text-[8px] font-bold tracking-[.06em] text-muted">
@@ -241,7 +241,7 @@ function Dashboard({
                       </span>
                       {matchingPages.map((name) => (
                         <button
-                          className="flex min-h-10 w-full items-center gap-2 rounded-[10px] border-0 bg-white px-2 text-left hover:bg-soft-gray"
+                          className="flex min-h-10 w-full items-center gap-2 rounded-[6px] border-0 bg-white px-2 text-left hover:bg-soft-gray"
                           key={name}
                           onClick={() => {
                             setPage(name);
@@ -273,7 +273,7 @@ function Dashboard({
                       </span>
                       {matchingReports.map((report) => (
                         <button
-                          className="flex min-h-11 w-full items-center gap-2 rounded-[10px] border-0 bg-white px-2 text-left hover:bg-soft-gray"
+                          className="flex min-h-11 w-full items-center gap-2 rounded-[6px] border-0 bg-white px-2 text-left hover:bg-soft-gray"
                           key={report.id}
                           onClick={() => {
                             setQuery(report.reference);
@@ -281,7 +281,7 @@ function Dashboard({
                             setSearchOpen(false);
                           }}
                         >
-                          <span className="grid size-8 shrink-0 place-items-center rounded-[9px] bg-blush text-maroon">
+                          <span className="grid size-8 shrink-0 place-items-center text-maroon">
                             <Icon name="reports" size={15} />
                           </span>
                           <span className="grid flex-1 gap-0.5">
@@ -314,7 +314,7 @@ function Dashboard({
             <div className="relative shrink-0" ref={notificationsRef}>
               <button
                 aria-label="Notifications"
-                className="relative grid size-10 place-items-center rounded-xl border-0 bg-soft-gray text-[#1c1c1e]"
+                className="relative grid size-10 place-items-center rounded-[7px] border border-[#d9d5d2] bg-white text-[#1c1c1e]"
                 onClick={() => {
                   setNotificationsOpen((open) => !open);
                   setSearchOpen(false);
@@ -326,7 +326,7 @@ function Dashboard({
                 )}
               </button>
               {notificationsOpen && (
-                <div className="absolute right-0 top-[calc(100%+8px)] z-[120] w-[350px] overflow-hidden rounded-[16px] border border-border bg-white shadow-[0_16px_40px_rgba(28,28,30,.16)] max-[650px]:right-[-52px] max-[650px]:w-[min(350px,calc(100vw-24px))]">
+                <div className="absolute right-0 top-[calc(100%+8px)] z-[120] w-[350px] overflow-hidden rounded-[10px] border border-[#d9d5d2] bg-white shadow-[0_16px_40px_rgba(28,28,30,.14)] max-[650px]:right-[-52px] max-[650px]:w-[min(350px,calc(100vw-24px))]">
                   <div className="flex items-center justify-between border-b border-border px-4 py-3">
                     <div>
                       <b className="block text-[12px]">Notifications</b>
@@ -349,7 +349,7 @@ function Dashboard({
                   <div className="p-2">
                     {notifications.map((notification) => (
                       <button
-                        className={`flex min-h-[66px] w-full gap-3 rounded-xl border-0 px-3 py-2.5 text-left hover:bg-soft-gray ${notification.read ? "bg-white" : "bg-blush"}`}
+                        className={`flex min-h-[66px] w-full gap-3 rounded-[6px] border-0 border-l-2 px-3 py-2.5 text-left hover:bg-soft-gray ${notification.read ? "border-l-transparent bg-white" : "border-l-maroon bg-[#fbf6f7]"}`}
                         key={notification.id}
                         onClick={() => {
                           setNotifications((items) =>
@@ -363,7 +363,7 @@ function Dashboard({
                           setNotificationsOpen(false);
                         }}
                       >
-                        <span className="relative mt-0.5 grid size-8 shrink-0 place-items-center rounded-[10px] bg-white text-maroon">
+                        <span className="relative mt-0.5 grid size-8 shrink-0 place-items-center text-maroon">
                           <Icon name="bell" size={15} />
                           {!notification.read && (
                             <i className="absolute -right-0.5 -top-0.5 size-2 rounded-full border border-white bg-priority-red" />
@@ -391,7 +391,7 @@ function Dashboard({
         </header>
         <div
           className={
-            "mx-auto flex max-w-[1600px] flex-col gap-4 px-7 py-6 pb-9 max-[1100px]:px-4 max-[1100px]:py-5 max-[650px]:px-3 max-[650px]:py-4"
+            "mx-auto flex max-w-[1600px] flex-col gap-5 px-7 py-7 pb-10 max-[1100px]:px-4 max-[1100px]:py-5 max-[650px]:px-3 max-[650px]:py-4"
           }
         >
           {page === "Overview" && (
@@ -426,7 +426,9 @@ function Dashboard({
             />
           )}
           {page === "Mobile Accounts" && <MobileAccounts />}
-          {page === "Response Teams" && <ResponseTeams />}
+          {page === "Response Teams" && (
+            <ResponseTeams role={session.user.role} />
+          )}
           {page === "Analytics" && <Analytics go={setPage} />}
           {page === "Historical Records" && <HistoricalRecords />}
           {page === "Settings" && <Settings />}

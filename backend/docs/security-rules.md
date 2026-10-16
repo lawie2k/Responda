@@ -35,6 +35,11 @@ VA101 to FastAPI and PostgreSQL; VA101's Next.js code is a reference, not code t
   commit the incident, report state, event, and audit record in one transaction.
 - Staff incident lists must be authenticated, paginated, capped, non-cacheable, and exclude
   soft-deleted incidents and incident types.
+- Staff response-unit lists must be authenticated, paginated, capped, non-cacheable, and exclude
+  soft-deleted units. Roster visibility does not grant assignment or status-transition authority.
+- Only administrators may create or edit response-unit roster identity fields. Require a trusted
+  browser origin, preserve unit status during edits, reject stale updates, and commit each unit
+  write with a minimal audit record that excludes contact details.
 - Return stable public error codes and safe messages. Log internal exceptions server-side without
   exposing stack traces, SQL, secrets, or report contents to clients.
 - Allow only explicit CORS origins when cookies are enabled. Reject unsafe browser requests from

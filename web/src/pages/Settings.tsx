@@ -566,7 +566,7 @@ export function Settings() {
         </div>
       )}
 
-      <Card className="flex h-[54px] items-center gap-1.5 overflow-auto px-2 py-1.5 [&_button]:flex [&_button]:h-[34px] [&_button]:items-center [&_button]:gap-1.5 [&_button]:whitespace-nowrap [&_button]:rounded-[9px] [&_button]:border-0 [&_button]:bg-transparent [&_button]:px-4 [&_button]:text-[9px] [&_button]:text-muted [&_button.active]:bg-blush [&_button.active]:text-maroon">
+      <Card className="flex h-[54px] items-center gap-1.5 overflow-auto border-b-2 px-2 py-1.5 [&_button]:flex [&_button]:h-[34px] [&_button]:items-center [&_button]:gap-1.5 [&_button]:whitespace-nowrap [&_button]:border-0 [&_button]:border-b-2 [&_button]:border-transparent [&_button]:bg-transparent [&_button]:px-4 [&_button]:text-[9px] [&_button]:text-muted [&_button.active]:border-maroon [&_button.active]:text-maroon">
         {tabs.map(([label, icon]) => (
           <button
             className={activeTab === label ? "active" : ""}
@@ -587,7 +587,7 @@ export function Settings() {
         }
       >
         {activeTab === "General" && (
-          <Card className="flex flex-col items-stretch gap-[7px] max-[900px]:flex-row max-[900px]:overflow-x-auto [&>button]:flex [&>button]:h-[42px] [&>button]:w-full [&>button]:shrink-0 [&>button]:items-center [&>button]:justify-start [&>button]:gap-[9px] [&>button]:rounded-[10px] [&>button]:border-0 [&>button]:bg-transparent [&>button]:px-[10px] [&>button]:text-left [&>button]:text-[9px] [&>button.active]:bg-blush [&>button.active]:text-maroon max-[900px]:[&>button]:w-auto">
+          <Card className="flex flex-col items-stretch gap-1 max-[900px]:flex-row max-[900px]:overflow-x-auto [&>button]:flex [&>button]:h-[42px] [&>button]:w-full [&>button]:shrink-0 [&>button]:items-center [&>button]:justify-start [&>button]:gap-[9px] [&>button]:border-0 [&>button]:border-l-2 [&>button]:border-transparent [&>button]:bg-transparent [&>button]:px-[10px] [&>button]:text-left [&>button]:text-[9px] [&>button.active]:border-maroon [&>button.active]:bg-[#fbf5f6] [&>button.active]:text-maroon max-[900px]:[&>button]:w-auto">
             <span className="block w-full px-[10px] text-left text-[9px] font-bold tracking-[.04em] text-muted max-[900px]:hidden">
               WORKSPACE SETTINGS
             </span>
