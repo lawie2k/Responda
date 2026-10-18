@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "../components/Icon";
 import { MiniMap } from "../components/Map";
-import { incidents } from "../data/mapData";
+import type { MapPoint } from "../data/mapData";
+import type { Report } from "../data/reports";
+import { useActiveAdminAssignments } from "../hooks/useAdminAssignments";
 import {
   Badge,
   Button,
@@ -26,34 +28,153 @@ const layerNames = [
   "Landslide hazard",
   "Storm surge hazard",
 ];
+const activeIncidentStatuses = new Set(["open", "dispatched", "responding"]);
 
-export function IncidentMap() {
+const priorityLabel = (priority: Report["priority"]): MapPoint["priority"] =>
+  priority === "CRITICAL"
+    ? "Critical"
+    : priority === "HIGH"
+      ? "High"
+      : priority === "MEDIUM"
+        ? "Moderate"
+        : "Low";
+
+const operationalStatus = (report: Report) =>
+  report.incidentStatus === "responding"
+    ? "Responding"
+    : report.incidentStatus === "dispatched"
+      ? "Dispatched"
+      : report.incidentStatus === "open"
+        ? "Open"
+        : "Verified";
+
+const sourceLabel = (source: Report["source"]) =>
+  source === "app_api"
+    ? "Mobile app"
+    : source === "app_sms"
+      ? "Signed SMS"
+      : "Manual";
+
+const receivedLabel = (value: string) =>
+  new Intl.DateTimeFormat("en-PH", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
+
+export function IncidentMap({
+  reports,
+  reportStatus,
+  reportError,
+  retryReports,
+}: {
+  reports: Report[];
+  reportStatus: "loading" | "ready" | "error";
+  reportError: string | null;
+  retryReports: () => void;
+}) {
+  const assignments = useActiveAdminAssignments();
   const [layers, setLayers] = useState([true, true, false, false, false]);
-  const [timeRange, setTimeRange] = useState("Last 24 hours");
+  const [timeRange, setTimeRange] = useState("24");
   const [priority, setPriority] = useState("");
   const [incidentType, setIncidentType] = useState("");
+  const [incidentStatus, setIncidentStatus] = useState("");
   const [fullScreen, setFullScreen] = useState(false);
   const [layersOpen, setLayersOpen] = useState(false);
+  const [mapClock, setMapClock] = useState(() => Date.now());
   const layersRef = useRef<HTMLDivElement>(null);
-  const filteredIncidents = useMemo(() => {
-    const maxHours =
-      timeRange === "Last 24 hours"
-        ? 24
-        : timeRange === "Last 7 days"
-          ? 168
-          : 720;
-    return incidents.filter(
-      (point) =>
-        point.hoursAgo <= maxHours &&
-        (!priority || point.priority === priority) &&
-        (!incidentType || point.name === incidentType),
-    );
-  }, [incidentType, priority, timeRange]);
+
+  const operationalReports = useMemo(
+    () =>
+      reports.filter(
+        (report) =>
+          report.verificationStatus === "verified" &&
+          (!report.incidentStatus ||
+            activeIncidentStatuses.has(report.incidentStatus)),
+      ),
+    [reports],
+  );
+  const teamsByIncident = useMemo(() => {
+    const teams = new Map<string, string[]>();
+    for (const assignment of assignments.data ?? []) {
+      const names = teams.get(assignment.incident_id) ?? [];
+      if (!names.includes(assignment.unit.name)) names.push(assignment.unit.name);
+      teams.set(assignment.incident_id, names);
+    }
+    return teams;
+  }, [assignments.data]);
+  const mapPoints = useMemo(() => {
+    return operationalReports.flatMap((report) => {
+      if (!report.position) return [];
+      return [
+        {
+          id: report.reference,
+          name: report.incident,
+          location: report.location,
+          position: report.position,
+          barangay: report.barangay,
+          priority: priorityLabel(report.priority),
+          hoursAgo: Math.max(
+            0,
+            (mapClock - new Date(report.receivedAt).getTime()) / 3_600_000,
+          ),
+          status: operationalStatus(report),
+          source: sourceLabel(report.source),
+          receivedAt: receivedLabel(report.receivedAt),
+          assignedTeams: report.incidentId
+            ? teamsByIncident.get(report.incidentId) ?? []
+            : [],
+          assignmentState: report.incidentId
+            ? assignments.status === "error"
+              ? "error"
+              : assignments.status === "ready"
+                ? "ready"
+                : "loading"
+            : "ready",
+        } satisfies MapPoint,
+      ];
+    });
+  }, [assignments.status, mapClock, operationalReports, teamsByIncident]);
+  const incidentTypeOptions = useMemo(
+    () =>
+      [...new Set(operationalReports.map((report) => report.incident))].sort(),
+    [operationalReports],
+  );
+  const filteredIncidents = useMemo(
+    () =>
+      mapPoints.filter(
+        (point) =>
+          point.hoursAgo <= Number(timeRange) &&
+          (!priority || point.priority === priority) &&
+          (!incidentType || point.name === incidentType) &&
+          (!incidentStatus || point.status === incidentStatus),
+      ),
+    [incidentStatus, incidentType, mapPoints, priority, timeRange],
+  );
+  const activeIncidentCount = new Set(
+    operationalReports.flatMap((report) =>
+      report.incidentId ? [report.incidentId] : [],
+    ),
+  ).size;
+  const awaitingDispatchCount = operationalReports.filter(
+    (report) => !report.incidentId,
+  ).length;
+  const unmappedCount = operationalReports.filter(
+    (report) => !report.position,
+  ).length;
   const resetFilters = () => {
-    setTimeRange("Last 24 hours");
+    setTimeRange("24");
     setPriority("");
     setIncidentType("");
+    setIncidentStatus("");
   };
+  const refreshData = () => {
+    setMapClock(Date.now());
+    retryReports();
+    assignments.refetch();
+  };
+
   useEffect(() => {
     if (!fullScreen) return;
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -77,32 +198,73 @@ export function IncidentMap() {
     <>
       <PageTitle
         title="Incident Map"
-        subtitle="View active incidents with official barangay and hazard boundaries."
+        subtitle="Monitor verified reports, active incidents, and deployed response teams across Pantukan."
       />
-      <Card
-        className={
-          "map-filterbar relative flex min-h-14 flex-wrap items-center gap-2 overflow-visible px-[10px] py-2"
-        }
-      >
+      {reportStatus === "error" && (
+        <div className="flex min-h-[52px] items-center gap-3 rounded-[10px] border border-[#efc7c4] bg-red-soft px-3 py-2 text-priority-red">
+          <Icon name="alert" />
+          <div className="min-w-0 flex-1">
+            <b className="block text-[11px]">Live incident data is unavailable</b>
+            <p className="mb-0 mt-1 text-[9px] text-muted">
+              {reportError ?? "The report list could not be loaded."}
+            </p>
+          </div>
+          <Button variant="secondary" onClick={refreshData}>
+            Retry
+          </Button>
+        </div>
+      )}
+      {assignments.status === "error" && reportStatus !== "error" && (
+        <div className="flex min-h-[46px] items-center gap-3 rounded-[10px] border border-[#e5d8bb] bg-[#fffdf8] px-3 py-2 text-priority-amber">
+          <Icon name="alert" />
+          <span className="flex-1 text-[10px]">
+            Incident locations are current, but response-team assignments could
+            not be refreshed.
+          </span>
+          <Button variant="secondary" onClick={() => assignments.refetch()}>
+            Retry teams
+          </Button>
+        </div>
+      )}
+      <Card className="map-filterbar relative flex min-h-14 flex-wrap items-center gap-2 overflow-visible px-[10px] py-2">
         <SelectField
           label="Time range"
           value={timeRange}
-          options={["Last 24 hours", "Last 7 days", "Last 30 days"]}
+          options={[
+            { label: "Last 24 hours", value: "24" },
+            { label: "Last 7 days", value: "168" },
+            { label: "Last 30 days", value: "720" },
+          ]}
           onChange={setTimeRange}
         />
         <SelectField
           label="All priorities"
           value={priority}
-          options={["Critical", "High", "Moderate"]}
+          options={["Critical", "High", "Moderate", "Low"]}
           onChange={setPriority}
         />
         <SelectField
           label="All incident types"
           value={incidentType}
-          options={incidents.map((point) => point.name)}
+          options={incidentTypeOptions}
           onChange={setIncidentType}
         />
-        <i className={"flex-1 max-[650px]:hidden"} />
+        <SelectField
+          label="All statuses"
+          value={incidentStatus}
+          options={["Verified", "Open", "Dispatched", "Responding"]}
+          onChange={setIncidentStatus}
+        />
+        <i className="flex-1 max-[650px]:hidden" />
+        <Button
+          variant="secondary"
+          onClick={refreshData}
+          disabled={
+            reportStatus === "loading" || assignments.status === "loading"
+          }
+        >
+          {reportStatus === "loading" ? "Loading…" : "Refresh"}
+        </Button>
         <div className="relative shrink-0" ref={layersRef}>
           <Button
             variant="secondary"
@@ -121,6 +283,7 @@ export function IncidentMap() {
                   </span>
                 </div>
                 <button
+                  aria-label="Close map layers"
                   className="grid size-7 place-items-center rounded-lg border-0 bg-soft-gray text-base text-maroon"
                   onClick={() => setLayersOpen(false)}
                 >
@@ -170,43 +333,60 @@ export function IncidentMap() {
           )}
         </div>
       </Card>
-      {!filteredIncidents.length && (
+      {reportStatus === "loading" && !reports.length && (
         <div
-          className={
-            "flex min-h-[52px] items-center gap-[10px] rounded-[14px] px-3 py-2 max-[650px]:flex-wrap max-[650px]:items-start [&>span]:grid [&>span]:size-8 [&>span]:shrink-0 [&>span]:place-items-center [&>span]:rounded-[10px] [&>span]:bg-white [&>div]:min-w-0 [&>div]:flex-1 [&_b]:text-[11px] [&_p]:my-0.5 [&_p]:text-[9px] [&_p]:text-muted max-[650px]:[&>.button]:w-full bg-amber-soft text-priority-amber"
-          }
+          className="flex min-h-[52px] items-center gap-3 rounded-[10px] border border-border bg-white px-3 text-[10px] text-muted"
+          role="status"
         >
-          <span>
+          <i className="size-4 animate-spin rounded-full border-2 border-maroon/20 border-t-maroon" />
+          Loading live incident locations…
+        </div>
+      )}
+      {reportStatus !== "loading" &&
+        !operationalReports.length &&
+        reportStatus !== "error" && (
+          <div className="flex min-h-[58px] items-center gap-3 rounded-[10px] border border-border bg-white px-3 py-2">
+            <span className="grid size-8 place-items-center text-status-green">
+              <Icon name="check" />
+            </span>
+            <div>
+              <b className="block text-[11px]">No active incidents to map</b>
+              <p className="mb-0 mt-1 text-[9px] text-muted">
+                Verified reports will appear here when coordinates are
+                available.
+              </p>
+            </div>
+          </div>
+        )}
+      {!!mapPoints.length && !filteredIncidents.length && (
+        <div className="flex min-h-[52px] items-center gap-[10px] rounded-[10px] border border-[#e5d8bb] bg-[#fffdf8] px-3 py-2 max-[650px]:flex-wrap">
+          <span className="grid size-8 shrink-0 place-items-center text-priority-amber">
             <Icon name="filter" />
           </span>
-          <div>
-            <b>No incidents match the selected filters</b>
-            <p>Reset the filters to restore all mapped incidents.</p>
+          <div className="min-w-0 flex-1">
+            <b className="block text-[11px]">
+              No incidents match the selected filters
+            </b>
+            <p className="mb-0 mt-1 text-[9px] text-muted">
+              Reset the filters to restore mapped incidents.
+            </p>
           </div>
           <Button variant="secondary" onClick={resetFilters}>
             Reset filters
           </Button>
         </div>
       )}
-      <div
-        className={
-          "grid grid-cols-[minmax(0,2.25fr)_minmax(300px,1fr)] gap-4 max-[1180px]:grid-cols-1"
-        }
-      >
-        <Card className={"operations-map-card"}>
+      <div className="grid grid-cols-[minmax(0,2.25fr)_minmax(300px,1fr)] gap-4 max-[1180px]:grid-cols-1">
+        <Card className="operations-map-card">
           <SectionHead
             title="Pantukan operations map"
-            subtitle={`${filteredIncidents.length} mapped incidents • Official MDRRMO boundary data`}
+            subtitle={`${filteredIncidents.length} mapped reports • Live PostgreSQL data`}
             action="Full screen"
             onAction={() => setFullScreen(true)}
           />
           <MiniMap large layers={layers} points={filteredIncidents} />
         </Card>
-        <div
-          className={
-            "side-stack flex flex-col gap-3 max-[1180px]:grid max-[1180px]:grid-cols-1"
-          }
-        >
+        <div className="side-stack flex flex-col gap-3 max-[1180px]:grid max-[1180px]:grid-cols-2 max-[650px]:grid-cols-1">
           <Card>
             <SectionHead
               title="Live map summary"
@@ -233,45 +413,65 @@ export function IncidentMap() {
                 ).length,
                 "amber",
               ],
+              [
+                "Low priority",
+                filteredIncidents.filter((point) => point.priority === "Low")
+                  .length,
+                "green",
+              ],
               ["Total mapped", filteredIncidents.length, "maroon"],
-            ].map((x) => (
+            ].map((item) => (
               <div
-                className={
-                  "flex min-h-[27px] items-center justify-between gap-[10px] text-[9px] [&_span]:text-muted"
-                }
-                key={x[0]}
+                className="flex min-h-[30px] items-center justify-between gap-[10px] text-[9px] [&_span]:text-muted"
+                key={item[0]}
               >
-                <span>{x[0]}</span>
-                <Badge tone={String(x[2])} dot={false}>
-                  {x[1]}
+                <span>{item[0]}</span>
+                <Badge tone={String(item[2])} dot={false}>
+                  {item[1]}
                 </Badge>
               </div>
             ))}
+          </Card>
+          <Card>
+            <SectionHead
+              title="Operational coverage"
+              subtitle="Current active workload"
+            />
+            {[
+              ["Active incidents", activeIncidentCount, "blue"],
+              ["Verified, awaiting dispatch", awaitingDispatchCount, "amber"],
+              ["Reports without coordinates", unmappedCount, "maroon"],
+            ].map((item) => (
+              <div
+                className="flex min-h-[34px] items-center justify-between gap-[10px] border-b border-border text-[9px] last:border-b-0 [&_span]:text-muted"
+                key={item[0]}
+              >
+                <span>{item[0]}</span>
+                <Badge tone={String(item[2])} dot={false}>
+                  {item[1]}
+                </Badge>
+              </div>
+            ))}
+            <p className="mb-0 mt-3 text-[8px] leading-relaxed text-muted">
+              Reports without GPS remain available in Live Reports and are not
+              placed on the map.
+            </p>
           </Card>
         </div>
       </div>
       {fullScreen && (
         <div
-          className={
-            "fixed inset-0 z-[1200] bg-[rgba(35,9,15,.76)] p-[18px] backdrop-blur-[5px]"
-          }
+          className="fixed inset-0 z-[1200] bg-[rgba(35,9,15,.76)] p-[18px] backdrop-blur-[5px]"
           role="dialog"
           aria-modal="true"
+          aria-label="Full screen incident map"
         >
-          <div
-            className={
-              "flex h-full w-full flex-col rounded-[20px] bg-white p-[14px] shadow-[0_30px_100px_rgba(35,9,15,.35)] [&_.map-large]:h-auto [&_.map-large]:flex-1"
-            }
-          >
-            <div
-              className={
-                "flex min-h-[54px] items-center gap-4 px-1 pb-[10px] [&>div]:flex-1 [&_h2]:m-0 [&_h2]:text-lg [&_p]:mt-1 [&_p]:mb-0 [&_p]:text-[9px] [&_p]:text-muted [&>button]:size-[38px] [&>button]:rounded-[11px] [&>button]:border-0 [&>button]:bg-soft-gray [&>button]:text-[23px] [&>button]:text-maroon"
-              }
-            >
+          <div className="flex h-full w-full flex-col rounded-[20px] bg-white p-[14px] shadow-[0_30px_100px_rgba(35,9,15,.35)] [&_.map-large]:h-auto [&_.map-large]:flex-1">
+            <div className="flex min-h-[54px] items-center gap-4 px-1 pb-[10px] [&>div]:flex-1 [&_h2]:m-0 [&_h2]:text-lg [&_p]:mb-0 [&_p]:mt-1 [&_p]:text-[9px] [&_p]:text-muted [&>button]:size-[38px] [&>button]:rounded-[11px] [&>button]:border-0 [&>button]:bg-soft-gray [&>button]:text-[23px] [&>button]:text-maroon">
               <div>
                 <h2>Pantukan operations map</h2>
                 <p>
-                  {filteredIncidents.length} mapped incidents • Live operational
+                  {filteredIncidents.length} mapped reports • Live operational
                   layers
                 </p>
               </div>

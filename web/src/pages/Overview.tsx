@@ -59,7 +59,9 @@ export function Overview({
                 ? "Critical"
                 : report.priority === "HIGH"
                   ? "High"
-                  : "Moderate",
+                  : report.priority === "MEDIUM"
+                    ? "Moderate"
+                    : "Low",
             hoursAgo: 0,
           } satisfies MapPoint,
         ]

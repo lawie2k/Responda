@@ -23,6 +23,48 @@ disagree, verify the code and update the note.
 - `memory/` — concise Obsidian project memory.
 - `scripts/` — memory and Graphify maintenance.
 
+## Model and chat efficiency protocol
+
+For every new substantive user task, recommend the lowest-cost model and
+reasoning level that should be sufficient before inspecting files, calling
+tools, or starting implementation. Use this exact compact format:
+
+`Recommended: <model> · <reasoning> — <one-sentence reason>`
+
+Wait for the user to switch models or confirm before beginning the task. Do not
+claim that the model was changed automatically; the user controls the active
+chat model. Once a task is confirmed, do not repeat the recommendation for
+every follow-up within that same scoped task unless its complexity changes.
+
+Use these defaults:
+
+- Luna Low for small UI/text edits, simple questions, status checks, and
+  tightly scoped single-file work.
+- Luna Medium for clear screen builds, documentation, tests, and coordinated
+  but straightforward edits.
+- GPT-6.1 Sol Medium for normal feature implementation, multi-file integration,
+  backend work, GPS/offline behavior, and debugging.
+- GPT-6.1 Sol High for difficult bugs, migrations, architecture, or risky
+  cross-component changes.
+- Astra Medium or High only for unusually ambiguous, security/privacy-critical,
+  or release-critical work that needs the strongest review.
+
+Prefer the lowest sufficient reasoning level. Avoid Extra High, Max, and Ultra
+unless the user explicitly requests them or the task demonstrably requires
+them.
+
+Keep one chat focused on one feature or closely related goal. Continue that
+chat through implementation and verification. After a meaningful milestone or
+when switching components or unrelated goals, ask the user to run `save`, then
+start a fresh chat. The fresh chat should say:
+
+`Read AGENTS.md and project memory. Continue <component/feature>. Recommend the model and reasoning level first, then wait for me to switch or confirm.`
+
+Do not ask the user to retell the complete prior conversation. Recover durable
+context from project memory and inspect current source as the authority. Long
+chats may use context compaction, so do not restart solely because of message
+count; restart at a clean milestone when stale history would add noise.
+
 ## Project memory protocol
 
 After material project work:

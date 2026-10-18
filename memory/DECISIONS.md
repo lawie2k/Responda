@@ -2,12 +2,25 @@
 tags:
   - responda/memory
   - responda/decisions
-updated: 2026-10-16
+updated: 2026-10-19
 ---
 
 # Decisions
 
 ## Active decisions
+
+### 2026-10-18 — Recommend the lowest sufficient model before each new task
+
+- Before substantive work on a new task, state the recommended model and
+  reasoning level, then wait for the user to switch or confirm.
+- Use Luna for scoped edits and routine work, GPT-6.1 Sol for normal complex
+  implementation and debugging, and Astra only for unusually demanding,
+  security/privacy-critical, or release-critical work.
+- Keep one chat focused on one feature through verification. At a meaningful
+  milestone or component change, save project memory and begin a fresh chat
+  that reads `AGENTS.md` and memory instead of replaying the full transcript.
+- Do not claim the active model changed automatically; model selection remains
+  under the user's control.
 
 ### 2026-10-16 — Use two administrator tiers for dashboard operations
 
@@ -33,6 +46,40 @@ updated: 2026-10-16
   shadows; reserve shadows for floating menus and overlays.
 - Shared UI components establish the hierarchy across every dashboard tab so
   new pages inherit the same visual language.
+
+### 2026-10-18 — Map only verified operational reports with real coordinates
+
+- Incident Map uses protected report and active-assignment data; seeded
+  incidents are not mixed with operational records.
+- A verified, unlinked report and a report linked to an `open`, `dispatched`, or
+  `responding` incident are eligible for the live map.
+- Every mapped point represents a report location. Several reports linked to
+  the same incident may therefore remain visible while the coverage summary
+  counts the incident once.
+- Reports without paired latitude and longitude remain visible in operational
+  counts and Live Reports but are never assigned an invented map location.
+- Marker color communicates final/effective priority; the popup provides the
+  report reference, location, barangay, status, source, received time, and any
+  active response-team assignment.
+
+### 2026-10-19 — Keep historical incidents factual and exports minimal
+
+- Historical Records contains one row per non-deleted resolved or closed
+  incident. Active incidents and unlinked reports remain in operational views.
+- The two administrator tiers can inspect historical linked reports,
+  assignments, and events, with separate capped pagination for each collection.
+  Historical responses omit reporter contacts, identities, attachment storage
+  keys, and raw event metadata.
+- Date filters use inclusive Philippine calendar dates based on the closed
+  timestamp, then resolved timestamp; legacy rows without either use their
+  last update. Incident types remain filterable after becoming inactive.
+- Display actual status, summary, lifecycle dates, and assignment completion;
+  do not invent outcome narratives or downloadable evidence.
+- CSV includes references, incident type, priority/status, UTC lifecycle dates,
+  and report/team/completed-assignment counts. It omits report text, exact
+  locations, and contacts, escapes spreadsheet formulas, rejects exports over
+  5,000 incidents, and records the exporting staff identity and row count in
+  the audit log without search text.
 
 ### 2026-10-15 — Use a hybrid project-memory system
 

@@ -9,6 +9,7 @@ from app.core.rate_limit import LoginRateLimiter
 from app.db.session import get_database_session
 from app.services.admin_assignments import AdminAssignmentService
 from app.services.admin_auth import AdminAuthService, AuthenticatedAdmin
+from app.services.admin_history import AdminHistoryService
 from app.services.admin_incidents import AdminIncidentService
 from app.services.admin_reports import AdminReportService
 from app.services.admin_response_units import AdminResponseUnitService
@@ -43,6 +44,10 @@ def get_admin_incident_service(database: DatabaseSession) -> AdminIncidentServic
     return AdminIncidentService(database)
 
 
+def get_admin_history_service(database: DatabaseSession) -> AdminHistoryService:
+    return AdminHistoryService(database)
+
+
 def get_admin_response_unit_service(database: DatabaseSession) -> AdminResponseUnitService:
     return AdminResponseUnitService(database)
 
@@ -75,6 +80,9 @@ AdminAssignmentServiceDependency = Annotated[
 ]
 AdminIncidentServiceDependency = Annotated[
     AdminIncidentService, Depends(get_admin_incident_service)
+]
+AdminHistoryServiceDependency = Annotated[
+    AdminHistoryService, Depends(get_admin_history_service)
 ]
 AdminReportServiceDependency = Annotated[AdminReportService, Depends(get_admin_report_service)]
 AdminResponseUnitServiceDependency = Annotated[

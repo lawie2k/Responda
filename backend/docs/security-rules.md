@@ -41,6 +41,14 @@ VA101 to FastAPI and PostgreSQL; VA101's Next.js code is a reference, not code t
   commit the incident, report state, event, and audit record in one transaction.
 - Staff incident lists must be authenticated, paginated, capped, non-cacheable, and exclude
   soft-deleted incidents and incident types.
+- Historical reads are restricted to the two administrator tiers and resolved/closed incidents;
+  list, detail, search, and export exclude soft-deleted incidents and related operational rows.
+  Detail reports, assignments, and events are independently paginated. Historical responses omit
+  reporter identities, contacts, attachment storage keys, and raw event metadata.
+- Historical CSV exports apply the same server filters, reject more than 5,000 matching incidents,
+  neutralize spreadsheet formula cells, and include only references, incident type, lifecycle dates,
+  priority/status, and operational counts. Audit only the exporting staff ID and row count, never
+  search text or raw report content. Date filters use inclusive calendar dates in Asia/Manila.
 - Staff response-unit lists must be authenticated, paginated, capped, non-cacheable, and exclude
   soft-deleted units. Roster visibility does not grant assignment or status-transition authority.
 - Only Super Admin and Administrator accounts may create or edit response-unit roster identity

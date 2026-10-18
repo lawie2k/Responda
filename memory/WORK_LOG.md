@@ -2,10 +2,74 @@
 tags:
   - responda/memory
   - responda/work-log
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # Work log
+
+## 2026-10-19 — Save the operations-map and historical-records milestone
+
+- Checkpointed the live Incident Map, protected Historical Records API/web
+  integration, privacy-safe CSV export, security rules, and the project-wide
+  model-selection/chat-efficiency instructions.
+- Preserved implementation state, durable decisions, verification results,
+  and Analytics as the next priority in shared memory. No implementation
+  blockers remain for this milestone.
+- Verification from the completed work: all 154 backend tests, Ruff, strict
+  mypy, web lint/build, browser workflow checks, PostgreSQL pagination and
+  export-audit checks passed. The combined Graphify index is current at 2,646
+  nodes, 5,115 relationships, and 226 communities.
+
+## 2026-10-19 — Connect Historical Records to PostgreSQL
+
+- Added administrator-only historical list/detail/type/export endpoints with
+  server-side search, final-status/priority/type/date filters, stable ordering,
+  capped pagination, deleted-row exclusion, and no-store responses.
+- Replaced the web sample archive with live completed incidents, accurate
+  counts, independently paginated report/assignment/timeline tabs, refresh and
+  loading/error/empty states, and filtered CSV download.
+- Removed simulated outcomes, evidence files, export totals, and retention
+  claims. CSV exports omit report text, exact locations, and contacts, prevent
+  formula execution, cap the result at 5,000 incidents without truncation, and
+  create a minimal audit entry. No database migration was needed.
+- Verification: backend Ruff, strict mypy, and all 154 tests passed; web lint
+  and production build passed. Browser checks covered searches, filters,
+  details, timeline, empty results, refresh, and an actual filtered CSV file.
+  Read-only PostgreSQL checks verified independent incident/event pagination
+  and the export audit. Browser console errors: none.
+- Updated the active WebStorm web mirror. Changes remain local; Analytics is
+  the next feature, after the model recommendation and user confirmation.
+- Refreshed the combined Graphify index to 2,646 nodes, 5,115 relationships,
+  and 226 communities; project-memory validation passed.
+
+## 2026-10-18 — Add project-wide model and chat efficiency rules
+
+- Added a root instruction requiring a model and reasoning recommendation
+  before substantive work on each new task, followed by a pause for the user to
+  switch or confirm.
+- Defined Luna, GPT-6.1 Sol, and Astra defaults that favor the lowest sufficient
+  usage level and reserve expensive reasoning for exceptional work.
+- Documented chat handoff guidance: keep one feature together, save at a clean
+  milestone, and let a fresh chat recover context from project memory instead
+  of replaying the full transcript.
+- Verification: project-memory validation passed; no application source code or
+  Graphify data changed.
+
+## 2026-10-18 — Connect Incident Map to live operations data
+
+- Removed seeded incident markers and connected the map to authenticated report
+  data plus current active response-team assignments.
+- Mapped verified operational reports only when real coordinates exist, while
+  retaining explicit counts for verified reports without GPS data.
+- Added time, priority, incident-type, and status filters; live refresh and
+  error states; priority markers including Low; richer marker popups; coverage
+  summaries; layer controls; and the existing full-screen map experience.
+- Verification: web lint and production build passed. The authenticated running
+  dashboard showed the expected live empty-location state, PostgreSQL counts,
+  filter controls, layer menu, and full-screen dialog. Synchronized the changed
+  web files into the WebStorm-compatible development mirror.
+- Refreshed the combined Graphify index to 2,542 nodes, 4,762 relationships,
+  and 227 communities.
 
 ## 2026-10-18 — Verify the complete staff report workflow
 

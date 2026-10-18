@@ -16,6 +16,7 @@ export type Report = {
   source: AdminReportListItem["source"];
   verificationStatus: AdminReportListItem["verification_status"];
   incidentStatus: NonNullable<AdminReportListItem["incident"]>["status"] | undefined;
+  incidentId: string | null;
   incidentTypeId: string;
 };
 
@@ -59,6 +60,7 @@ export const toReport = (report: AdminReportListItem): Report => {
     source: report.source,
     verificationStatus: report.verification_status,
     incidentStatus: report.incident?.status,
+    incidentId: report.incident?.incident_id ?? null,
     incidentTypeId: report.incident_type.incident_type_id,
   };
 };

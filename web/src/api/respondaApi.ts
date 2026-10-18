@@ -874,7 +874,7 @@ async function parseAdminSessionResponse(
   return payload;
 }
 
-async function toApiError(
+export async function toApiError(
   response: Response,
   fallbackMessage: string,
 ): Promise<RespondaApiError> {

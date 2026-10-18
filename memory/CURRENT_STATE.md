@@ -2,7 +2,7 @@
 tags:
   - responda/memory
   - responda/status
-updated: 2026-10-18
+updated: 2026-10-19
 ---
 
 # Current state
@@ -73,6 +73,15 @@ updated: 2026-10-18
   unit with a PostgreSQL partial unique index. Completing the final active
   assignment resolves the incident; cancelling the final active assignment
   reopens it.
+- Protected Historical Records endpoints now provide resolved/closed incident
+  lists, matching incident-type options, paginated reports/assignments/events,
+  and filtered CSV exports under `/api/v1/admin/history`. Both administrator
+  tiers can read them. Queries exclude deleted operational rows, validate and
+  cap pagination, escape search wildcards, and interpret date filters in
+  Asia/Manila. Exports reject more than 5,000 matching incidents, neutralize
+  spreadsheet formulas, omit report text, exact locations, and contacts, and
+  audit only the exporting staff identity and record count. No migration was
+  required.
 - Mobile report creation, gateway ingestion, and notification APIs are not
   implemented yet.
 - The strict app-only SMS acceptance policy is documented and represented in
@@ -139,7 +148,22 @@ updated: 2026-10-18
   acknowledgment, responding, completion, or confirmed cancellation while
   refreshing the roster, assignment state, and shared report summaries after
   each change so Live Reports counters cannot retain a stale dispatch status.
-  Analytics, historical, and incident-map views still contain demonstration data.
+  Incident Map now uses protected PostgreSQL report and assignment data instead
+  of seeded markers. It maps verified reports whose incidents are unlinked,
+  open, dispatched, or responding when real coordinates exist; reports without
+  coordinates remain counted but are not placed at invented locations. Staff
+  can filter by time, priority, incident type, and operational status, refresh
+  report/team data, inspect marker details and assigned teams, toggle official
+  boundary and hazard layers, and use the full-screen map.
+- Historical Records now reads completed incidents from PostgreSQL, with
+  server-side reference/type/location/team search, priority/type/status/date
+  filters, sorting, matching counts, and pagination. Its detail panel shows the
+  incident summary, lifecycle dates, linked reports, response assignments, and
+  report-event timeline in independently paginated tabs. It supports refresh,
+  loading/error/empty states, and audited CSV download using applied filters.
+  The former sample records, invented outcomes, evidence downloads, export
+  counters, and retention claims were removed. Analytics still contains
+  demonstration data.
 
 ## Mobile app
 
@@ -157,6 +181,20 @@ updated: 2026-10-18
   wired end to end.
 
 ## Verification history
+
+- Historical Records passed backend Ruff, strict mypy, and all 154 tests plus
+  web lint and production build. Authenticated browser checks against local
+  PostgreSQL covered linked-report search, priority/type/status/date filters,
+  empty results, detail tabs, refresh, and a filtered CSV download. The CSV
+  contained the expected operational-only columns and matching row count; a
+  read-only database check confirmed independent incident/event pagination and
+  the export audit. The browser console contained no errors.
+
+- The database-backed Incident Map passed web lint and production build. Browser
+  inspection against the running authenticated dashboard confirmed live
+  PostgreSQL counts, the report-without-coordinates state, operational filters,
+  layer controls, and the full-screen dialog. Seeded incident markers were
+  removed from both the full map and shared map component.
 
 - A real-browser development workflow created a manual report, validated it
   with every optional checklist item unchecked, selected a response team first,
@@ -230,8 +268,8 @@ updated: 2026-10-18
 - Human-written project memory is in `memory/`.
 - Graphify indexes code from backend, web, mobile, and the monorepo root into one
   combined graph.
-- The combined graph currently contains 2,539 code nodes, 4,754 relationships,
-  and 218 detected communities. Generated graph artifacts remain local and
+- The combined graph currently contains 2,646 code nodes, 5,115 relationships,
+  and 226 detected communities. Generated graph artifacts remain local and
   ignored.
 - `AGENTS.md` directs future coding sessions to read memory and query Graphify
   before broad filesystem searches.

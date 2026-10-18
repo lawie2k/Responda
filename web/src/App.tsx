@@ -439,7 +439,14 @@ function Dashboard({
               }}
             />
           )}
-          {page === "Incident Map" && <IncidentMap />}
+          {page === "Incident Map" && (
+            <IncidentMap
+              reports={dashboardReports}
+              reportStatus={reportQuery.status}
+              reportError={reportQuery.error}
+              retryReports={reportQuery.refetch}
+            />
+          )}
           {page === "Report Validation" && (
             <ReportValidation
               selectedReportId={validationTarget}

@@ -1,563 +1,365 @@
-import { useMemo, useState } from "react";
-import { Icon } from "../components/Icon";
-import { tone } from "../data/reports";
+import { useEffect, useRef, useState } from "react";
 import {
-  Badge,
-  Button,
-  Card,
-  Metric,
-  PageTitle,
-  SectionHead,
-  SelectField,
-} from "../components/ui";
+  exportHistory,
+  getHistoryTypes,
+  type HistoricalIncident,
+  type HistoryFilters,
+  type HistoryPage,
+} from "../api/adminHistory";
+import type { AdminIncidentType } from "../api/respondaApi";
+import { Icon } from "../components/Icon";
+import { Badge, Button, Card, PageTitle, SectionHead, SelectField } from "../components/ui";
+import { tone } from "../data/reports";
+import { useAdminHistory, useAdminHistoryDetail } from "../hooks/useAdminHistory";
 
-type HistoricalRecord = {
-  id: string;
-  date: string;
-  dateValue: string;
-  incident: string;
-  location: string;
-  priority: string;
-  status: string;
-  outcome: string;
-  reporter: string;
-  team: string;
-  dispatchTime: string;
-  closedTime: string;
-  validator: string;
-  source: string;
-  summary: string;
+const formatDate = (value: string | null, compact = false) => value
+  ? new Intl.DateTimeFormat("en-PH", {
+      timeZone: "Asia/Manila",
+      year: "numeric", month: "short", day: "numeric",
+      ...(compact ? {} : { hour: "numeric", minute: "2-digit" }),
+    }).format(new Date(value))
+  : "Not recorded";
+
+const sourceNames = { app_api: "Mobile app", app_sms: "App SMS", manual: "Manual intake" };
+const eventNames: Record<string, string> = {
+  "report.created": "Report received",
+  "report.reviewed": "Staff review recorded",
+  "report.incident_created": "Incident created from report",
+  "report.incident_linked": "Report linked to incident",
+  "response.assigned": "Response team assigned",
+  "response.acknowledged": "Assignment acknowledged",
+  "response.responding": "Team responding",
+  "response.completed": "Response completed",
+  "response.cancelled": "Assignment cancelled",
 };
 
-const records: HistoricalRecord[] = [
-  {
-    id: "RSP-00841",
-    date: "Aug 30",
-    dateValue: "2026-08-30",
-    incident: "Flash Flood",
-    location: "Magnaga Riverside",
-    priority: "CRITICAL",
-    status: "VERIFIED",
-    outcome: "Residents evacuated",
-    reporter: "Juan Dela Cruz",
-    team: "Flood Unit",
-    dispatchTime: "6 min 18 sec",
-    closedTime: "8:42 PM",
-    validator: "Maria Santos",
-    source: "App report",
-    summary:
-      "Residents near the riverside were evacuated safely before water levels increased.",
-  },
-  {
-    id: "RSP-00828",
-    date: "Aug 28",
-    dateValue: "2026-08-28",
-    incident: "Road Accident",
-    location: "Kingking Highway",
-    priority: "HIGH",
-    status: "VERIFIED",
-    outcome: "Patient transferred",
-    reporter: "Ana Reyes",
-    team: "Rescue Alpha",
-    dispatchTime: "7 min 04 sec",
-    closedTime: "6:15 PM",
-    validator: "Maria Santos",
-    source: "Phone call",
-    summary:
-      "One injured passenger was stabilized and transferred to the district hospital.",
-  },
-  {
-    id: "RSP-00812",
-    date: "Aug 25",
-    dateValue: "2026-08-25",
-    incident: "Landslide",
-    location: "Bongabong Slope",
-    priority: "HIGH",
-    status: "VALIDATED",
-    outcome: "Road cleared",
-    reporter: "Marco Lim",
-    team: "Clearing Team",
-    dispatchTime: "9 min 31 sec",
-    closedTime: "4:08 PM",
-    validator: "Joel Garcia",
-    source: "App report",
-    summary:
-      "Debris blocking one lane was removed and the road was reopened to traffic.",
-  },
-  {
-    id: "RSP-00796",
-    date: "Aug 22",
-    dateValue: "2026-08-22",
-    incident: "Medical Emergency",
-    location: "Matiao Public Market",
-    priority: "CRITICAL",
-    status: "VERIFIED",
-    outcome: "Patient assisted",
-    reporter: "Liza Ramos",
-    team: "Medical 1",
-    dispatchTime: "5 min 42 sec",
-    closedTime: "11:26 AM",
-    validator: "Maria Santos",
-    source: "Walk-in report",
-    summary:
-      "The patient received first aid and was brought to the municipal health unit.",
-  },
-  {
-    id: "RSP-00783",
-    date: "Aug 19",
-    dateValue: "2026-08-19",
-    incident: "Fallen Tree",
-    location: "Pantukan Highway",
-    priority: "MODERATE",
-    status: "VERIFIED",
-    outcome: "Obstruction cleared",
-    reporter: "Rico Mendoza",
-    team: "Clearing Team",
-    dispatchTime: "12 min 10 sec",
-    closedTime: "9:04 AM",
-    validator: "Joel Garcia",
-    source: "Radio report",
-    summary: "The fallen tree was cut and removed with no injuries reported.",
-  },
-  {
-    id: "RSP-00758",
-    date: "Jul 29",
-    dateValue: "2026-07-29",
-    incident: "Fire",
-    location: "Kingking Highway",
-    priority: "CRITICAL",
-    status: "VERIFIED",
-    outcome: "Fire contained",
-    reporter: "Nina Cruz",
-    team: "Fire Unit",
-    dispatchTime: "4 min 55 sec",
-    closedTime: "10:18 PM",
-    validator: "Maria Santos",
-    source: "Phone call",
-    summary:
-      "A small commercial fire was contained without spreading to nearby structures.",
-  },
-  {
-    id: "RSP-00734",
-    date: "Jul 18",
-    dateValue: "2026-07-18",
-    incident: "Flash Flood",
-    location: "Magnaga Riverside",
-    priority: "HIGH",
-    status: "VALIDATED",
-    outcome: "Area monitored",
-    reporter: "Paolo Diaz",
-    team: "Flood Unit",
-    dispatchTime: "8 min 27 sec",
-    closedTime: "7:35 PM",
-    validator: "Joel Garcia",
-    source: "App report",
-    summary:
-      "Water levels subsided and the area remained under monitoring for two hours.",
-  },
-];
+function Pager({
+  data, onPage, label,
+}: {
+  data: Omit<HistoryPage<unknown>, "items">;
+  onPage: (page: number) => void;
+  label: string;
+}) {
+  if (!data.total_pages) return null;
+  return (
+    <nav aria-label={`${label} pagination`} className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
+      <span className="text-[9px] text-muted">
+        Page {data.page} of {data.total_pages} · {data.total} {label.toLowerCase()}
+      </span>
+      <div className="flex gap-2">
+        <button
+          className="rounded-[6px] border border-border bg-white px-3 py-2 text-[9px] disabled:opacity-40"
+          aria-label={`Previous ${label.toLowerCase()} page`}
+          disabled={data.page <= 1}
+          onClick={() => onPage(data.page - 1)}
+        >Previous</button>
+        <button
+          className="rounded-[6px] border border-border bg-white px-3 py-2 text-[9px] disabled:opacity-40"
+          aria-label={`Next ${label.toLowerCase()} page`}
+          disabled={data.page >= data.total_pages}
+          onClick={() => onPage(data.page + 1)}
+        >Next</button>
+      </div>
+    </nav>
+  );
+}
 
-const ranges = ["August 2026", "July 2026", "All dates"];
-const priorities = ["CRITICAL", "HIGH", "MODERATE"];
-const statuses = ["VERIFIED", "VALIDATED"];
+function ErrorNotice({ message, retry }: { message: string; retry?: () => void }) {
+  return (
+    <div role="alert" className="flex items-center gap-3 rounded-[7px] border border-[#efc7c4] bg-red-soft px-3 py-3 text-[10px] text-priority-red">
+      <Icon name="alert" size={16} />
+      <span className="min-w-0 flex-1">{message}</span>
+      {retry && <Button variant="secondary" onClick={retry}>Retry</Button>}
+    </div>
+  );
+}
 
-function downloadFile(name: string, contents: string, type = "text/plain") {
-  const url = URL.createObjectURL(new Blob([contents], { type }));
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = name;
-  link.click();
-  URL.revokeObjectURL(url);
+function RecordDetails({ record }: { record: HistoricalIncident }) {
+  const [tab, setTab] = useState<"reports" | "assignments" | "events">("reports");
+  const [pages, setPages] = useState({ reportPage: 1, assignmentPage: 1, eventPage: 1 });
+  const detail = useAdminHistoryDetail(record.incident_id, pages);
+  const incident = detail.data?.incident ?? record;
+  const pageKeys = { reports: "reportPage", assignments: "assignmentPage", events: "eventPage" } as const;
+  return (
+    <Card className="self-start">
+      <SectionHead title={incident.reference} subtitle="Completed incident detail" />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="m-0 text-[17px] font-semibold">{incident.incident_type_name}</h3>
+        <Badge tone={incident.status === "resolved" ? "green" : "maroon"}>
+          {incident.status.toUpperCase()}
+        </Badge>
+      </div>
+      <p className="mb-4 mt-2 break-words text-[10px] leading-relaxed text-muted">
+        {incident.location ?? "Location not recorded"}
+      </p>
+      <dl className="m-0 grid grid-cols-2 gap-x-4 gap-y-3 border-y border-border py-4 text-[9px] [&_dt]:text-muted [&_dd]:m-0 [&_dd]:mt-1 [&_dd]:font-semibold">
+        <div><dt>Priority</dt><dd>{incident.priority.toUpperCase()}</dd></div>
+        <div><dt>Completed assignments</dt><dd>{incident.completed_assignments}</dd></div>
+        <div><dt>Opened</dt><dd>{formatDate(incident.opened_at)}</dd></div>
+        <div><dt>Resolved</dt><dd>{formatDate(incident.resolved_at)}</dd></div>
+        <div><dt>Closed</dt><dd>{formatDate(incident.closed_at)}</dd></div>
+        <div><dt>Linked reports / teams</dt><dd>{incident.report_count} / {incident.team_count}</dd></div>
+      </dl>
+      <h4 className="mb-2 mt-4 text-[10px] font-semibold">Incident summary</h4>
+      <p className="m-0 whitespace-pre-wrap break-words text-[10px] leading-relaxed text-muted">{incident.summary}</p>
+      <div role="tablist" aria-label="Incident history details" className="mb-4 mt-5 flex gap-1 border-b border-border">
+        {([
+          ["reports", "Reports"], ["assignments", "Assignments"], ["events", "Timeline"],
+        ] as const).map(([key, label]) => (
+          <button
+            key={key} id={`history-${key}-tab`} role="tab" aria-selected={tab === key}
+            aria-controls="history-detail-panel"
+            className={`border-0 border-b-2 bg-transparent px-2 py-3 text-[10px] font-semibold ${tab === key ? "border-maroon text-maroon" : "border-transparent text-muted"}`}
+            onClick={() => setTab(key)}
+          >{label}</button>
+        ))}
+      </div>
+      <div id="history-detail-panel" role="tabpanel" aria-labelledby={`history-${tab}-tab`}>
+        {detail.status === "loading" && <p role="status" className="text-[10px] text-muted">Loading incident history…</p>}
+        {detail.status === "error" && <ErrorNotice message={detail.error ?? "The record could not be loaded."} retry={detail.refetch} />}
+        {detail.data && (
+          <>
+            {tab === "reports" && (
+              <div className="grid gap-3">
+                {!detail.data.reports.total && <p className="text-[10px] text-muted">No linked reports are available.</p>}
+                {detail.data.reports.items.map((report) => (
+                  <article key={report.report_id} className="border-b border-border pb-3 last:border-b-0">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <b className="text-[10px] text-maroon">{report.reference}</b>
+                      <Badge tone="blue">{report.verification_status.toUpperCase()}</Badge>
+                    </div>
+                    <p className="my-2 text-[8px] text-muted">{sourceNames[report.source]} · {formatDate(report.received_at)}</p>
+                    <p className="my-2 break-words text-[9px] text-muted">{report.location ?? "Location not recorded"}</p>
+                    <p className="mb-0 whitespace-pre-wrap break-words text-[10px] leading-relaxed">{report.description}</p>
+                  </article>
+                ))}
+              </div>
+            )}
+            {tab === "assignments" && (
+              <div className="grid gap-3">
+                {!detail.data.assignments.total && <p className="text-[10px] text-muted">No response assignments are recorded.</p>}
+                {detail.data.assignments.items.map((assignment) => (
+                  <article key={assignment.assignment_id} className="border-b border-border pb-3 last:border-b-0">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div><b className="block text-[11px]">{assignment.unit_name}</b><small className="text-[8px] text-muted">{assignment.unit_type}</small></div>
+                      <Badge tone={assignment.status === "completed" ? "green" : "amber"}>{assignment.status.toUpperCase()}</Badge>
+                    </div>
+                    <dl className="mb-0 mt-3 grid gap-2 text-[9px] [&>div]:flex [&>div]:justify-between [&>div]:gap-3 [&_dt]:text-muted [&_dd]:m-0 [&_dd]:text-right">
+                      {([
+                        ["Assigned", assignment.assigned_at], ["Acknowledged", assignment.acknowledged_at],
+                        ["Responding", assignment.responding_at], ["Completed", assignment.completed_at],
+                        ["Cancelled", assignment.cancelled_at],
+                      ] as const).filter(([, value]) => value !== null).map(([label, value]) => (
+                        <div key={label}><dt>{label}</dt><dd>{formatDate(value)}</dd></div>
+                      ))}
+                    </dl>
+                  </article>
+                ))}
+              </div>
+            )}
+            {tab === "events" && (
+              <ol className="m-0 grid list-none gap-3 p-0">
+                {!detail.data.events.total && <li className="text-[10px] text-muted">No report events are recorded.</li>}
+                {detail.data.events.items.map((event) => (
+                  <li key={event.event_id} className="border-l-2 border-maroon/30 py-1 pl-3">
+                    <b className="block text-[10px]">{eventNames[event.event_type] ?? event.event_type.replaceAll("_", " ")}</b>
+                    <span className="mt-1 block text-[8px] text-muted">{event.report_reference} · {formatDate(event.created_at)}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
+            <Pager
+              data={detail.data[tab]}
+              label={tab === "events" ? "Events" : tab === "reports" ? "Reports" : "Assignments"}
+              onPage={(page) => setPages((current) => ({ ...current, [pageKeys[tab]]: page }))}
+            />
+          </>
+        )}
+      </div>
+    </Card>
+  );
 }
 
 export function HistoricalRecords() {
-  const [query, setQuery] = useState("");
-  const [range, setRange] = useState("August 2026");
-  const [outcome, setOutcome] = useState("");
-  const [priority, setPriority] = useState("");
-  const [status, setStatus] = useState("");
-  const [moreFilters, setMoreFilters] = useState(false);
-  const [newestFirst, setNewestFirst] = useState(true);
-  const [selectedId, setSelectedId] = useState(records[0].id);
-  const [completeRecordOpen, setCompleteRecordOpen] = useState(false);
-  const [exportCount, setExportCount] = useState(42);
-  const [downloaded, setDownloaded] = useState("");
+  const [draft, setDraft] = useState<HistoryFilters>({});
+  const [filters, setFilters] = useState<HistoryFilters>({});
+  const [page, setPage] = useState(1);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [types, setTypes] = useState<AdminIncidentType[]>([]);
+  const [typeError, setTypeError] = useState(false);
+  const [typesVersion, setTypesVersion] = useState(0);
+  const [exporting, setExporting] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+  const exportController = useRef<AbortController | null>(null);
+  const records = useAdminHistory({ ...filters, page });
+  const selected = records.data?.items.find((record) => record.incident_id === selectedId)
+    ?? records.data?.items[0] ?? null;
 
-  const outcomes = [...new Set(records.map((record) => record.outcome))];
-  const filtered = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-    return records
-      .filter((record) => {
-        const searchable =
-          `${record.id} ${record.incident} ${record.location} ${record.reporter} ${record.outcome}`.toLowerCase();
-        const inRange =
-          range === "All dates" ||
-          (range === "August 2026"
-            ? record.dateValue.startsWith("2026-08")
-            : record.dateValue.startsWith("2026-07"));
-        return (
-          (!normalizedQuery || searchable.includes(normalizedQuery)) &&
-          inRange &&
-          (!outcome || record.outcome === outcome) &&
-          (!priority || record.priority === priority) &&
-          (!status || record.status === status)
-        );
-      })
-      .sort((a, b) =>
-        newestFirst
-          ? b.dateValue.localeCompare(a.dateValue)
-          : a.dateValue.localeCompare(b.dateValue),
-      );
-  }, [query, range, outcome, priority, status, newestFirst]);
+  useEffect(() => {
+    const controller = new AbortController();
+    getHistoryTypes(controller.signal)
+      .then((data) => { if (!controller.signal.aborted) { setTypes(data); setTypeError(false); } })
+      .catch(() => { if (!controller.signal.aborted) setTypeError(true); });
+    return () => controller.abort();
+  }, [typesVersion]);
+  useEffect(() => () => exportController.current?.abort(), []);
 
-  const selected =
-    filtered.find((record) => record.id === selectedId) ??
-    filtered[0] ??
-    records[0];
-  const resolvedCount = filtered.filter((record) =>
-    ["VERIFIED", "VALIDATED"].includes(record.status),
-  ).length;
-
+  const applyFilters = () => {
+    setError("");
+    setNotice("");
+    if (draft.dateFrom && draft.dateTo && draft.dateFrom > draft.dateTo) {
+      setError("The start date must be on or before the end date.");
+      return;
+    }
+    setFilters({ ...draft });
+    setPage(1);
+    setSelectedId(null);
+  };
   const clearFilters = () => {
-    setQuery("");
-    setRange("All dates");
-    setOutcome("");
-    setPriority("");
-    setStatus("");
+    setDraft({}); setFilters({}); setPage(1); setSelectedId(null); setError(""); setNotice("");
   };
-
-  const exportRecords = () => {
-    const rows = [
-      [
-        "Report ID",
-        "Date",
-        "Incident",
-        "Location",
-        "Priority",
-        "Status",
-        "Outcome",
-      ],
-      ...filtered.map((record) => [
-        record.id,
-        record.dateValue,
-        record.incident,
-        record.location,
-        record.priority,
-        record.status,
-        record.outcome,
-      ]),
-    ];
-    downloadFile(
-      "responda-historical-records.csv",
-      rows.map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n"),
-      "text/csv",
-    );
-    setExportCount((count) => count + 1);
+  const download = async () => {
+    if (exporting) return;
+    const controller = new AbortController();
+    exportController.current = controller;
+    setExporting(true); setError(""); setNotice("");
+    try {
+      const blob = await exportHistory(filters, controller.signal);
+      if (controller.signal.aborted) return;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url; link.download = "responda-history.csv";
+      document.body.appendChild(link); link.click(); link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setNotice("CSV downloaded using the applied filters.");
+    } catch (caught) {
+      if (!controller.signal.aborted) {
+        setError(caught instanceof Error ? caught.message : "The CSV export could not be created.");
+      }
+    } finally {
+      if (!controller.signal.aborted) setExporting(false);
+    }
   };
-
-  const evidence = [
-    [`${selected.id.toLowerCase()}-incident-summary.txt`, "2 KB"],
-    [`${selected.id.toLowerCase()}-validation-log.txt`, "1 KB"],
-    [`${selected.id.toLowerCase()}-dispatch-timeline.csv`, "1 KB"],
-  ];
 
   return (
     <>
       <PageTitle
         title="Historical Records"
-        subtitle="Audit resolved reports and retrieve evidence for planning or documentation."
-        action="Export records"
-        onAction={exportRecords}
+        subtitle="Review resolved and closed incidents, linked reports, and response history."
+        action={exporting ? "Exporting…" : "Export CSV"}
+        onAction={() => void download()}
+        actionDisabled={exporting || records.status !== "ready" || !records.data?.total}
       />
-
-      <Card className="flex min-h-14 flex-wrap items-center gap-2 px-[10px] py-2">
-        <label className="flex h-[38px] min-w-[210px] flex-1 items-center gap-2 rounded-[10px] border border-border bg-white px-[10px] text-muted focus-within:border-maroon focus-within:shadow-[0_0_0_3px_rgba(122,31,43,.08)] [&_input]:w-full [&_input]:border-0 [&_input]:bg-transparent [&_input]:text-[9px] [&_input]:outline-0">
-          <Icon name="search" size={14} />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search report ID or keyword"
-          />
-        </label>
-        <SelectField
-          label="Date range"
-          value={range}
-          options={ranges}
-          onChange={setRange}
-        />
-        <SelectField
-          label="All outcomes"
-          value={outcome}
-          options={outcomes}
-          onChange={setOutcome}
-        />
-        <Button
-          variant="secondary"
-          icon="filter"
-          onClick={() => setMoreFilters((open) => !open)}
-        >
-          {moreFilters ? "Hide filters" : "More filters"}
-        </Button>
-        {(query || outcome || priority || status || range !== "All dates") && (
-          <Button variant="secondary" onClick={clearFilters}>
-            Clear
-          </Button>
-        )}
-        {moreFilters && (
-          <div className="flex w-full flex-wrap gap-2 border-t border-border pt-2">
-            <SelectField
-              label="All priorities"
-              value={priority}
-              options={priorities}
-              onChange={setPriority}
-            />
-            <SelectField
-              label="All statuses"
-              value={status}
-              options={statuses}
-              onChange={setStatus}
-            />
-          </div>
-        )}
-      </Card>
-
-      <div className="grid grid-cols-4 gap-4 max-[1180px]:grid-cols-2 max-[650px]:grid-cols-1">
-        <Metric
-          icon="records"
-          title="Matching records"
-          value={String(filtered.length)}
-          sub="Current filter result"
-          tone="maroon"
-        />
-        <Metric
-          icon="check"
-          title="Resolved"
-          value={String(resolvedCount)}
-          sub={`${filtered.length ? Math.round((resolvedCount / filtered.length) * 100) : 0}% completion rate`}
-          tone="green"
-        />
-        <Metric
-          icon="download"
-          title="Exported this month"
-          value={String(exportCount)}
-          sub="CSV record packages"
-          tone="blue"
-        />
-        <Metric
-          icon="shield"
-          title="Retention status"
-          value="Healthy"
-          sub="No overdue disposals"
-          tone="amber"
-        />
-      </div>
-
-      {downloaded && (
-        <div className="flex items-center justify-between rounded-xl bg-green-soft px-4 py-3 text-[10px] text-status-green">
-          <b>{downloaded} downloaded.</b>
-          <button
-            className="border-0 bg-transparent text-status-green"
-            onClick={() => setDownloaded("")}
-          >
-            ×
-          </button>
-        </div>
-      )}
-
-      <div className="grid grid-cols-[minmax(0,2.3fr)_342px] gap-4 max-[1180px]:grid-cols-1 [&>.card:first-child]:overflow-auto max-[1180px]:[&>.side-stack]:grid-cols-3 [&_.side-stack_.card>.button]:mt-2 [&_.side-stack_.card>.button]:w-full">
-        <Card>
-          <SectionHead
-            title="Completed incident records"
-            subtitle={`${filtered.length} matching records`}
-            action={`Sort: ${newestFirst ? "newest" : "oldest"}`}
-            onAction={() => setNewestFirst((newest) => !newest)}
-          />
-          <div className="min-w-[700px]">
-            <div className="head grid min-h-7 w-full grid-cols-[88px_65px_1.45fr_90px_92px_1fr] items-center gap-[7px] rounded-lg border-0 border-b border-[#eee] bg-soft-gray px-2 py-[5px] text-left text-[7px] font-bold text-muted">
-              <span>REPORT ID</span>
-              <span>DATE</span>
-              <span>INCIDENT / AREA</span>
-              <span>PRIORITY</span>
-              <span>STATUS</span>
-              <span>OUTCOME</span>
-            </div>
-            {filtered.map((record) => (
-              <button
-                className={`grid min-h-[58px] w-full grid-cols-[88px_65px_1.45fr_90px_92px_1fr] items-center gap-[7px] border-0 border-b border-[#eee] px-2 py-[5px] text-left text-[9px] [&>b]:text-maroon [&_span_strong]:block [&_span_small]:mt-[3px] [&_span_small]:block [&_span_small]:text-muted ${selected.id === record.id ? "bg-blush" : "bg-white hover:bg-soft-gray"}`}
-                key={record.id}
-                onClick={() => setSelectedId(record.id)}
-              >
-                <b>{record.id}</b>
-                <span>{record.date}</span>
-                <span>
-                  <strong>{record.incident}</strong>
-                  <small>{record.location}</small>
-                </span>
-                <Badge tone={tone(record.priority)}>{record.priority}</Badge>
-                <Badge tone="green">{record.status}</Badge>
-                <span>{record.outcome}</span>
-              </button>
-            ))}
-            {!filtered.length && (
-              <p className="py-10 text-center text-[10px] text-muted">
-                No historical records match these filters.
-              </p>
-            )}
-          </div>
-        </Card>
-
-        <div className="side-stack flex flex-col gap-3 max-[1180px]:grid max-[1180px]:grid-cols-3 max-[900px]:grid-cols-1">
-          <Card>
-            <div className="flex items-center justify-between [&_h3]:m-0 [&_h3]:text-[13px] [&_p]:text-[8px] [&_p]:text-muted">
-              <div>
-                <h3>{selected.id}</h3>
-                <p>
-                  Closed {selected.date}, 2026 • {selected.closedTime}
-                </p>
-              </div>
-              <Badge tone="green">{selected.status}</Badge>
-            </div>
-            <div className="my-[9px] grid gap-1 rounded-xl bg-blush px-[10px] py-[9px] [&>b]:text-[9px] [&>b]:text-maroon [&_strong]:text-xs [&_span]:text-[8px] [&_span]:text-muted">
-              <b>{selected.incident.toUpperCase()}</b>
-              <strong>{selected.location}</strong>
-              <span>
-                {selected.priority} priority • {selected.source}
+      <Card>
+        <form onSubmit={(event) => { event.preventDefault(); applyFilters(); }} className="grid gap-3">
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="flex min-w-[220px] flex-1 flex-col gap-2 text-[9px] text-muted">
+              Search completed incidents
+              <span className="flex h-[38px] items-center gap-2 rounded-[7px] border border-border bg-white px-3 focus-within:border-maroon">
+                <Icon name="search" size={14} />
+                <input
+                  aria-label="Search historical records" maxLength={100}
+                  className="w-full border-0 bg-transparent text-[10px] outline-none"
+                  value={draft.search ?? ""}
+                  onChange={(event) => setDraft({ ...draft, search: event.target.value })}
+                  placeholder="Incident / report reference, type, location, or team"
+                />
               </span>
-            </div>
-            {[
-              ["Reporter", selected.reporter],
-              ["Response team", selected.team],
-              ["Time to dispatch", selected.dispatchTime],
-              ["Final outcome", selected.outcome],
-            ].map(([label, value]) => (
-              <div
-                className="flex min-h-[27px] items-center justify-between gap-[10px] text-[9px] [&_span]:text-muted"
-                key={label}
-              >
-                <span>{label}</span>
-                <b className="text-right">{value}</b>
-              </div>
-            ))}
-            <Button icon="reports" onClick={() => setCompleteRecordOpen(true)}>
-              Open complete record
-            </Button>
-          </Card>
-
-          <Card>
-            <SectionHead
-              title="Evidence & documents"
-              subtitle="Attached to this record"
-            />
-            {evidence.map(([name, size], index) => (
-              <button
-                className="mt-1.5 flex h-[34px] w-full items-center gap-1.5 rounded-lg border-0 bg-soft-gray px-2 text-left text-[8px] text-maroon [&_b]:flex-1 [&_b]:text-[#1c1c1e] [&_span]:text-muted"
-                key={name}
-                onClick={() => {
-                  const contents =
-                    index === 2
-                      ? `stage,time\nreported,${selected.date}\ndispatched,${selected.dispatchTime}\nclosed,${selected.closedTime}`
-                      : `${selected.id}\n${selected.incident}\n${selected.location}\n${selected.summary}`;
-                  downloadFile(
-                    name,
-                    contents,
-                    index === 2 ? "text/csv" : "text/plain",
-                  );
-                  setDownloaded(name);
-                }}
-              >
-                <Icon name="download" />
-                <b>{name}</b>
-                <span>{size}</span>
-              </button>
-            ))}
-          </Card>
-
-          <div className="grid gap-[5px] rounded-[14px] bg-blue-soft px-3 py-[10px] [&>b]:text-[9px] [&>b]:text-status-blue [&_strong]:text-[10px] [&_p]:m-0 [&_p]:text-[9px] [&_p]:leading-[1.5] [&_p]:text-muted">
-            <b>AUDIT TRAIL</b>
-            <strong>Validated by {selected.validator}</strong>
-            <p>
-              Status closed by Rescue Desk at {selected.closedTime}. Record is
-              locked and retained under MDRRMO policy.
-            </p>
+            </label>
+            <SelectField label="All incident types" value={draft.incidentTypeId ?? ""}
+              options={types.map((kind) => ({ value: kind.incident_type_id, label: kind.name }))}
+              onChange={(incidentTypeId) => setDraft({ ...draft, incidentTypeId })} />
+            <SelectField label="All priorities" value={draft.priority ?? ""}
+              options={[{ value: "critical", label: "Critical" }, { value: "high", label: "High" }, { value: "medium", label: "Medium" }, { value: "low", label: "Low" }]}
+              onChange={(priority) => setDraft({ ...draft, priority: priority as HistoryFilters["priority"] })} />
+            <SelectField label="All final statuses" value={draft.status ?? ""}
+              options={[{ value: "resolved", label: "Resolved" }, { value: "closed", label: "Closed" }]}
+              onChange={(status) => setDraft({ ...draft, status: status as HistoryFilters["status"] })} />
           </div>
-        </div>
-      </div>
-
-      {completeRecordOpen && (
-        <div
-          className="fixed inset-0 z-[110] grid place-items-center bg-[#23090f7a] p-5 backdrop-blur"
-          onMouseDown={() => setCompleteRecordOpen(false)}
-        >
-          <Card className="max-h-[calc(100vh-40px)] w-[min(680px,100%)] overflow-y-auto p-6">
-            <div onMouseDown={(event) => event.stopPropagation()}>
-              <div className="flex items-start justify-between gap-4 border-b border-border pb-5">
-                <div>
-                  <span className="text-[9px] font-bold text-maroon">
-                    {selected.id}
-                  </span>
-                  <h2 className="my-1 text-xl">{selected.incident}</h2>
-                  <p className="m-0 text-[10px] text-muted">
-                    {selected.location} • Closed {selected.date}, 2026
-                  </p>
-                </div>
-                <button
-                  className="grid size-10 shrink-0 place-items-center rounded-xl border-0 bg-soft-gray text-xl text-maroon"
-                  onClick={() => setCompleteRecordOpen(false)}
-                >
-                  ×
-                </button>
-              </div>
-              <div className="my-5 flex flex-col gap-4">
-                <div>
-                  <b className="text-[9px] text-muted">INCIDENT SUMMARY</b>
-                  <p className="mb-0 text-[11px] leading-6">
-                    {selected.summary}
-                  </p>
-                </div>
-                {[
-                  ["Priority", selected.priority],
-                  ["Status", selected.status],
-                  ["Source", selected.source],
-                  ["Reporter", selected.reporter],
-                  ["Response team", selected.team],
-                  ["Dispatch time", selected.dispatchTime],
-                  ["Final outcome", selected.outcome],
-                  ["Validated by", selected.validator],
-                ].map(([label, value]) => (
-                  <div
-                    className="flex justify-between gap-5 border-b border-border pb-3 text-[10px]"
-                    key={label}
-                  >
-                    <span className="text-muted">{label}</span>
-                    <b className="text-right">{value}</b>
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-end gap-2 border-t border-border pt-5">
-                <Button
-                  variant="secondary"
-                  onClick={() => setCompleteRecordOpen(false)}
-                >
-                  Close
-                </Button>
-                <Button
-                  icon="download"
-                  onClick={() => {
-                    downloadFile(
-                      `${selected.id.toLowerCase()}-complete-record.txt`,
-                      `${selected.id}\n${selected.incident}\n${selected.location}\n${selected.summary}\nOutcome: ${selected.outcome}`,
-                    );
-                    setDownloaded("Complete record");
-                    setCompleteRecordOpen(false);
-                  }}
-                >
-                  Download record
-                </Button>
-              </div>
-            </div>
+          <div className="flex flex-wrap items-end gap-3 border-t border-border pt-3">
+            {(["dateFrom", "dateTo"] as const).map((key) => (
+              <label key={key} className="grid gap-2 text-[9px] text-muted">
+                {key === "dateFrom" ? "Record date from" : "Record date to"}
+                <input
+                  type="date" value={draft[key] ?? ""} min="1900-01-01" max="9999-12-30"
+                  className="h-[38px] rounded-[7px] border border-border bg-white px-3 text-[10px] outline-maroon"
+                  onChange={(event) => setDraft({ ...draft, [key]: event.target.value })}
+                />
+              </label>
+            ))}
+            <SelectField label="Sort order" value={draft.sort ?? "newest"}
+              options={[{ value: "newest", label: "Newest first" }, { value: "oldest", label: "Oldest first" }]}
+              onChange={(sort) => setDraft({ ...draft, sort: sort as HistoryFilters["sort"] })} />
+            <button type="submit" className="h-[38px] rounded-[7px] border border-maroon bg-maroon px-4 text-[10px] font-semibold text-white">Apply filters</button>
+            <button type="button" className="h-[38px] rounded-[7px] border border-border bg-white px-4 text-[10px] font-semibold" onClick={clearFilters}>Clear</button>
+            <i className="flex-1" />
+            <button type="button" className="h-[38px] rounded-[7px] border border-border bg-white px-4 text-[10px] font-semibold disabled:opacity-40" onClick={() => { records.refetch(); setTypesVersion((version) => version + 1); }} disabled={records.status === "loading"}>Refresh</button>
+          </div>
+        </form>
+        <p className="mb-0 mt-3 text-[8px] leading-relaxed text-muted">
+          Dates use Philippine time and the incident’s closed or resolved date; older records without either use their last update.
+          CSV exports include up to 5,000 matching incidents and exclude personal contacts, report text, and exact locations.
+        </p>
+        {typeError && <div className="mt-3"><ErrorNotice message="Incident-type filters could not be loaded." retry={() => setTypesVersion((value) => value + 1)} /></div>}
+      </Card>
+      {error && <ErrorNotice message={error} />}
+      {notice && <div role="status" className="rounded-[7px] border border-[#c4decf] bg-green-soft px-4 py-3 text-[10px] text-status-green">{notice}</div>}
+      <div className="grid grid-cols-3 gap-4 max-[650px]:gap-2">
+        {[
+          ["Matching incidents", records.data?.total],
+          ["Resolved", records.data?.counts.resolved],
+          ["Closed", records.data?.counts.closed],
+        ].map(([label, count]) => (
+          <Card key={label}>
+            <span className="block text-[9px] text-muted">{label}</span>
+            <b className="mt-2 block text-[24px] font-semibold">{count ?? "—"}</b>
           </Card>
-        </div>
-      )}
+        ))}
+      </div>
+      {records.status === "error" && <ErrorNotice message={records.error ?? "Historical records could not be loaded."} retry={records.refetch} />}
+      <div className="grid grid-cols-[minmax(0,1.8fr)_minmax(340px,1fr)] items-start gap-4 max-[1180px]:grid-cols-1">
+        <Card>
+          <SectionHead title="Completed incident records" subtitle="One record per incident, including all linked reports" />
+          {records.status === "loading" && <p role="status" className="py-8 text-center text-[11px] text-muted">Loading historical records…</p>}
+          {records.status === "ready" && !records.data.total && (
+            <div className="grid justify-items-center gap-3 px-4 py-12 text-center">
+              <Icon name="records" size={24} />
+              <b className="text-[12px]">No completed incidents match these filters</b>
+              <p className="m-0 text-[10px] text-muted">Resolved and closed incidents will appear here.</p>
+              <Button variant="secondary" onClick={clearFilters}>Clear filters</Button>
+            </div>
+          )}
+          {!!records.data?.items.length && (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[700px] border-collapse text-left text-[9px]">
+                <thead className="border-b border-border bg-soft-gray text-[8px] text-muted">
+                  <tr>{["INCIDENT", "RECORD DATE", "TYPE / LOCATION", "PRIORITY", "STATUS", "TEAMS"].map((heading) => <th className="px-2 py-3 font-semibold" key={heading}>{heading}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {records.data.items.map((record) => (
+                    <tr key={record.incident_id} className={`border-b border-border ${selected?.incident_id === record.incident_id ? "bg-blush" : "hover:bg-soft-gray"}`}>
+                      <td className="px-2 py-4">
+                        <button className="border-0 bg-transparent p-0 text-[9px] font-bold text-maroon underline-offset-4 hover:underline" aria-label={`Open ${record.reference}`} onClick={() => setSelectedId(record.incident_id)}>{record.reference}</button>
+                        <small className="mt-1 block text-[8px] text-muted">{record.report_count} report{record.report_count === 1 ? "" : "s"}</small>
+                      </td>
+                      <td className="px-2 py-4">{formatDate(record.recorded_at, true)}</td>
+                      <td className="max-w-[220px] px-2 py-4"><b className="block">{record.incident_type_name}</b><small className="mt-1 block break-words text-[8px] text-muted">{record.location ?? "Location not recorded"}</small></td>
+                      <td className="px-2 py-4"><Badge tone={tone(record.priority.toUpperCase())}>{record.priority.toUpperCase()}</Badge></td>
+                      <td className="px-2 py-4"><Badge tone={record.status === "resolved" ? "green" : "maroon"}>{record.status.toUpperCase()}</Badge></td>
+                      <td className="px-2 py-4">{record.first_team ?? "None recorded"}{record.team_count > 1 && <small className="mt-1 block text-muted">+{record.team_count - 1} more</small>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {records.data && <Pager data={records.data} label="Incidents" onPage={(value) => { setPage(value); setSelectedId(null); }} />}
+        </Card>
+        {selected ? <RecordDetails key={selected.incident_id} record={selected} /> : (
+          <Card><SectionHead title="Incident detail" /><p className="text-[10px] text-muted">Select a completed incident to view its reports, assignments, and timeline.</p></Card>
+        )}
+      </div>
     </>
   );
 }

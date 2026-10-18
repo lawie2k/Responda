@@ -16,13 +16,14 @@ import { barangayBoundaries } from "../data/barangayBoundaries";
 import floodHazardsUrl from "../data/gis/pantukan-flood.geojson?url";
 import landslideHazardsUrl from "../data/gis/pantukan-landslide.geojson?url";
 import stormSurgeHazardsUrl from "../data/gis/pantukan-storm-surge.geojson?url";
-import { incidents, type MapFocus, type MapPoint } from "../data/mapData";
+import type { MapFocus, MapPoint } from "../data/mapData";
 
 const pantukan: [number, number] = [7.12682, 125.89714];
 const priorityColors: Record<MapPoint["priority"], string> = {
   Critical: "#D92D20",
   High: "#E35A14",
   Moderate: "#C47C00",
+  Low: "#2E7D5B",
 };
 const officialPantukanBounds = geoJSON(barangayBoundaries).getBounds();
 
@@ -121,7 +122,7 @@ function MapViewportController({ focus }: { focus: MapFocus | null }) {
 export function MiniMap({
   large = false,
   layers = [true, true, false, false, false],
-  points = incidents,
+  points = [],
   focus = null,
 }: {
   large?: boolean;
@@ -214,6 +215,22 @@ export function MiniMap({
                       ? `Barangay ${point.barangay}`
                       : "Barangay not determined"}
                   </small>
+                  {point.status && <small>Status: {point.status}</small>}
+                  {point.source && <small>Source: {point.source}</small>}
+                  {point.receivedAt && (
+                    <small>Received: {point.receivedAt}</small>
+                  )}
+                  {point.assignmentState && (
+                    <small>
+                      Response: {point.assignmentState === "loading"
+                        ? "Loading team assignment…"
+                        : point.assignmentState === "error"
+                          ? "Team status unavailable"
+                          : point.assignedTeams?.length
+                            ? point.assignedTeams.join(", ")
+                            : "Not assigned"}
+                    </small>
+                  )}
                 </div>
               </Popup>
               {large && (
@@ -240,6 +257,10 @@ export function MiniMap({
         <span>
           <i className={"bg-priority-amber"} />
           Moderate
+        </span>
+        <span>
+          <i className={"bg-status-green"} />
+          Low
         </span>
       </div>
     </div>
