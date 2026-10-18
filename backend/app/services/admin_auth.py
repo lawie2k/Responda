@@ -162,9 +162,14 @@ class AdminAuthService:
             await self._database.commit()
 
     async def _find_user_by_email(self, email: str) -> User | None:
-        statement = select(User).where(
-            func.lower(User.email) == email,
-            User.deleted_at.is_(None),
+        statement = (
+            select(User)
+            .where(
+                func.lower(User.email) == email,
+                User.deleted_at.is_(None),
+            )
+            .with_for_update()
+            .execution_options(populate_existing=True)
         )
         result = await self._database.execute(statement)
         return result.scalar_one_or_none()

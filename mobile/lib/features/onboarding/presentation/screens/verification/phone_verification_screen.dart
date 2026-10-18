@@ -5,6 +5,8 @@ import 'package:responda/core/theme/app_colors.dart';
 import 'package:responda/core/navigation/app_routes.dart';
 import 'package:responda/core/widgets/responda_button.dart';
 import 'package:responda/features/onboarding/data/identity_otp_service.dart';
+import 'package:responda/features/onboarding/presentation/account_scope.dart';
+import 'package:responda/core/network/responda_api_client.dart';
 import 'package:responda/features/onboarding/presentation/widgets/identity_verification_widgets.dart';
 import 'package:responda/features/onboarding/presentation/widgets/onboarding_step_scaffold.dart';
 
@@ -13,12 +15,12 @@ import 'otp_verification_screen.dart';
 class IdentityVerificationScreen extends StatefulWidget {
   const IdentityVerificationScreen({
     required this.privacyNoticeAcceptedAt,
-    this.otpService = const PrototypeIdentityOtpService(),
+    this.otpService,
     super.key,
   });
 
   final DateTime privacyNoticeAcceptedAt;
-  final IdentityOtpService otpService;
+  final IdentityOtpService? otpService;
 
   @override
   State<IdentityVerificationScreen> createState() =>
@@ -55,22 +57,30 @@ class _IdentityVerificationScreenState
     setState(() => _sending = true);
     final phoneNumber = '+63${_phoneController.text}';
     try {
-      await widget.otpService.sendCode(phoneNumber);
+      final service = widget.otpService ?? AccountScope.maybeOf(context);
+      if (service == null) {
+        throw const RespondaApiException('Account storage is not available.');
+      }
+      await service.sendCode(phoneNumber);
       if (!mounted) return;
       await Navigator.of(context).push<void>(
         MaterialPageRoute<void>(
           builder: (_) => OtpVerificationScreen(
             phoneNumber: phoneNumber,
-            otpService: widget.otpService,
+            otpService: service,
             privacyNoticeAcceptedAt: widget.privacyNoticeAcceptedAt,
           ),
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: LocalizedText('The verification code could not be sent.'),
+          SnackBar(
+            content: Text(
+              error is RespondaApiException
+                  ? error.message
+                  : 'The verification code could not be sent.',
+            ),
           ),
         );
       }
@@ -121,7 +131,6 @@ class _IdentityVerificationScreenState
           label: _sending ? 'Sending…' : 'Send OTP',
           onPressed: _sending ? null : _sendCode,
         ),
-        const IdentityPrototypeNotice(),
       ],
     );
   }

@@ -12,8 +12,8 @@ updated: 2026-10-19
 - The FastAPI project structure, configuration, exception handling, CORS, async
   database session setup, and `/api/v1` router separation exist.
 - PostgreSQL is configured locally through a private `.env` file.
-- Five Alembic migrations and 18 SQLAlchemy tables exist. The database is at
-  the manual-report intake migration head.
+- Six Alembic migrations and 18 SQLAlchemy tables exist. PostgreSQL is at
+  `a19e7215d104`, adding optional citizen barangay and privacy acknowledgement.
 - Mutable operational records use indexed nullable `deleted_at` timestamps:
   users, incident types, incidents, reports, report locations, report
   attachments, SMS gateways/messages, response units/assignments, and
@@ -32,6 +32,14 @@ updated: 2026-10-19
   database value is presented as Super Admin, and `operations_admin` represents
   a normal Administrator. Only these two roles may create or retain a dashboard
   session; dispatcher, verifier, viewer, and reporter roles are rejected.
+- Super Admin-only `/api/v1/admin/staff` endpoints now list/search/filter staff,
+  create normal Administrators, edit name/email/activation, revoke sessions,
+  and expose non-secret server policy. Super Admin accounts are protected from
+  dashboard mutation. Writes recheck the actor/session, lock and version-check
+  targets, reserve normalized emails, hash initial passwords, revoke sessions
+  on email/activation changes, and commit minimal audits together. Login locks
+  the same user row to serialize session issuance with staff changes. Invalid
+  staff requests never echo passwords. No migration was required.
 - Protected staff report-list and report-detail endpoints now exist under
   `/api/v1/admin/reports`. They use the existing revocable staff session,
   validated and capped pagination, search and enum-backed filters, stable safe
@@ -84,6 +92,29 @@ updated: 2026-10-19
   required.
 - Mobile report creation, gateway ingestion, and notification APIs are not
   implemented yet.
+- Mobile account endpoints now request/verify OTP, restore sessions, update
+  optional name/barangay, and revoke logout under `/api/v1/mobile/auth`. Local
+  development OTP is explicitly enabled in the private local configuration;
+  random codes expire after five minutes, allow five guesses, invalidate earlier
+  challenges, and enforce resend plus IP/phone limits. Codes are HMAC-protected,
+  phone registration is serialized in PostgreSQL, and login/profile/audits commit
+  atomically. Reporter-only bearer sessions expire after thirty days, cap at five,
+  and reject suspended/deleted/unverified accounts. Production OTP delivery is
+  unavailable until a provider is selected; deployment rejects the development
+  flag. A real SMS provider is still pending.
+- Protected `/api/v1/admin/mobile-accounts` now lists real registered citizens
+  with search, status filters, capped pagination, global counts, masked phones,
+  actual last sign-in, and undeleted app-report totals. Manual callers, staff,
+  deleted and unverified records are excluded. Both administrator tiers read;
+  only Super Admins may suspend/restore. Writes recheck the actor/session, lock
+  and version-check the citizen, revoke sessions, and commit a categorical-reason
+  audit atomically. Restoration leaves old sessions revoked. No migration needed.
+- Protected `/api/v1/admin/analytics` endpoints now provide date/type-filtered
+  aggregate metrics, daily CSV export, and incident-type options to both
+  administrator tiers. SQL queries group reports by received date and incidents
+  by opened date in Asia/Manila, cap date ranges at 366 days, exclude deleted
+  records, and keep inactive types available. Exports contain daily dates/counts
+  and audit staff identity plus day count. No migration was required.
 - The strict app-only SMS acceptance policy is documented and represented in
   the schema; gateway ingestion and signature verification are not implemented.
 
@@ -116,6 +147,24 @@ updated: 2026-10-19
 - Normal Administrators receive the operational workspace but cannot navigate
   to or discover the system Settings page; that configuration surface remains
   Super Admin-only.
+- Settings now reads real staff accounts and provides Administrator creation,
+  identity/activation edits, confirmed deactivation and session sign-out,
+  search/status filters, pagination, loading/error states, and guarded writes.
+  System rules shows live session/login limits and current operational policy.
+  Fake staff, localStorage saves, simulated notification tests, and nonfunctional
+  settings switches were removed. Organization editing, password recovery,
+  notification configuration, and retention controls remain future decisions.
+- Mobile Accounts now uses the protected citizen APIs with live counts, search,
+  filters, pagination, refresh, details, and loading/error/empty states. Super
+  Admins confirm a reason to suspend or restore; normal Administrators have read
+  access. Removed the mock records, browser-only status edits, fictional Needs
+  attention state, fake last-active times, and free-text note control. Shared
+  buttons now explicitly default to button type, with form submits marked, so
+  Refresh/Reset cannot submit a search or account edit unexpectedly. WebStorm's
+  mirror has the updated sources and no longer has the old mock data module.
+  On desktop, the account roster and detail panels fill the remaining viewport
+  height with pagination at the roster's bottom and a 20px bottom gutter.
+  Stacked layouts retain natural height; the WebStorm mirror matches.
 - The Overview report metrics, priority queue, map markers, recent-report table,
   global report search, and Live Reports queue now read from the protected
   report APIs. Live Reports supports server-side search, filters, capped
@@ -161,18 +210,34 @@ updated: 2026-10-19
   incident summary, lifecycle dates, linked reports, response assignments, and
   report-event timeline in independently paginated tabs. It supports refresh,
   loading/error/empty states, and audited CSV download using applied filters.
+  The desktop records and detail panels stretch to the same row height for a
+  balanced comparison layout, with records pagination pinned to the bottom of
+  its card. The matching/resolved/closed summary cards appear above the
+  filters; the Apply filters control is disabled until at least one filter
+  value is entered; the responsive stacked layout is unchanged.
   The former sample records, invented outcomes, evidence downloads, export
-  counters, and retention claims were removed. Analytics still contains
-  demonstration data.
+  counters, and retention claims were removed.
+- Analytics now uses protected PostgreSQL aggregates for reports received,
+  verified reports, incidents opened, critical/completed incidents, daily
+  volume, types, sources, priorities, and current incident statuses. Staff can
+  apply 7/30/90-day presets or custom dates and incident-type filters, refresh,
+  inspect an accessible daily table, and export daily aggregate CSV. Loading,
+  retry, empty results, and disabled controls are implemented. Average dispatch
+  time measures incident opening to the first qualifying team assignment,
+  with one sample per incident and missing samples shown as an em dash. Sample
+  response targets and on-scene claims have been removed.
 
 ## Mobile app
 
 - The active mobile codebase is Flutter, not React Native.
-- The approved citizen-account flow is phone number plus OTP verification,
-  followed by optional name and barangay fields. Government-ID upload, face
-  capture, and identity-review approval are no longer part of the product flow;
-  their existing Flutter screens are legacy UI to remove during account
-  integration.
+- The citizen-account flow now connects privacy acknowledgement, phone OTP,
+  optional name/barangay, session restoration, and sign-out to the backend.
+  Local development shows the backend-generated test code; it sends no SMS.
+  Tokens use `flutter_secure_storage` with native platform configuration;
+  preferences retain only profile/expiry for offline UI, never tokens. Resume
+  rechecks the session. Old local profiles without a real token must verify again.
+  Retired ID/face screens, media-picker reference, and prototype code were removed
+  (recoverable from Git). The optional profile form preserves recovered details.
 - It has a backend health client and environment-aware base URLs, including the
   Android emulator host address.
 - The application contains onboarding, connectivity handling, reporting flows,
@@ -181,6 +246,40 @@ updated: 2026-10-19
   wired end to end.
 
 ## Verification history
+
+- The 2026-10-19 save/push checkpoint reran backend Ruff, strict mypy and all
+  290 tests, web lint/build, Flutter analysis and all 75 tests, plus memory and
+  diff validation. All passed; the existing web bundle-size advisory remains.
+  Browser inspection confirmed the Mobile Accounts desktop bottom gutter.
+
+- Citizen management passed backend Ruff, strict mypy and 290 tests plus web
+  lint/build. A rolled-back PostgreSQL rehearsal verified masked list results,
+  suspension, rejected revoked sessions, restoration without reviving old tokens,
+  fresh OTP recovery, and minimal audits, with no temporary users remaining.
+  After the user signed in, browser checks verified the real zero-account state,
+  status/search filters, reset, disabled empty pagination, and no console errors.
+  No credentials were requested in chat or changed. WebStorm is synced.
+
+- Mobile accounts passed backend Ruff, strict mypy and 256 tests, plus Flutter
+  analysis and 75 tests. Migration upgrade and Alembic schema comparison passed.
+  A PostgreSQL rehearsal covered signup, replay rejection, optional profile,
+  suspension, recovery of the same account, logout and minimal audits, then
+  rolled back all synthetic data. The iOS debug simulator build passed; the running
+  backend health and new mobile routes were checked. Physical-device testing and
+  real SMS delivery remain pending.
+
+- Staff management passed Ruff, strict mypy, all 233 backend tests, and web
+  lint/build. A rolled-back PostgreSQL rehearsal verified create/login,
+  deactivate/reactivate, explicit session revocation, rejected revoked sessions,
+  and four management audits, with no temporary staff remaining. Browser checks
+  verified the real protected roster, empty creation guard, server policy, and
+  no console errors. The WebStorm mirror is synced.
+
+- Analytics passed backend Ruff, strict mypy, and all 187 tests, plus web lint
+  and production build. Browser checks against PostgreSQL covered live totals,
+  type and date filtering, empty results, daily detail counts, and a filtered
+  CSV with 30 daily rows and the expected matching counts. The WebStorm mirror
+  has the updated page, API client, and hook.
 
 - Historical Records passed backend Ruff, strict mypy, and all 154 tests plus
   web lint and production build. Authenticated browser checks against local
@@ -262,14 +361,19 @@ updated: 2026-10-19
 
 ## Repository and project-memory setup
 
+- Ponytail working guidance is the default in the global local Codex profile
+  (`/Users/lawie/.codex/AGENTS.md`) and Responda instructions. It uses the
+  instruction-file adapter, with no plugin hooks/commands. New local Codex
+  sessions load global guidance; existing unrelated chats need a new session
+  to pick it up. Model-confirmation and memory protocols remain in force.
 - The GitHub repository is organized as a monorepo with `mobile/`, `backend/`,
   and `web/` application folders.
 - The repository root is an Obsidian vault.
 - Human-written project memory is in `memory/`.
 - Graphify indexes code from backend, web, mobile, and the monorepo root into one
   combined graph.
-- The combined graph currently contains 2,646 code nodes, 5,115 relationships,
-  and 226 detected communities. Generated graph artifacts remain local and
+- The combined graph currently contains 2,963 code nodes, 6,020 relationships,
+  and 235 detected communities. Generated graph artifacts remain local and
   ignored.
 - `AGENTS.md` directs future coding sessions to read memory and query Graphify
   before broad filesystem searches.

@@ -1,664 +1,173 @@
-import { useState, type ReactNode } from "react";
-import { Icon } from "../components/Icon";
-import type { IconName } from "../types";
-import {
-  Badge,
-  Button,
-  Card,
-  PageTitle,
-  SectionHead,
-  SelectField,
-  Switch,
-} from "../components/ui";
+import { useEffect, useRef, useState } from "react";
+import { getStaffPolicy, revokeStaffSessions, saveStaff, type Staff, type StaffPolicy } from "../api/adminStaff";
+import { administratorRoleLabel } from "../config/roles";
+import { Badge, Button, Card, PageTitle, SectionHead, SelectField } from "../components/ui";
+import { useAdminStaff } from "../hooks/useAdminStaff";
 
-const tabs = [
-  ["General", "settings"],
-  ["Notifications", "bell"],
-  ["Users & roles", "users"],
-  ["Data & retention", "records"],
-] as const;
-
-const workspaceSections = [
-  ["Organization", "settings"],
-  ["Report handling", "reports"],
-  ["Validation rules", "shield"],
-  ["Dispatch defaults", "users"],
-  ["Manual intake", "phone"],
-  ["Integrations", "map"],
-] as const;
-
-const inputClass =
-  "h-[38px] min-w-[220px] rounded-[10px] border border-border bg-white px-[10px] text-[9px] outline-0 focus:border-maroon focus:shadow-[0_0_0_3px_rgba(122,31,43,.08)] max-[650px]:w-full";
-
-type AdminUser = {
-  name: string;
-  email: string;
-  role: string;
-  active: boolean;
-};
-
-function downloadSettings(contents: string) {
-  const url = URL.createObjectURL(
-    new Blob([contents], { type: "application/json" }),
-  );
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "responda-settings.json";
-  link.click();
-  URL.revokeObjectURL(url);
-}
+const inputClass = "h-[38px] w-full rounded-[7px] border border-border bg-white px-3 text-[11px] outline-maroon";
+const stamp = (value: string) => new Intl.DateTimeFormat("en-PH", {
+  timeZone: "Asia/Manila", dateStyle: "medium", timeStyle: "short",
+}).format(new Date(value));
 
 export function Settings() {
-  const [activeTab, setActiveTab] = useState("General");
-  const [activeSection, setActiveSection] = useState("Organization");
-  const [dirty, setDirty] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [feedback, setFeedback] = useState("");
-  const [guideOpen, setGuideOpen] = useState(false);
-  const [officeName, setOfficeName] = useState("Pantukan MDRRMO");
-  const [municipality, setMunicipality] = useState("Pantukan, Davao de Oro");
-  const [timezone, setTimezone] = useState("Asia/Manila (UTC+8)");
-  const [mapRadius, setMapRadius] = useState("10 kilometers");
-  const [confidence, setConfidence] = useState("70%");
-  const [dispatchTeam, setDispatchTeam] = useState("Best available team");
-  const [acknowledgement, setAcknowledgement] = useState("5 minutes");
-  const [notificationEmail, setNotificationEmail] = useState(
-    "operations@pantukan.gov.ph",
-  );
-  const [retention, setRetention] = useState("5 years");
-  const [toggles, setToggles] = useState<Record<string, boolean>>({
-    criticalValidation: true,
-    duplicateFlagging: true,
-    manualReports: true,
-    mandatoryNotes: true,
-    photoEvidence: false,
-    teamNotification: true,
-    phoneCalls: true,
-    walkIns: true,
-    radioReports: true,
-    otherSources: true,
-    mobileApi: true,
-    weatherAlerts: false,
-    openStreetMap: true,
-    soundAlert: true,
-    queueReminder: true,
-    dailySummary: false,
-    accountApprovals: true,
-    autoArchive: true,
-    auditLogs: true,
-  });
-  const [admins, setAdmins] = useState<AdminUser[]>([
-    {
-      name: "Maria Santos",
-      email: "maria.santos@pantukan.gov.ph",
-      role: "Super Admin",
-      active: true,
-    },
-    {
-      name: "Joel Garcia",
-      email: "joel.garcia@pantukan.gov.ph",
-      role: "Administrator",
-      active: true,
-    },
-  ]);
+  const [tab, setTab] = useState<"staff" | "rules">("staff");
+  const [search, setSearch] = useState("");
+  const [query, setQuery] = useState({ page: 1, search: "", active: "" });
+  const roster = useAdminStaff(query);
+  const [policy, setPolicy] = useState<StaffPolicy | null>(null);
+  const [policyError, setPolicyError] = useState("");
+  const [policyVersion, setPolicyVersion] = useState(0);
+  const [editor, setEditor] = useState<{ user: Staff | null } | null>(null);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [active, setActive] = useState(true);
+  const [pending, setPending] = useState<{ action: "deactivate" | "revoke"; user: Staff } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const mutation = useRef<AbortController | null>(null);
 
-  const changed = () => {
-    setDirty(true);
-    setSaved(false);
-    setFeedback("");
+  useEffect(() => {
+    const controller = new AbortController();
+    getStaffPolicy(controller.signal)
+      .then((data) => { if (!controller.signal.aborted) { setPolicy(data); setPolicyError(""); } })
+      .catch((caught: unknown) => { if (!controller.signal.aborted) setPolicyError(caught instanceof Error ? caught.message : "System rules could not be loaded."); });
+    return () => controller.abort();
+  }, [policyVersion]);
+  useEffect(() => () => mutation.current?.abort(), []);
+
+  const closeEditor = () => { setEditor(null); setPassword(""); setConfirmation(""); };
+  const openEditor = (user: Staff | null) => {
+    setEditor({ user }); setName(user?.full_name ?? ""); setEmail(user?.email ?? "");
+    setActive(user?.is_active ?? true); setPassword(""); setConfirmation("");
+    setPending(null); setError(""); setNotice("");
   };
-
-  const setText = (setter: (value: string) => void, value: string) => {
-    setter(value);
-    changed();
+  const refresh = () => { roster.refetch(); setPolicyVersion((value) => value + 1); };
+  const perform = async (action: (signal: AbortSignal) => Promise<Staff>, success: string) => {
+    if (mutation.current) return;
+    const controller = new AbortController(); mutation.current = controller;
+    setBusy(true); setError(""); setNotice("");
+    try {
+      await action(controller.signal);
+      if (!controller.signal.aborted) {
+        closeEditor(); setPending(null); setNotice(success); roster.refetch();
+      }
+    } catch (caught) {
+      if (!controller.signal.aborted) setError(caught instanceof Error ? caught.message : "The account could not be saved.");
+    } finally {
+      if (!controller.signal.aborted) { mutation.current = null; setBusy(false); }
+    }
   };
-
-  const toggle = (key: string) => {
-    setToggles((values) => ({ ...values, [key]: !values[key] }));
-    changed();
+  const submit = () => {
+    if (!editor) return;
+    if (!editor.user && password !== confirmation) { setError("Passwords do not match."); return; }
+    if (editor.user?.is_active && !active) { setPending({ action: "deactivate", user: editor.user }); return; }
+    void persist();
   };
+  const persist = () => {
+    if (!editor) return Promise.resolve();
+    return perform((signal) => saveStaff(editor.user?.user_id ?? null, {
+      full_name: name.trim(), email: email.trim(),
+      ...(editor.user ? { is_active: active, expected_updated_at: editor.user.updated_at } : { password }),
+    }, signal), editor.user ? "Administrator account updated." : "Administrator account created.");
+  };
+  const changed = editor && (editor.user
+    ? name.trim() !== editor.user.full_name || email.trim().toLowerCase() !== editor.user.email || active !== editor.user.is_active
+    : Boolean(name.trim() && email.trim() && password && confirmation));
 
-  const row = (label: string, description: string, control: ReactNode) => (
-    <div
-      className="flex min-h-[62px] items-center justify-between gap-5 border-t border-[#eee] max-[650px]:flex-col max-[650px]:items-start max-[650px]:py-3 [&_b]:text-[10px] [&_p]:my-[3px] [&_p]:text-[9px] [&_p]:text-muted"
-      key={label}
-    >
-      <div>
-        <b>{label}</b>
-        <p>{description}</p>
-      </div>
-      {control}
+  return <>
+    <PageTitle title="Settings" subtitle="Manage staff access and review current system rules."
+      action="Create Administrator" onAction={() => { setTab("staff"); openEditor(null); }} actionDisabled={busy} />
+    <div role="tablist" aria-label="Settings sections" className="flex gap-2 border-b border-border">
+      {([ ["staff", "Users & roles"], ["rules", "System rules"] ] as const).map(([key, label]) => <button
+        key={key} role="tab" aria-selected={tab === key} disabled={busy}
+        className={`border-0 border-b-2 bg-transparent px-4 py-3 text-[11px] font-semibold ${tab === key ? "border-maroon text-maroon" : "border-transparent text-muted"}`}
+        onClick={() => { setTab(key); closeEditor(); setPending(null); setError(""); }}
+      >{label}</button>)}
     </div>
-  );
-
-  const switchControl = (key: string) => (
-    <Switch value={toggles[key]} onChange={() => toggle(key)} />
-  );
-
-  const saveChanges = () => {
-    const configuration = {
-      officeName,
-      municipality,
-      timezone,
-      mapRadius,
-      confidence,
-      dispatchTeam,
-      acknowledgement,
-      notificationEmail,
-      retention,
-      toggles,
-      admins,
-    };
-    localStorage.setItem(
-      "responda-admin-settings",
-      JSON.stringify(configuration),
-    );
-    setDirty(false);
-    setSaved(true);
-    setFeedback("Settings saved successfully.");
-  };
-
-  const generalContent = () => {
-    if (activeSection === "Organization") {
-      return (
-        <Card>
-          <SectionHead
-            title="Organization profile"
-            subtitle="Identity shown across reports and exports"
-          />
-          {row(
-            "Office name",
-            "Name displayed in the admin workspace",
-            <input
-              className={inputClass}
-              value={officeName}
-              onChange={(event) => setText(setOfficeName, event.target.value)}
-            />,
-          )}
-          {row(
-            "Municipality",
-            "Primary operational area",
-            <input
-              className={inputClass}
-              value={municipality}
-              onChange={(event) => setText(setMunicipality, event.target.value)}
-            />,
-          )}
-          {row(
-            "Operations timezone",
-            "Used for reports, logs, and dispatch times",
-            <SelectField
-              label="Timezone"
-              value={timezone}
-              options={["Asia/Manila (UTC+8)", "UTC"]}
-              onChange={(value) => setText(setTimezone, value)}
-            />,
-          )}
-        </Card>
-      );
-    }
-
-    if (activeSection === "Report handling") {
-      return (
-        <Card>
-          <SectionHead
-            title="Report handling"
-            subtitle="How reports enter the validation workflow"
-          />
-          {row(
-            "Require validation for critical reports",
-            "Critical incidents must be reviewed before dispatch",
-            switchControl("criticalValidation"),
-          )}
-          {row(
-            "Automatically flag possible duplicates",
-            "Compare incident type, time, and nearby location",
-            switchControl("duplicateFlagging"),
-          )}
-          {row(
-            "Allow manually encoded reports",
-            "Accept phone, walk-in, radio, and other offline reports",
-            switchControl("manualReports"),
-          )}
-          {row(
-            "Default map radius",
-            "Operational area shown around incidents",
-            <SelectField
-              label="Map radius"
-              value={mapRadius}
-              options={["5 kilometers", "10 kilometers", "20 kilometers"]}
-              onChange={(value) => setText(setMapRadius, value)}
-            />,
-          )}
-        </Card>
-      );
-    }
-
-    if (activeSection === "Validation rules") {
-      return (
-        <Card>
-          <SectionHead
-            title="Validation rules"
-            subtitle="Required checks before an incident is approved"
-          />
-          {row(
-            "Minimum ML confidence",
-            "Flag suggestions below this level for closer review",
-            <SelectField
-              label="Confidence"
-              value={confidence}
-              options={["60%", "70%", "80%", "90%"]}
-              onChange={(value) => setText(setConfidence, value)}
-            />,
-          )}
-          {row(
-            "Require validation notes",
-            "Reviewers must explain every decision",
-            switchControl("mandatoryNotes"),
-          )}
-          {row(
-            "Require photo evidence",
-            "Reports without a photo stay pending",
-            switchControl("photoEvidence"),
-          )}
-        </Card>
-      );
-    }
-
-    if (activeSection === "Dispatch defaults") {
-      return (
-        <Card>
-          <SectionHead
-            title="Dispatch defaults"
-            subtitle="Default behavior when assigning response teams"
-          />
-          {row(
-            "Preferred team selection",
-            "Initial option in the dispatch form",
-            <SelectField
-              label="Default team"
-              value={dispatchTeam}
-              options={[
-                "Best available team",
-                "Nearest available team",
-                "Manual selection",
-              ]}
-              onChange={(value) => setText(setDispatchTeam, value)}
-            />,
-          )}
-          {row(
-            "Notify team automatically",
-            "Send assignment details immediately after dispatch",
-            switchControl("teamNotification"),
-          )}
-          {row(
-            "Acknowledgement timeout",
-            "Time before an unanswered dispatch is escalated",
-            <SelectField
-              label="Timeout"
-              value={acknowledgement}
-              options={["3 minutes", "5 minutes", "10 minutes"]}
-              onChange={(value) => setText(setAcknowledgement, value)}
-            />,
-          )}
-        </Card>
-      );
-    }
-
-    if (activeSection === "Manual intake") {
-      return (
-        <Card>
-          <SectionHead
-            title="Manual intake sources"
-            subtitle="Offline channels admins can encode into RESPONDA"
-          />
-          {row(
-            "Phone calls",
-            "Reports received through an emergency phone call",
-            switchControl("phoneCalls"),
-          )}
-          {row(
-            "Walk-in reports",
-            "Reports given directly at the MDRRMO office",
-            switchControl("walkIns"),
-          )}
-          {row(
-            "Radio reports",
-            "Reports received from authorized radio operators",
-            switchControl("radioReports"),
-          )}
-          {row(
-            "Other offline sources",
-            "Other verified sources outside the mobile app",
-            switchControl("otherSources"),
-          )}
-        </Card>
-      );
-    }
-
-    return (
-      <Card>
-        <SectionHead
-          title="Integrations"
-          subtitle="External services used by the admin workspace"
-        />
-        {row(
-          "Mobile app API",
-          "Receive submitted incident and account-verification data",
-          switchControl("mobileApi"),
-        )}
-        {row(
-          "Weather alert feed",
-          "Show official severe-weather advisories",
-          switchControl("weatherAlerts"),
-        )}
-        {row(
-          "OpenStreetMap",
-          "Provide map tiles and geographic context",
-          switchControl("openStreetMap"),
-        )}
-        <div className="mt-3 flex justify-end">
-          <Button
-            variant="secondary"
-            onClick={() =>
-              setFeedback("Integration connection test completed.")
-            }
-          >
-            Test connections
-          </Button>
-        </div>
-      </Card>
-    );
-  };
-
-  const tabContent = () => {
-    if (activeTab === "General") return generalContent();
-
-    if (activeTab === "Notifications") {
-      return (
-        <div className="grid gap-3">
-          <Card>
-            <SectionHead
-              title="Alerts and escalation"
-              subtitle="Notifications for time-sensitive activity"
-            />
-            {row(
-              "Critical incident sound alert",
-              "Play a priority alert on active admin sessions",
-              switchControl("soundAlert"),
-            )}
-            {row(
-              "Validation queue reminder",
-              "Notify reviewers after five minutes",
-              switchControl("queueReminder"),
-            )}
-            {row(
-              "Daily operations summary",
-              "Email a daily MDRRMO activity summary",
-              switchControl("dailySummary"),
-            )}
-            {row(
-              "Account approval notifications",
-              "Notify admins when a new account needs review",
-              switchControl("accountApprovals"),
-            )}
-          </Card>
-          <Card>
-            <SectionHead
-              title="Notification destination"
-              subtitle="Recipient for system-generated summaries"
-            />
-            {row(
-              "Operations email",
-              "Daily summaries and administrative alerts",
-              <input
-                type="email"
-                className={inputClass}
-                value={notificationEmail}
-                onChange={(event) =>
-                  setText(setNotificationEmail, event.target.value)
-                }
-              />,
-            )}
-            <div className="mt-3 flex justify-end">
-              <Button
-                variant="secondary"
-                icon="bell"
-                onClick={() => setFeedback("Test notification sent.")}
-              >
-                Send test notification
-              </Button>
-            </div>
-          </Card>
-        </div>
-      );
-    }
-
-    if (activeTab === "Users & roles") {
-      return (
-        <Card>
-          <SectionHead
-            title="Admin users and roles"
-            subtitle="Control access to the RESPONDA admin workspace"
-          />
-          {admins.map((admin, index) => (
-            <div
-              className="grid min-h-[70px] grid-cols-[1fr_180px_55px] items-center gap-3 border-t border-border max-[650px]:grid-cols-1 max-[650px]:py-3"
-              key={admin.email}
-            >
-              <div>
-                <b className="block text-[10px]">{admin.name}</b>
-                <span className="text-[9px] text-muted">{admin.email}</span>
-              </div>
-              <SelectField
-                label="Role"
-                value={admin.role}
-                options={["Super Admin", "Administrator"]}
-                onChange={(role) => {
-                  setAdmins((users) =>
-                    users.map((user, userIndex) =>
-                      userIndex === index ? { ...user, role } : user,
-                    ),
-                  );
-                  changed();
-                }}
-              />
-              <Switch
-                value={admin.active}
-                onChange={() => {
-                  setAdmins((users) =>
-                    users.map((user, userIndex) =>
-                      userIndex === index
-                        ? { ...user, active: !user.active }
-                        : user,
-                    ),
-                  );
-                  changed();
-                }}
-              />
-            </div>
-          ))}
-        </Card>
-      );
-    }
-
-    return (
-      <Card>
-        <SectionHead
-          title="Data and retention"
-          subtitle="Control archiving, audit history, and configuration backups"
-        />
-        {row(
-          "Incident record retention",
-          "How long completed records remain available",
-          <SelectField
-            label="Retention period"
-            value={retention}
-            options={["1 year", "3 years", "5 years", "10 years"]}
-            onChange={(value) => setText(setRetention, value)}
-          />,
-        )}
-        {row(
-          "Automatic archiving",
-          "Archive completed cases after 30 days",
-          switchControl("autoArchive"),
-        )}
-        {row(
-          "Retain audit logs",
-          "Preserve administrator actions with every record",
-          switchControl("auditLogs"),
-        )}
-        <div className="mt-3 flex justify-end">
-          <Button
-            variant="secondary"
-            icon="download"
-            onClick={() => {
-              downloadSettings(
-                JSON.stringify(
-                  { officeName, municipality, timezone, retention, toggles },
-                  null,
-                  2,
-                ),
-              );
-              setFeedback("Settings backup downloaded.");
-            }}
-          >
-            Export configuration
-          </Button>
-        </div>
-      </Card>
-    );
-  };
-
-  return (
-    <>
-      <PageTitle
-        title="Settings"
-        subtitle="Configure the RESPONDA admin workspace for Pantukan MDRRMO."
-        action="Save changes"
-        onAction={saveChanges}
-        actionDisabled={
-          !dirty ||
-          !officeName.trim() ||
-          !municipality.trim() ||
-          !notificationEmail.trim()
-        }
-      />
-
-      {(saved || feedback) && (
-        <div className="flex items-center justify-between rounded-xl bg-green-soft px-4 py-3 text-[10px] text-status-green">
-          <b>{feedback || "Settings saved successfully."}</b>
-          <button
-            className="border-0 bg-transparent text-status-green"
-            onClick={() => {
-              setSaved(false);
-              setFeedback("");
-            }}
-          >
-            ×
-          </button>
-        </div>
-      )}
-
-      <Card className="flex h-[54px] items-center gap-1.5 overflow-auto border-b-2 px-2 py-1.5 [&_button]:flex [&_button]:h-[34px] [&_button]:items-center [&_button]:gap-1.5 [&_button]:whitespace-nowrap [&_button]:border-0 [&_button]:border-b-2 [&_button]:border-transparent [&_button]:bg-transparent [&_button]:px-4 [&_button]:text-[9px] [&_button]:text-muted [&_button.active]:border-maroon [&_button.active]:text-maroon">
-        {tabs.map(([label, icon]) => (
-          <button
-            className={activeTab === label ? "active" : ""}
-            key={label}
-            onClick={() => setActiveTab(label)}
-          >
-            <Icon name={icon as IconName} />
-            {label}
-          </button>
-        ))}
-      </Card>
-
-      <div
-        className={
-          activeTab === "General"
-            ? "grid grid-cols-[260px_minmax(0,1fr)] gap-4 max-[900px]:grid-cols-1"
-            : "grid grid-cols-1 gap-4"
-        }
-      >
-        {activeTab === "General" && (
-          <Card className="flex flex-col items-stretch gap-1 max-[900px]:flex-row max-[900px]:overflow-x-auto [&>button]:flex [&>button]:h-[42px] [&>button]:w-full [&>button]:shrink-0 [&>button]:items-center [&>button]:justify-start [&>button]:gap-[9px] [&>button]:border-0 [&>button]:border-l-2 [&>button]:border-transparent [&>button]:bg-transparent [&>button]:px-[10px] [&>button]:text-left [&>button]:text-[9px] [&>button.active]:border-maroon [&>button.active]:bg-[#fbf5f6] [&>button.active]:text-maroon max-[900px]:[&>button]:w-auto">
-            <span className="block w-full px-[10px] text-left text-[9px] font-bold tracking-[.04em] text-muted max-[900px]:hidden">
-              WORKSPACE SETTINGS
-            </span>
-            {workspaceSections.map(([label, icon]) => (
-              <button
-                className={activeSection === label ? "active" : ""}
-                key={label}
-                onClick={() => setActiveSection(label)}
-              >
-                <Icon name={icon as IconName} />
-                {label}
-                {activeSection === label && (
-                  <span className="ml-auto">
-                    <Icon name="chevron" />
-                  </span>
-                )}
-              </button>
-            ))}
-            <div className="mt-auto grid gap-[7px] rounded-[14px] bg-deep p-3 text-white max-[900px]:hidden [&>b]:text-[8px] [&>b]:text-[#eaced3] [&_strong]:text-[10px] [&_p]:text-[8px] [&_p]:text-[#eaced3] [&_.button]:w-full">
-              <b>NEED HELP?</b>
-              <strong>Configuration affects all MDRRMO admins.</strong>
-              <p>Review changes before saving.</p>
-              <Button variant="secondary" onClick={() => setGuideOpen(true)}>
-                Open admin guide
-              </Button>
-            </div>
-          </Card>
-        )}
-        <div className="grid gap-3">{tabContent()}</div>
+    {error && <Card><p role="alert" className="m-0 text-[11px] text-priority-red">{error}</p></Card>}
+    {notice && <Card><p role="status" className="m-0 text-[11px] text-status-green">{notice}</p></Card>}
+    {pending && <Card>
+      <SectionHead title={pending.action === "revoke" ? "Sign out this Administrator?" : "Deactivate this Administrator?"} />
+      <p className="text-[11px] leading-relaxed">{pending.user.full_name} will be signed out of all current sessions.{pending.action === "deactivate" ? " This account cannot sign in again until reactivated." : " They can sign in again with their existing credentials."}</p>
+      <div className="flex gap-2">
+        <Button variant="danger" disabled={busy} onClick={() => {
+          if (pending.action === "deactivate") void persist();
+          else void perform((signal) => revokeStaffSessions(pending.user, signal), "Administrator sessions revoked.");
+        }}>{busy ? "Saving…" : pending.action === "deactivate" ? "Confirm deactivation" : "Confirm sign out"}</Button>
+        <Button variant="secondary" disabled={busy} onClick={() => setPending(null)}>Cancel</Button>
       </div>
-
-      {guideOpen && (
-        <div
-          className="fixed inset-0 z-[110] grid place-items-center bg-[#23090f7a] p-5 backdrop-blur"
-          onMouseDown={() => setGuideOpen(false)}
-        >
-          <Card className="w-[min(560px,100%)] p-6">
-            <div onMouseDown={(event) => event.stopPropagation()}>
-              <div className="flex items-start justify-between gap-4 border-b border-border pb-4">
-                <div>
-                  <Badge tone="blue">ADMIN GUIDE</Badge>
-                  <h2 className="mb-0 mt-2 text-lg">
-                    Managing RESPONDA settings
-                  </h2>
-                </div>
-                <button
-                  className="grid size-10 shrink-0 place-items-center rounded-xl border-0 bg-soft-gray text-xl text-maroon"
-                  onClick={() => setGuideOpen(false)}
-                >
-                  ×
-                </button>
-              </div>
-              <div className="my-5 grid gap-4 text-[10px] leading-5">
-                <p>
-                  <b>General:</b> Configure report handling, validation,
-                  dispatch, and data sources.
-                </p>
-                <p>
-                  <b>Notifications:</b> Choose which operational alerts admins
-                  receive.
-                </p>
-                <p>
-                  <b>Users and security:</b> Limit access and protect
-                  administrator sessions.
-                </p>
-                <p>
-                  <b>Saving:</b> The Save Changes button enables only after a
-                  setting changes and all required fields are complete.
-                </p>
-              </div>
-              <div className="flex justify-end">
-                <Button onClick={() => setGuideOpen(false)}>Got it</Button>
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
-    </>
-  );
+    </Card>}
+    {tab === "staff" && <>
+      {editor && <Card>
+        <SectionHead title={editor.user ? "Edit Administrator" : "Create Administrator"} subtitle="Normal Administrators manage reports, incidents, and response teams." />
+        <form onSubmit={(event) => { event.preventDefault(); submit(); }}>
+          <fieldset disabled={busy || pending !== null} className="m-0 grid grid-cols-2 gap-4 border-0 p-0 max-[650px]:grid-cols-1">
+            <label className="grid gap-2 text-[10px] text-muted">Full name<input className={inputClass} required maxLength={150} value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" /></label>
+            <label className="grid gap-2 text-[10px] text-muted">Staff email<input className={inputClass} type="email" required maxLength={255} value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="off" /></label>
+            {!editor.user && <>
+              <label className="grid gap-2 text-[10px] text-muted">Password<input className={inputClass} type="password" required minLength={policy?.password_min_length ?? 8} maxLength={policy?.password_max_length ?? 1024} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" /></label>
+              <label className="grid gap-2 text-[10px] text-muted">Confirm password<input className={inputClass} type="password" required maxLength={policy?.password_max_length ?? 1024} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} autoComplete="new-password" /></label>
+            </>}
+            {editor.user && <label className="flex items-center gap-2 text-[11px]"><input type="checkbox" checked={active} onChange={(event) => setActive(event.target.checked)} />Account active</label>}
+          </fieldset>
+          <p className="text-[10px] leading-relaxed text-muted">{editor.user ? "Changing the email or active status revokes all existing sessions." : `Use at least ${policy?.password_min_length ?? 8} characters. Share credentials directly with the staff member through your approved channel.`}</p>
+          <div className="flex gap-2"><button type="submit" disabled={busy || !changed || pending !== null} className="rounded-[7px] border border-maroon bg-maroon px-4 py-3 text-[11px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45">{busy ? "Saving…" : editor.user ? "Save account" : "Create account"}</button>
+            <Button variant="secondary" disabled={busy} onClick={() => { closeEditor(); setPending(null); setError(""); }}>Cancel edit</Button></div>
+        </form>
+      </Card>}
+      <Card>
+        <form className="flex flex-wrap items-center gap-3" onSubmit={(event) => { event.preventDefault(); setQuery({ ...query, search, page: 1 }); }}>
+          <input aria-label="Search staff accounts" className={`${inputClass} min-w-[200px] flex-1`} placeholder="Search name or email" maxLength={100} value={search} onChange={(event) => setSearch(event.target.value)} />
+          <SelectField label="All account statuses" value={query.active} options={[{ value: "true", label: "Active" }, { value: "false", label: "Inactive" }]} onChange={(value) => setQuery({ ...query, active: value, page: 1 })} />
+          <button type="submit" className="rounded-[7px] border border-border bg-white px-4 py-3 text-[10px]">Search</button>
+          <button type="button" className="rounded-[7px] border border-border bg-white px-4 py-3 text-[10px]" onClick={() => { setSearch(""); setQuery({ page: 1, search: "", active: "" }); }}>Clear</button>
+          <Button variant="secondary" disabled={busy || roster.status === "loading"} onClick={refresh}>Refresh</Button>
+        </form>
+      </Card>
+      <Card>
+        <SectionHead title="Staff accounts" subtitle="Super Admin accounts are protected. Only normal Administrator accounts can be edited here." />
+        {roster.status === "loading" && <p role="status" className="text-[11px] text-muted">Loading staff accounts…</p>}
+        {roster.status === "error" && <div role="alert" className="flex items-center justify-between gap-3 text-[11px] text-priority-red">{roster.error}<Button variant="secondary" onClick={roster.refetch}>Retry</Button></div>}
+        {roster.data && <>
+          {!roster.data.items.length && <p role="status" className="py-8 text-center text-[11px] text-muted">No staff accounts match these filters.</p>}
+          <div className="overflow-x-auto"><table className="w-full min-w-[670px] border-collapse text-left text-[11px]">
+            <thead className="bg-soft-gray text-[9px] text-muted"><tr>{["STAFF MEMBER", "ROLE", "STATUS", "UPDATED", "ACTIONS"].map((label) => <th key={label} className="p-3 font-semibold">{label}</th>)}</tr></thead>
+            <tbody>{roster.data.items.map((user) => <tr key={user.user_id} className="border-b border-border">
+              <td className="p-3"><b className="block">{user.full_name}</b><span className="mt-1 block text-[10px] text-muted">{user.email ?? "Email not recorded"}</span></td>
+              <td className="p-3">{administratorRoleLabel(user.role)}</td><td className="p-3"><Badge tone={user.is_active ? "green" : "amber"}>{user.is_active ? "ACTIVE" : "INACTIVE"}</Badge></td><td className="p-3 text-[10px] text-muted">{stamp(user.updated_at)}</td>
+              <td className="p-3">{user.role === "admin" ? <span className="text-[10px] text-muted">Protected account</span> : <div className="flex flex-wrap gap-2">
+                <Button variant="secondary" disabled={busy} onClick={() => openEditor(user)}>Edit account</Button>
+                <Button variant="secondary" disabled={busy} onClick={() => { closeEditor(); setPending({ action: "revoke", user }); setError(""); setNotice(""); }}>Sign out sessions</Button>
+              </div>}</td>
+            </tr>)}</tbody>
+          </table></div>
+          <nav aria-label="Staff pagination" className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-4 text-[10px]">
+            <span>{roster.data.total ? `Page ${roster.data.page} of ${roster.data.total_pages}` : "No pages"} · {roster.data.total} staff accounts</span>
+            <div className="flex gap-2"><Button variant="secondary" disabled={busy || query.page <= 1} onClick={() => setQuery({ ...query, page: query.page - 1 })}>Previous</Button><Button variant="secondary" disabled={busy || query.page >= roster.data.total_pages} onClick={() => setQuery({ ...query, page: query.page + 1 })}>Next</Button></div>
+          </nav>
+        </>}
+      </Card>
+    </>}
+    {tab === "rules" && <>
+      <Card><SectionHead title="Session and login policy" subtitle="Current server configuration" />
+        {policyError && <div role="alert" className="flex items-center justify-between gap-3 text-[11px] text-priority-red">{policyError}<Button variant="secondary" onClick={() => setPolicyVersion((value) => value + 1)}>Retry policy</Button></div>}
+        {!policy && !policyError && <p role="status" className="text-[11px] text-muted">Loading current policy…</p>}
+        {policy && <dl className="m-0 grid grid-cols-2 gap-4 text-[11px] max-[650px]:grid-cols-1 [&_dt]:text-muted [&_dd]:m-0 [&_dd]:mt-1 [&_dd]:font-semibold">
+          {[["Password minimum", `${policy.password_min_length} characters`], ["Session duration", `${policy.session_ttl_seconds / 3600} hours`], ["Maximum concurrent sessions", String(policy.max_sessions_per_user)], ["Login throttling", `${policy.login_attempts} attempts per ${policy.login_window_seconds} seconds, per IP and email`], ["Secure cookies", policy.secure_cookies ? "Enabled" : "Disabled for local development"], ["Operational timezone", policy.timezone]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+        </dl>}
+      </Card>
+      <Card><SectionHead title="Operational access and records" />
+        <ul className="m-0 grid gap-3 pl-4 text-[11px] leading-relaxed text-muted">
+          <li>Super Admins manage normal Administrator accounts. Both administrator tiers handle reports, validation, incidents, and response teams.</li>
+          <li>Verified reports require staff notes and a final priority. Review checklists are optional.</li>
+          <li>Response teams are assigned to incidents. Administrators record acknowledgment, responding, and completion.</li>
+          <li>Operational records use soft deletion. Audit and processing history are retained. Automated retention deletion is not configured.</li>
+          <li>Mobile OTP, report submission, SMS ingestion, and advisory ML integration are pending implementation.</li>
+        </ul>
+      </Card>
+    </>}
+  </>;
 }

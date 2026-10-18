@@ -43,15 +43,18 @@ export function Button({
   variant = "primary",
   onClick,
   disabled = false,
+  type = "button",
 }: {
   children: ReactNode;
   icon?: IconName;
   variant?: "primary" | "secondary" | "danger";
   onClick?: () => void;
   disabled?: boolean;
+  type?: "button" | "submit" | "reset";
 }) {
   return (
     <button
+      type={type}
       className={`button inline-flex min-h-10 items-center justify-center gap-[7px] whitespace-nowrap rounded-[7px] px-4 text-[11px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${buttonVariantClasses[variant]}`}
       disabled={disabled}
       onClick={onClick}

@@ -20,8 +20,56 @@ VA101 to FastAPI and PostgreSQL; VA101's Next.js code is a reference, not code t
   dashboard access.
 - Record successful and failed login decisions, logouts, and privileged changes in `audit_logs`.
   Never include a password or session token in an audit entry.
+- Staff management is Super Admin-only and creates only normal Administrators. Reject role
+  overrides and extra write fields. All Super Admin accounts are protected from editing,
+  deactivation, and session revocation here, preventing self-lockout and last-admin removal.
+- Staff writes lock and recheck the acting Super Admin/session, then lock and version-check
+  the target. Login locks the same user row to serialize new sessions with management changes.
+  Email or activation changes revoke sessions in the same transaction; explicit revocation
+  also advances the account version. Keep normalized emails reserved across deleted accounts.
+- Hash initial staff passwords with Argon2id. Staff responses and validation errors must never
+  echo passwords, hashes, or tokens. Audit actor/target IDs, operation, and field names only.
+  Staff lists are capped, searchable, no-store, and exclude deleted and citizen accounts.
+- Settings exposes only non-secret current session/login limits. Operational rules are read-only
+  in this release; browser-only switches are not operational configuration.
 
 ## API and data handling
+
+- Citizen login uses `/api/v1/mobile/auth` with Philippine E.164 phone numbers,
+  explicit privacy acknowledgement, random six-digit OTPs valid for five minutes,
+  five guesses per challenge, a sixty-second resend cooldown, and invalidation of
+  earlier codes. Code hashes use HMAC with the server secret and challenge ID.
+  PostgreSQL advisory locks serialize phone registration/resend/verification;
+  challenge rows are locked and consumed atomically with login.
+- OTP send/verify limits also apply per IP and phone in the process-local limiter
+  (five sends / ten verification attempts per ten minutes); a shared limiter is
+  required before multiple API workers. Development codes are returned only when
+  explicitly enabled in a local environment. Staging/production reject that flag;
+  delivery and verification fail closed until a real SMS provider is implemented.
+- Citizen sessions are random opaque `mobile_` bearer tokens stored only as hashes
+  in PostgreSQL and in Flutter secure storage on the device, with a thirty-day
+  expiry and five-session cap. Require active, undeleted, phone-verified reporter
+  accounts for every mobile account operation; staff cookies do not authenticate
+  them. Logout revokes the server session before clearing local state. Account
+  suspension immediately rejects further API access; Flutter rechecks on resume.
+  Cached unexpired identity supports offline UI only and grants no API authority.
+- Mobile account endpoints use no-store responses and safe validation errors
+  that do not echo phone numbers or OTPs. Profile fields are optional, bounded,
+  and barangay values come from the Pantukan list. Audits contain account IDs and
+  action names only, never codes, bearer tokens, or contact/profile values.
+- Dashboard Mobile Accounts reads allow both administrator tiers and include only
+  undeleted, phone-verified reporter accounts with privacy acknowledgement.
+  Exclude manual-intake callers and staff. Mask contacts in all returned account
+  rows; permit exact full-phone lookup and escaped name/barangay or UUID search.
+  Cap pagination and aggregate app-report counts without multiplying session rows.
+  Last sign-in is the latest session creation time, not a claimed live activity time.
+- Only Super Admins may suspend/restore citizens. Recheck and lock the actor and
+  target, verify the current actor session and target version, reject unsupported
+  targets, unchanged state and invalid reasons, then update activation, revoke all
+  sessions and audit the categorical reason atomically. Restoration does not revive
+  old sessions. Mobile authentication locks the user row so OTP/profile/logout and
+  account suspension serialize without locking joined session rows first. No
+  arbitrary personal notes, full phone contacts, or tokens enter management audits.
 
 - Validate and length-limit every request at the API boundary. Paginate collection endpoints and
   cap page sizes.
@@ -49,6 +97,13 @@ VA101 to FastAPI and PostgreSQL; VA101's Next.js code is a reference, not code t
   neutralize spreadsheet formula cells, and include only references, incident type, lifecycle dates,
   priority/status, and operational counts. Audit only the exporting staff ID and row count, never
   search text or raw report content. Date filters use inclusive calendar dates in Asia/Manila.
+- Analytics reads and daily CSV exports require either administrator role and return no-store
+  responses. Bound date ranges to 366 Philippine calendar days, group counts in SQL, and exclude
+  deleted operational rows and incident types. Count reports by received date and distinct
+  incidents by opened date; status and verification breakdowns represent their current state.
+  Dispatch timing uses one earliest qualifying assignment per incident, excluding cancelled or
+  deleted assignments, deleted units, and timestamps before incident opening. Analytics exports
+  contain only dates and numeric aggregates; audit the staff identity and exported day count.
 - Staff response-unit lists must be authenticated, paginated, capped, non-cacheable, and exclude
   soft-deleted units. Roster visibility does not grant assignment or status-transition authority.
 - Only Super Admin and Administrator accounts may create or edit response-unit roster identity

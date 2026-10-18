@@ -693,7 +693,7 @@ export function ResponseTeams({
                 >
                   Cancel
                 </button>
-                <Button disabled={savingUnit}>
+                <Button type="submit" disabled={savingUnit}>
                   {savingUnit
                     ? "Saving…"
                     : editor.mode === "create"

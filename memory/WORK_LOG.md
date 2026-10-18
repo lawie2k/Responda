@@ -7,6 +7,117 @@ updated: 2026-10-19
 
 # Work log
 
+## 2026-10-19 — Save and push account and dashboard integration
+
+- Checkpointed PostgreSQL Analytics, protected staff management, development
+  phone OTP and secure Flutter sessions, real dashboard citizen accounts with
+  Super Admin suspension/restoration, and Historical Records layout refinements.
+- Mobile Accounts panels now fill the remaining desktop viewport with a 20px
+  bottom gutter and bottom-pinned pagination; stacked layouts keep natural
+  height. Synced both source files to WebStorm and verified the live empty
+  roster layout in the browser. Removed mock/retired ID and face files remain
+  recoverable through Git history.
+- Preserved durable security/product decisions and the next major work:
+  authenticated online mobile reports, then signed app-only SMS and advisory ML.
+  Real OTP SMS delivery and a physical-device walkthrough remain pending.
+- Refreshed checks: backend Ruff, strict mypy and 290 tests; web lint and
+  production build; Flutter analysis and all 75 tests; memory validation and
+  diff formatting passed. The existing web bundle-size advisory remains.
+  Graphify is current at 2,963 nodes, 6,020 relationships and 235 communities.
+  Private environment files and generated artifacts are ignored. The user
+  authorized committing and pushing this checkpoint to origin/main.
+
+## 2026-10-19 — Replace Mobile Accounts mock data with PostgreSQL
+
+- Added protected citizen list/status endpoints and connected the dashboard with
+  server search/filters/pagination/counts, masked phones, real sign-in dates and
+  app-report totals, confirmed Super Admin suspension/restoration, and complete
+  loading/error/empty states. Normal Administrators have read access. Manual
+  callers and staff are excluded. No migration needed.
+- Status writes lock/recheck the actor/session and target, reject stale/invalid
+  changes, revoke all sessions and audit categorical reasons atomically. Adjusted
+  mobile joined authentication locking to serialize on users. Removed canonical
+  and WebStorm mock-data modules (recoverable from Git's canonical baseline),
+  fake activity/attention flags and simulated browser-only edits. Synced touched
+  web files; added explicit shared button types and retained roster form submit.
+- Verification: backend Ruff, strict mypy and 290 tests; web lint/build; rolled-
+  back PostgreSQL masked-list/suspend/revoke/restore/fresh-OTP rehearsal and two
+  minimal management audits, with zero temporary users remaining. After the user
+  signed in, browser checks verified the real empty roster, status/search filters,
+  reset, disabled pagination, and zero console errors. Refreshed all Graphify
+  components and validated memory/diff formatting. Real SMS remains pending.
+- No commit or push requested.
+
+## 2026-10-19 — Connect mobile phone accounts using development OTP
+
+- User chose local OTP first, with real SMS provider selection deferred. Added
+  mobile OTP request/verify, session/profile/logout routes, HMAC-protected expiring
+  challenges, attempt/resend/IP/phone limits, PostgreSQL phone serialization,
+  reporter-only revocable sessions, and private action audits. Local development
+  mode is explicitly enabled in private configuration; production rejects it.
+- Applied migration `a19e7215d104` for optional barangay and privacy acknowledgement;
+  Alembic reports no model/schema drift. Flutter now uses the backend, secure
+  token storage, optional profile/recovery, resume checks, and real sign-out.
+  Legacy local profiles must reverify; removed unused ID/face files and prototype
+  code notice (recoverable from Git). Added native storage entitlements/backup
+  configuration and focused account regression tests.
+- Verification: backend Ruff, strict mypy, 256 tests; Flutter analysis, 75 tests;
+  iOS debug simulator build; running API health/routes; rolled-back PostgreSQL
+  signup/replay/profile/suspension/recovery/logout rehearsal with four private
+  audits and no temporary account remaining. Refreshed all Graphify components.
+- Real SMS delivery, physical-device walkthrough, web citizen management, and
+  authenticated report submission remain pending. No commit or push requested.
+
+## 2026-10-19 — Persist Ponytail working guidance
+
+- Reviewed Ponytail's compact rules, skill, and installation instructions at
+  upstream revision `09c434ab73ca43761c5d8b0c5d341926c2fba710` and official
+  Codex instruction discovery guidance. Added a concise rules-file adaptation
+  to the global local Codex profile and preserved its MIT license separately.
+- Updated canonical and coordination Responda instructions plus shared memory.
+  Guidance applies by default in new local Codex chats; no plugin executable,
+  lifecycle hook, or command suite was installed. Existing model confirmation
+  remains required. Application source was unchanged.
+- Verification: global guidance and attribution files were read back; project
+  memory validation and diff formatting checks passed. Future unrelated sessions
+  load the rules at startup; this does not change other apps or chat services.
+
+## 2026-10-19 — Implement Super Admin staff management and current rules
+
+- Added Super Admin-only staff list/create/edit/revoke/policy APIs and real
+  Settings UI. Only normal Administrators can be managed; Super Admin accounts
+  stay protected. Added actor/session rechecks, user locking shared with login,
+  stale-edit checks, normalized reserved emails, Argon2id passwords, atomic
+  session revocation, safe validation errors, and minimal audits.
+- Replaced settings simulations with real roster controls and read-only rules.
+  Synced WebStorm and updated shared policy/planning notes. No migration needed.
+- Verification: Ruff, strict mypy, all 233 tests, and web lint/build passed.
+  A rolled-back PostgreSQL rehearsal verified create/login/deactivate/reactivate/
+  revoke, rejected revoked sessions, and four management audits, then confirmed
+  no temporary staff remained. Browser roster/create-guard/policy checks passed
+  with no console errors. Password recovery and editable organization/notification/
+  retention policies remain future choices. Changes remain local and unpushed.
+- Refreshed Graphify to 2,777 nodes, 5,615 relationships, and 227 communities;
+  project-memory and diff checks passed.
+
+## 2026-10-19 — Connect Analytics to PostgreSQL
+
+- Added protected analytics summary, type options, and daily aggregate CSV
+  endpoints for both administrator tiers. Queries use Philippine date buckets,
+  bounded ranges, SQL grouping, deleted-row exclusions, and explicit report
+  versus incident cohorts. No migration was needed.
+- Replaced the generated web samples with live totals, daily counts, type/source/
+  priority/status breakdowns, average first-assignment timing, presets/custom
+  filters, refresh, empty/retry states, and audited CSV download. Updated the
+  WebStorm mirror, security policy, durable decisions, and next priorities.
+- Verification: Ruff, strict mypy, and all 187 backend tests passed; web lint
+  and production build passed (existing bundle-size advisory). Authenticated
+  PostgreSQL browser checks covered live totals, type/date filters, empty
+  results, daily tables, reset, and an actual aggregate CSV with matching
+  totals. No browser console errors. Changes remain local and unpushed.
+- Refreshed the combined graph (2,697 nodes, 5,313 relationships, 223
+  communities); project-memory and diff checks passed.
+
 ## 2026-10-19 — Save the operations-map and historical-records milestone
 
 - Checkpointed the live Incident Map, protected Historical Records API/web
@@ -588,3 +699,40 @@ conversation.
   community notes plus the interactive HTML graph.
 - Verification: `scripts/check-project-memory.sh` passed, shell syntax checks
   passed, and the combined Graphify graph loaded and clustered successfully.
+## 2026-10-19 — Match Historical Records panel heights
+
+- Updated `web/src/pages/HistoricalRecords.tsx` so the completed-records and
+  selected-incident detail cards stretch to the same desktop grid height.
+- Kept the mobile single-column layout unchanged and synced the edited page to
+  the WebStorm mirror.
+- Verification: web lint and production build passed; Graphify web refresh and
+  `git diff --check` passed. The existing Vite bundle-size advisory remains.
+## 2026-10-19 — Pin Historical Records pagination
+
+- Made the completed-records card a full-height flex column and pinned its
+  incidents pagination to the lower edge of the card.
+- Synced the edited page to the WebStorm mirror.
+- Verification: web lint and production build passed; Graphify web refresh and
+  `git diff --check` passed. The existing Vite bundle-size advisory remains.
+## 2026-10-19 — Move Historical Records summary cards
+
+- Moved the matching, resolved, and closed incident summary cards above the
+  search/filter controls in `web/src/pages/HistoricalRecords.tsx`.
+- Synced the edited page to the WebStorm mirror.
+- Verification: web lint and production build passed; Graphify web refresh and
+  `git diff --check` passed. The existing Vite bundle-size advisory remains.
+## 2026-10-19 — Clarify per-action model recommendations
+
+- Updated the canonical and coordination `AGENTS.md` rules to require a fresh
+  token-efficient model/reasoning recommendation before every user-requested
+  action, including follow-ups, followed by confirmation.
+- Updated the durable decisions note and verified project memory plus diff
+  formatting.
+## 2026-10-19 — Guard empty Historical Records filters
+
+- Disabled the Historical Records “Apply filters” button while all filter
+  inputs are empty, with a visible disabled state; it enables for entered
+  search, filter, date, or sort values.
+- Synced the edited page to the WebStorm mirror.
+- Verification: web lint and production build passed; Graphify web refresh and
+  `git diff --check` passed. The existing Vite bundle-size advisory remains.

@@ -1,436 +1,182 @@
-import { useMemo, useState } from "react";
-import {
-  Badge,
-  Button,
-  Card,
-  Metric,
-  PageTitle,
-  SectionHead,
-  SelectField,
-} from "../components/ui";
+import { useEffect, useRef, useState } from "react";
+import { exportAnalytics, getAnalyticsTypes, type AnalyticsCount, type AnalyticsFilters } from "../api/adminAnalytics";
+import type { AdminIncidentType } from "../api/respondaApi";
+import { Button, Card, Metric, PageTitle, SectionHead, SelectField } from "../components/ui";
+import { useAdminAnalytics } from "../hooks/useAdminAnalytics";
 import type { Page } from "../types";
 
-const colorClasses: Record<string, string> = {
-  green: "bg-status-green",
-  blue: "bg-status-blue",
-  maroon: "bg-maroon",
-};
-
-const incidentTypes = [
-  "Road Accident",
-  "Flash Flood",
-  "Medical",
-  "Fire",
-  "Landslide",
-  "Fallen Tree",
-];
-const sampleLocations = [
-  "Kingking Highway",
-  "Magnaga Riverside",
-  "Matiao Public Market",
-  "Bongabong Slope",
-  "Pantukan Highway",
-];
-const ranges = ["August 2026", "July 2026", "Last 7 days"];
-
-type AnalyticsRecord = {
-  day: number;
-  incident: string;
-  location: string;
-  reports: number;
-  validated: number;
-  critical: number;
-  response: number;
-};
-
-function makeRecords(range: string): AnalyticsRecord[] {
-  const days = range === "Last 7 days" ? 7 : 31;
-  const offset = range === "July 2026" ? 3 : range === "Last 7 days" ? 5 : 0;
-
-  return Array.from({ length: days }, (_, index) => {
-    const day = index + 1;
-    const reports = 5 + ((day * 7 + offset) % 9);
-    const validationRate = 0.68 + ((day + offset) % 5) * 0.035;
-    return {
-      day,
-      incident: incidentTypes[(index + offset) % incidentTypes.length],
-      location: sampleLocations[(index * 2 + offset) % sampleLocations.length],
-      reports,
-      validated: Math.min(reports, Math.round(reports * validationRate)),
-      critical: (day + offset) % 4 === 0 ? 2 : (day + offset) % 3 === 0 ? 1 : 0,
-      response: 7.1 + ((day * 3 + offset) % 8) * 0.42,
-    };
-  });
+function preset(days: number): AnalyticsFilters {
+  const parts = new Intl.DateTimeFormat("en", {
+    timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(new Date());
+  const part = (name: string) => parts.find((value) => value.type === name)?.value;
+  const end = `${part("year")}-${part("month")}-${part("day")}`;
+  const start = new Date(`${end}T00:00:00Z`);
+  start.setUTCDate(start.getUTCDate() - days + 1);
+  return { dateFrom: start.toISOString().slice(0, 10), dateTo: end };
 }
 
-const sum = (values: number[]) =>
-  values.reduce((total, value) => total + value, 0);
+const dateLabel = (value: string) => new Intl.DateTimeFormat("en-PH", {
+  timeZone: "Asia/Manila", month: "short", day: "numeric", year: "numeric",
+}).format(new Date(`${value}T00:00:00+08:00`));
+
+function Breakdown({ title, subtitle, rows, total }: {
+  title: string; subtitle: string; rows: AnalyticsCount[]; total: number;
+}) {
+  return <Card>
+    <SectionHead title={title} subtitle={subtitle} />
+    <div className="grid gap-4">
+      {rows.map((row) => <div key={row.key}>
+        <div className="mb-2 flex justify-between gap-3 text-[10px]">
+          <span>{row.label}</span><b>{row.count} <span className="font-normal text-muted">· {total ? Math.round(row.count / total * 100) : 0}%</span></b>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded bg-soft-gray">
+          <div className="h-full rounded bg-maroon" style={{ width: `${total ? row.count / total * 100 : 0}%` }} />
+        </div>
+      </div>)}
+    </div>
+    {!total && <p className="mb-0 mt-4 text-[10px] text-muted">No matching records in this period.</p>}
+  </Card>;
+}
 
 export function Analytics({ go }: { go?: (page: Page) => void }) {
-  const [range, setRange] = useState("August 2026");
-  const [incident, setIncident] = useState("");
+  const [draft, setDraft] = useState<AnalyticsFilters>(() => preset(30));
+  const [filters, setFilters] = useState(draft);
+  const [types, setTypes] = useState<AdminIncidentType[]>([]);
+  const [typeError, setTypeError] = useState(false);
+  const [typeVersion, setTypeVersion] = useState(0);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [exported, setExported] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const exportController = useRef<AbortController | null>(null);
+  const analytics = useAdminAnalytics(filters);
+  const data = analytics.data;
 
-  const filtered = useMemo(
-    () =>
-      makeRecords(range).filter(
-        (record) => !incident || record.incident === incident,
-      ),
-    [range, incident],
-  );
+  useEffect(() => {
+    const controller = new AbortController();
+    getAnalyticsTypes(controller.signal)
+      .then((items) => { if (!controller.signal.aborted) { setTypes(items); setTypeError(false); } })
+      .catch(() => { if (!controller.signal.aborted) setTypeError(true); });
+    return () => controller.abort();
+  }, [typeVersion]);
+  useEffect(() => () => exportController.current?.abort(), []);
 
-  const totalReports = sum(filtered.map((record) => record.reports));
-  const validated = sum(filtered.map((record) => record.validated));
-  const critical = sum(filtered.map((record) => record.critical));
-  const validationRate = totalReports
-    ? Math.round((validated / totalReports) * 100)
-    : 0;
-  const medianResponse = filtered.length
-    ? filtered.reduce((total, record) => total + record.response, 0) /
-      filtered.length
-    : 0;
-  const maxReports = Math.max(1, ...filtered.map((record) => record.reports));
-
-  const incidentMix = incidentTypes
-    .map((name) => ({
-      name,
-      count: sum(
-        filtered
-          .filter((record) => record.incident === name)
-          .map((record) => record.validated),
-      ),
-    }))
-    .filter((item) => item.count > 0)
-    .sort((a, b) => b.count - a.count);
-  const topMix = incidentMix.slice(0, 3);
-  const otherMix = sum(incidentMix.slice(3).map((item) => item.count));
-  const mixItems = [
-    ...topMix,
-    ...(otherMix ? [{ name: "Other", count: otherMix }] : []),
-  ];
-  const mixColors = ["#d92d20", "#2563a8", "#1f8a4c", "#d5d5d9"];
-  let mixCursor = 0;
-  const mixGradient = mixItems.length
-    ? `conic-gradient(${mixItems
-        .map((item, index) => {
-          const start = mixCursor;
-          mixCursor += validated ? (item.count / validated) * 100 : 0;
-          return `${mixColors[index]} ${start}% ${mixCursor}%`;
-        })
-        .join(",")})`
-    : "#ececef";
-
-  const exportReport = () => {
-    const rows = [
-      [
-        "Day",
-        "Incident type",
-        "Location",
-        "Reports",
-        "Validated",
-        "Critical",
-        "Response minutes",
-      ],
-      ...filtered.map((record) => [
-        record.day,
-        record.incident,
-        record.location,
-        record.reports,
-        record.validated,
-        record.critical,
-        record.response.toFixed(1),
-      ]),
-    ];
-    const csv = rows
-      .map((row) => row.map((cell) => `"${cell}"`).join(","))
-      .join("\n");
-    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `responda-analytics-${range.toLowerCase().replaceAll(" ", "-")}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-    setExported(true);
+  const apply = () => {
+    const span = Date.parse(draft.dateTo) - Date.parse(draft.dateFrom);
+    if (!Number.isFinite(span) || span < 0 || span / 86400000 >= 366) {
+      setError("Choose a start date on or before the end date, within a 366-day range.");
+      return;
+    }
+    setError(""); setNotice(""); setFilters({ ...draft });
   };
+  const download = async () => {
+    if (exportController.current && !exportController.current.signal.aborted) return;
+    const controller = new AbortController();
+    exportController.current = controller;
+    setExporting(true); setError(""); setNotice("");
+    try {
+      const blob = await exportAnalytics(filters, controller.signal);
+      if (controller.signal.aborted) return;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url; link.download = "responda-analytics.csv";
+      document.body.appendChild(link); link.click(); link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setNotice("Daily aggregate CSV downloaded using the applied filters.");
+    } catch (caught) {
+      if (!controller.signal.aborted) setError(caught instanceof Error ? caught.message : "The export could not be created.");
+    } finally {
+      if (!controller.signal.aborted) { setExporting(false); exportController.current = null; }
+    }
+  };
+  const refresh = () => { analytics.refetch(); setTypeVersion((value) => value + 1); };
+  const max = Math.max(1, ...(data?.daily.map((day) => day.reports) ?? []));
+  const summary = data?.summary;
+  const verifiedRate = summary?.reports ? Math.round(summary.verified_reports / summary.reports * 100) : 0;
+  const canApply = JSON.stringify(draft) !== JSON.stringify(filters) && Boolean(draft.dateFrom && draft.dateTo);
 
-  return (
-    <>
-      <PageTitle
-        title="Analytics"
-        subtitle="Measure patterns and improve MDRRMO response planning."
-        action="Export report"
-        onAction={exportReport}
-      />
-      <Card className="flex min-h-14 items-center gap-2 overflow-x-auto px-[10px] py-2">
-        <SelectField
-          label="Date range"
-          value={range}
-          options={ranges}
-          onChange={setRange}
-        />
-        <SelectField
-          label="All incident types"
-          value={incident}
-          options={incidentTypes}
-          onChange={setIncident}
-        />
-        {incident && (
-          <Button variant="secondary" onClick={() => setIncident("")}>
-            Clear filters
-          </Button>
-        )}
-        <i className="flex-1 max-[650px]:hidden" />
-        <Badge tone={exported ? "blue" : "green"}>
-          {exported ? "REPORT EXPORTED" : "DATA UPDATED"}
-        </Badge>
-      </Card>
-
-      <div className="grid grid-cols-4 gap-4 max-[1180px]:grid-cols-2 max-[650px]:grid-cols-1">
-        <Metric
-          icon="reports"
-          title="Total reports"
-          value={String(totalReports)}
-          sub={`${filtered.length} reporting days`}
-          tone="maroon"
-        />
-        <Metric
-          icon="check"
-          title="Validated incidents"
-          value={String(validated)}
-          sub={`${validationRate}% validation rate`}
-          tone="green"
-        />
-        <Metric
-          icon="clock"
-          title="Median response"
-          value={`${medianResponse.toFixed(1)}m`}
-          sub="Across matching incidents"
-          tone="blue"
-        />
-        <Metric
-          icon="alert"
-          title="Critical incidents"
-          value={String(critical)}
-          sub={`${totalReports ? ((critical / totalReports) * 100).toFixed(1) : 0}% of reports`}
-          tone="red"
-        />
-      </div>
-
-      <div className="grid grid-cols-[minmax(0,1.8fr)_minmax(310px,1fr)] gap-4 max-[1180px]:grid-cols-1 max-[650px]:flex max-[650px]:flex-col">
-        <Card>
-          <SectionHead
-            title="Incident volume"
-            subtitle="Daily reports compared with validated incidents"
-            action="View details"
-            onAction={() => setDetailsOpen(true)}
-          />
-          <div className="my-2 flex gap-[18px] text-[9px] text-muted [&_span]:flex [&_span]:items-center [&_span]:gap-1 [&_i]:inline-block [&_i]:size-1.5 [&_i]:rounded-full">
-            <span>
-              <i className="bg-maroon" />
-              All reports
-            </span>
-            <span>
-              <i className="bg-status-green" />
-              Validated
-            </span>
-          </div>
-          <div className="flex h-[190px] items-end gap-[5px] overflow-hidden border-b border-border px-2 py-[10px] [background:repeating-linear-gradient(to_bottom,transparent_0,transparent_46px,#f0f0f1_47px)] [&>div]:flex [&>div]:h-full [&>div]:min-w-1 [&>div]:flex-1 [&>div]:items-end [&>div]:gap-px [&_i]:w-1/2 [&_i]:rounded-t [&_i]:bg-maroon [&_em]:w-1/2 [&_em]:rounded-t [&_em]:bg-status-green [&_em]:opacity-65">
-            {filtered.map((record) => (
-              <div
-                key={`${record.day}-${record.incident}`}
-                title={`Day ${record.day}: ${record.reports} reports, ${record.validated} validated`}
-              >
-                <i
-                  style={{ height: `${(record.reports / maxReports) * 100}%` }}
-                />
-                <em
-                  style={{
-                    height: `${(record.validated / maxReports) * 100}%`,
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-          <div className="mt-[7px] flex justify-between text-[8px] text-muted">
-            <span>Day 1</span>
-            <span>Day {Math.max(1, Math.ceil(filtered.length / 2))}</span>
-            <span>Day {filtered.length || 1}</span>
-          </div>
-          {!filtered.length && (
-            <p className="py-6 text-center text-[10px] text-muted">
-              No data matches these filters.
-            </p>
-          )}
-        </Card>
-
-        <Card>
-          <SectionHead
-            title="Incident mix"
-            subtitle="Share of validated incidents"
-          />
-          <div className="grid grid-cols-[125px_1fr] items-center gap-4 [&>div:last-child_p]:grid [&>div:last-child_p]:grid-cols-[7px_1fr_auto] [&>div:last-child_p]:gap-[7px] [&>div:last-child_p]:text-[9px] [&_i]:inline-block [&_i]:size-1.5 [&_i]:rounded-full">
-            <div
-              className="relative grid size-[116px] place-items-center rounded-full before:absolute before:size-[72px] before:rounded-full before:bg-white [&>span]:relative [&>span]:text-center [&>span]:text-[7px] [&>span]:text-muted [&_b]:block [&_b]:text-lg [&_b]:text-[#1c1c1e]"
-              style={{ background: mixGradient }}
-            >
-              <span>
-                <b>{validationRate}%</b>VALIDATED
-              </span>
-            </div>
-            <div>
-              {mixItems.map((item, index) => (
-                <p key={item.name}>
-                  <i style={{ backgroundColor: mixColors[index] }} />
-                  <span>{item.name}</span>
-                  <b>
-                    {validated ? Math.round((item.count / validated) * 100) : 0}
-                    %
-                  </b>
-                </p>
-              ))}
-              {!mixItems.length && (
-                <p className="text-muted">No matching data</p>
-              )}
-            </div>
-          </div>
-          <div className="rounded-[13px] bg-blush p-[10px] [&>b]:text-[8px] [&>b]:text-maroon [&_p]:text-[10px] [&_p]:leading-[1.5]">
-            <b>OPERATIONAL INSIGHT</b>
-            <p>
-              {topMix[0]
-                ? `${topMix[0].name} is the most common validated incident for the selected filters.`
-                : "Select a wider filter range to generate an operational insight."}
-            </p>
-          </div>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 max-[1180px]:grid-cols-1 max-[650px]:flex max-[650px]:flex-col">
-        <Card>
-          <SectionHead
-            title="Response performance"
-            subtitle="Target completion by response stage"
-          />
-          {[
-            [
-              "Validation within 5 min",
-              Math.min(100, validationRate + 7),
-              "Target 85%",
-              "maroon",
-            ],
-            [
-              "Dispatch within 10 min",
-              Math.max(0, Math.min(100, Math.round(95 - medianResponse * 2))),
-              "Target 80%",
-              "blue",
-            ],
-            [
-              "On scene within 20 min",
-              Math.max(0, Math.min(100, Math.round(90 - medianResponse * 2))),
-              "Target 75%",
-              "green",
-            ],
-          ].map((item) => (
-            <div
-              className="grid h-[38px] grid-cols-[190px_1fr_38px] items-center gap-[10px] max-[650px]:grid-cols-[140px_1fr_35px] [&_span]:grid [&_b]:text-[9px] [&_small]:text-[8px] [&_small]:text-muted"
-              key={String(item[0])}
-            >
-              <span>
-                <b>{item[0]}</b>
-                <small>{item[2]}</small>
-              </span>
-              <div className="h-[7px] overflow-hidden rounded-[10px] bg-soft-gray [&_i]:block [&_i]:h-full [&_i]:rounded-[10px]">
-                <i
-                  className={colorClasses[String(item[3])]}
-                  style={{ width: `${item[1]}%` }}
-                />
-              </div>
-              <strong>{item[1]}%</strong>
-            </div>
-          ))}
-        </Card>
-        <Card>
-          <SectionHead
-            title="Operational summary"
-            subtitle="Current performance for the selected period"
-            action="Open map"
-            onAction={() => go?.("Incident Map")}
-          />
-          {[
-            ["Critical reports", critical],
-            ["Other priority reports", Math.max(0, totalReports - critical)],
-            ["Validated reports", validated],
-            [
-              "Average daily volume",
-              filtered.length ? Math.round(totalReports / filtered.length) : 0,
-            ],
-          ].map(([label, value], index) => (
-            <div
-              className="grid h-[31px] grid-cols-[28px_1fr_90px] items-center text-[9px] [&>b]:grid [&>b]:size-[23px] [&>b]:place-items-center [&>b]:rounded-lg [&>b]:bg-soft-gray [&>b]:text-maroon [&_span]:text-right [&_span]:text-muted"
-              key={String(label)}
-            >
-              <b>{index + 1}</b>
-              <strong>{label}</strong>
-              <span>{value}</span>
-            </div>
-          ))}
-        </Card>
-      </div>
-
-      {detailsOpen && (
-        <div
-          className="fixed inset-0 z-[110] grid place-items-center bg-[#23090f7a] p-5 backdrop-blur"
-          onMouseDown={() => setDetailsOpen(false)}
-        >
-          <Card className="max-h-[calc(100vh-40px)] w-[min(720px,100%)] overflow-auto p-6">
-            <div onMouseDown={(event) => event.stopPropagation()}>
-              <div className="flex items-start justify-between gap-4 border-b border-border pb-4">
-                <div>
-                  <h2 className="m-0 text-lg">Incident volume details</h2>
-                  <p className="mt-1 text-[10px] text-muted">
-                    {range} • {totalReports} matching reports
-                  </p>
-                </div>
-                <button
-                  className="grid size-10 shrink-0 place-items-center rounded-xl border-0 bg-soft-gray text-xl text-maroon"
-                  onClick={() => setDetailsOpen(false)}
-                >
-                  ×
-                </button>
-              </div>
-              <div className="mt-4 min-w-[520px]">
-                <div className="grid grid-cols-[55px_1fr_1.2fr_70px_70px] gap-3 rounded-lg bg-soft-gray px-3 py-2 text-[8px] font-bold text-muted">
-                  <span>DAY</span>
-                  <span>INCIDENT</span>
-                  <span>LOCATION</span>
-                  <span>REPORTS</span>
-                  <span>VALIDATED</span>
-                </div>
-                {filtered.map((record) => (
-                  <div
-                    className="grid grid-cols-[55px_1fr_1.2fr_70px_70px] gap-3 border-b border-border px-3 py-3 text-[9px]"
-                    key={`detail-${record.day}`}
-                  >
-                    <span>{record.day}</span>
-                    <b>{record.incident}</b>
-                    <span>{record.location}</span>
-                    <span>{record.reports}</span>
-                    <span>{record.validated}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-5 flex justify-end">
-                <Button
-                  variant="secondary"
-                  onClick={() => setDetailsOpen(false)}
-                >
-                  Close
-                </Button>
-              </div>
-            </div>
-          </Card>
+  return <>
+    <PageTitle title="Analytics" subtitle="Review reporting patterns and recorded response activity."
+      action={exporting ? "Exporting…" : "Export daily CSV"} onAction={() => void download()}
+      actionDisabled={exporting || !data || (!data.summary.reports && !data.summary.incidents)} />
+    <Card>
+      <form className="flex flex-wrap items-end gap-3" onSubmit={(event) => { event.preventDefault(); apply(); }}>
+        <div className="flex gap-2">
+          {[7, 30, 90].map((days) => <button type="button" key={days}
+            className="h-[38px] rounded-[7px] border border-border bg-white px-3 text-[10px] hover:border-maroon"
+            onClick={() => { const dates = { ...preset(days), incidentTypeId: draft.incidentTypeId }; setDraft(dates); setFilters(dates); setError(""); setNotice(""); }}
+          >Last {days} days</button>)}
         </div>
-      )}
-    </>
-  );
+        {(["dateFrom", "dateTo"] as const).map((key) => <label key={key} className="grid gap-2 text-[9px] text-muted">
+          {key === "dateFrom" ? "From" : "To"}
+          <input type="date" required min="1900-01-01" max="9999-12-30" value={draft[key]}
+            className="h-[38px] rounded-[7px] border border-border bg-white px-3 text-[10px] outline-maroon"
+            onChange={(event) => setDraft({ ...draft, [key]: event.target.value })} />
+        </label>)}
+        <SelectField label="All incident types" value={draft.incidentTypeId ?? ""}
+          options={types.map((kind) => ({ value: kind.incident_type_id, label: kind.name }))}
+          onChange={(incidentTypeId) => setDraft({ ...draft, incidentTypeId })} />
+        <button type="submit" disabled={!canApply}
+          className="h-[38px] rounded-[7px] border border-maroon bg-maroon px-4 text-[10px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45">Apply filters</button>
+        <button type="button" className="h-[38px] rounded-[7px] border border-border bg-white px-3 text-[10px]" onClick={() => { const dates = preset(30); setDraft(dates); setFilters(dates); setError(""); setNotice(""); }}>Reset</button>
+        <i className="flex-1" />
+        <button type="button" disabled={analytics.status === "loading"} onClick={refresh}
+          className="h-[38px] rounded-[7px] border border-border bg-white px-3 text-[10px] disabled:opacity-45">Refresh</button>
+      </form>
+      <p className="mb-0 mt-3 text-[9px] leading-relaxed text-muted">Reports use their received date; incidents use their opened date. Verification and incident status reflect their current state. All dates use Philippine time. Maximum range: 366 days.</p>
+      {typeError && <div role="alert" className="mt-3 flex items-center justify-between gap-3 text-[10px] text-priority-red">Incident-type options could not be loaded.<Button variant="secondary" onClick={() => setTypeVersion((value) => value + 1)}>Retry types</Button></div>}
+    </Card>
+    {error && <p role="alert" className="text-[11px] text-priority-red">{error}</p>}
+    {notice && <p role="status" className="text-[11px] text-status-green">{notice}</p>}
+    {analytics.status === "loading" && <Card><p role="status" className="py-10 text-center text-[11px] text-muted">Loading analytics…</p></Card>}
+    {analytics.status === "error" && <Card><div role="alert" className="flex items-center justify-between gap-3 text-[11px] text-priority-red">{analytics.error}<Button variant="secondary" onClick={refresh}>Retry</Button></div></Card>}
+    {data && summary && <>
+      <p className="m-0 text-[9px] text-muted">{dateLabel(data.date_from)} – {dateLabel(data.date_to)} · Updated {new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", dateStyle: "medium", timeStyle: "short" }).format(new Date(data.generated_at))}</p>
+      {!summary.reports && !summary.incidents && <Card><p role="status" className="m-0 text-[11px] text-muted">No reports or incidents match these filters. Try a wider date range or another incident type.</p></Card>}
+      <div className="grid grid-cols-4 gap-4 max-[1180px]:grid-cols-2 max-[650px]:grid-cols-1">
+        <Metric icon="reports" title="Reports received" value={String(summary.reports)} sub={`${data.daily.length} calendar days`} tone="maroon" />
+        <Metric icon="check" title="Verified reports" value={String(summary.verified_reports)} sub={`${verifiedRate}% of matching reports`} tone="green" />
+        <Metric icon="alert" title="Incidents opened" value={String(summary.incidents)} sub={`${summary.critical_incidents} critical · ${summary.completed_incidents} resolved or closed`} tone="maroon" />
+        <Metric icon="clock" title="Average dispatch time" value={summary.average_dispatch_minutes === null ? "—" : `${summary.average_dispatch_minutes.toFixed(1)}m`}
+          sub={summary.dispatch_samples ? `${summary.dispatch_samples} incidents with a team assignment` : "No qualifying team assignments"} tone="blue" />
+      </div>
+      <div className="grid grid-cols-[minmax(0,1.8fr)_minmax(300px,1fr)] gap-4 max-[1180px]:grid-cols-1">
+        <Card>
+          <SectionHead title="Daily reporting volume" subtitle="Reports received and their current verification state"
+            action={detailsOpen ? "Hide daily counts" : "View daily counts"} onAction={() => setDetailsOpen((value) => !value)} />
+          <div className="mb-4 flex gap-4 text-[9px] text-muted"><span>Maroon · All reports</span><span>Gray · Verified reports</span></div>
+          <div className="flex h-[200px] items-end gap-[3px] border-b border-border py-2" role="img" aria-label={`Daily volume: ${summary.reports} reports, ${summary.verified_reports} verified. Use View daily counts for the accessible table.`}>
+            {data.daily.map((day) => <div key={day.date} className="flex h-full min-w-0 flex-1 items-end gap-px"
+              title={`${dateLabel(day.date)}: ${day.reports} reports, ${day.verified_reports} verified, ${day.incidents} incidents`}>
+              <i className="min-w-0 flex-1 rounded-t bg-maroon" style={{ height: `${day.reports / max * 100}%` }} />
+              <i className="min-w-0 flex-1 rounded-t bg-[#99908e]" style={{ height: `${day.verified_reports / max * 100}%` }} />
+            </div>)}
+          </div>
+          <div className="mt-2 flex justify-between text-[9px] text-muted"><span>{dateLabel(data.date_from)}</span><span>{dateLabel(data.date_to)}</span></div>
+          {detailsOpen && <div className="mt-5 max-h-[360px] overflow-auto"><table className="w-full border-collapse text-left text-[10px]">
+            <caption className="pb-3 text-left font-semibold">Daily counts · Philippine calendar dates</caption>
+            <thead className="bg-soft-gray"><tr>{["Date", "Reports", "Verified", "Incidents opened"].map((label) => <th key={label} className="p-2 font-semibold">{label}</th>)}</tr></thead>
+            <tbody>{data.daily.map((day) => <tr key={day.date} className="border-b border-border"><td className="p-2">{dateLabel(day.date)}</td><td className="p-2">{day.reports}</td><td className="p-2">{day.verified_reports}</td><td className="p-2">{day.incidents}</td></tr>)}</tbody>
+          </table></div>}
+        </Card>
+        <Card>
+          <SectionHead title="Incident types" subtitle="Distinct incidents opened and reports received" />
+          <table className="w-full border-collapse text-left text-[10px]"><thead><tr className="border-b border-border text-[9px] text-muted"><th className="py-2">Type</th><th className="p-2 text-right">Reports</th><th className="py-2 text-right">Incidents</th></tr></thead>
+            <tbody>{data.incident_types.map((kind) => <tr key={kind.incident_type_id} className="border-b border-border"><td className="py-3">{kind.name}</td><td className="p-2 text-right">{kind.reports}</td><td className="py-3 text-right font-semibold">{kind.incidents}</td></tr>)}</tbody>
+          </table>
+          {!data.incident_types.length && <p className="text-[10px] text-muted">No matching incident types.</p>}
+          <p className="mb-0 mt-4 text-[9px] leading-relaxed text-muted">Several reports can belong to one incident, so report and incident totals can differ.</p>
+        </Card>
+      </div>
+      <div className="grid grid-cols-3 gap-4 max-[1180px]:grid-cols-1">
+        <Breakdown title="Report sources" subtitle="Share of reports received" rows={data.sources} total={summary.reports} />
+        <Breakdown title="Incident priorities" subtitle="Current priority of incidents opened in this period" rows={data.priorities} total={summary.incidents} />
+        <Breakdown title="Incident statuses" subtitle="Current state of incidents opened in this period" rows={data.statuses} total={summary.incidents} />
+      </div>
+      <Card><SectionHead title="About dispatch timing" /><p className="mb-4 text-[10px] leading-relaxed text-muted">Average dispatch time measures incident opening to its first qualifying team assignment. Cancelled and deleted assignments or units, and assignments dated before incident opening, are excluded. An em dash means no timing samples are available.</p>
+        {go && <Button variant="secondary" onClick={() => go("Historical Records")}>Open Historical Records</Button>}
+      </Card>
+    </>}
+  </>;
 }

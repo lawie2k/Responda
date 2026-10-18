@@ -49,6 +49,8 @@ class User(SoftDeleteMixin, Base):
     role: Mapped[str] = mapped_column(String(20), nullable=False, server_default=text("'reporter'"))
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
     phone_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    barangay: Mapped[str | None] = mapped_column(String(100))
+    privacy_notice_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = created_at_column()
     updated_at: Mapped[datetime] = created_at_column()
 

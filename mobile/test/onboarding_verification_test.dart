@@ -11,6 +11,8 @@ import 'package:responda/features/onboarding/presentation/screens/verification/p
 import 'package:responda/screens/online/account_management_screen.dart';
 import 'package:responda/screens/online/settings_screen.dart';
 
+import 'support/mobile_account_fakes.dart';
+
 void main() {
   Future<void> setPhoneSize(WidgetTester tester) async {
     tester.view.devicePixelRatio = 1;
@@ -25,9 +27,17 @@ void main() {
     'account profile persists phone verification and optional details',
     () async {
       final store = _MemoryAccountStore();
-      final controller = AccountController(store: store);
+      final api = FakeMobileAccountApi();
+      final tokens = MemoryTokenStore();
+      final controller = AccountController(
+        store: store,
+        api: api,
+        tokenStore: tokens,
+      );
       await controller.load();
       expect(controller.hasAccount, isFalse);
+      await controller.sendCode('+639171234567');
+      await controller.verifyCode('+639171234567', '123456');
 
       await controller.completePhoneVerification(
         phoneNumber: '+639171234567',
@@ -37,7 +47,11 @@ void main() {
       );
       expect(controller.profile?.status, AccountVerificationStatus.verified);
 
-      final restarted = AccountController(store: store);
+      final restarted = AccountController(
+        store: store,
+        api: api,
+        tokenStore: tokens,
+      );
       await restarted.load();
       expect(restarted.profile?.phoneNumber, '+639171234567');
       expect(restarted.profile?.fullName, 'Juan Dela Cruz');
@@ -50,7 +64,11 @@ void main() {
     tester,
   ) async {
     await setPhoneSize(tester);
-    final controller = AccountController(store: _MemoryAccountStore());
+    final controller = AccountController(
+      store: _MemoryAccountStore(),
+      api: FakeMobileAccountApi(),
+      tokenStore: MemoryTokenStore(),
+    );
     await controller.load();
 
     await tester.pumpWidget(
@@ -182,8 +200,14 @@ void main() {
     tester,
   ) async {
     await setPhoneSize(tester);
-    final controller = AccountController(store: _MemoryAccountStore());
+    final controller = AccountController(
+      store: _MemoryAccountStore(),
+      api: FakeMobileAccountApi(),
+      tokenStore: MemoryTokenStore(),
+    );
     await controller.load();
+    await controller.sendCode('+639171234567');
+    await controller.verifyCode('+639171234567', '123456');
     await controller.completePhoneVerification(
       phoneNumber: '+639171234567',
       privacyNoticeAcceptedAt: privacyAcceptedAt,

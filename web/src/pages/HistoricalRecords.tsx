@@ -81,7 +81,7 @@ function RecordDetails({ record }: { record: HistoricalIncident }) {
   const incident = detail.data?.incident ?? record;
   const pageKeys = { reports: "reportPage", assignments: "assignmentPage", events: "eventPage" } as const;
   return (
-    <Card className="self-start">
+    <Card>
       <SectionHead title={incident.reference} subtitle="Completed incident detail" />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="m-0 text-[17px] font-semibold">{incident.incident_type_name}</h3>
@@ -241,6 +241,9 @@ export function HistoricalRecords() {
       if (!controller.signal.aborted) setExporting(false);
     }
   };
+  const hasFilterInput = Object.values(draft).some((value) =>
+    typeof value === "string" ? value.trim().length > 0 : Boolean(value),
+  );
 
   return (
     <>
@@ -251,6 +254,18 @@ export function HistoricalRecords() {
         onAction={() => void download()}
         actionDisabled={exporting || records.status !== "ready" || !records.data?.total}
       />
+      <div className="grid grid-cols-3 gap-4 max-[650px]:gap-2">
+        {[
+          ["Matching incidents", records.data?.total],
+          ["Resolved", records.data?.counts.resolved],
+          ["Closed", records.data?.counts.closed],
+        ].map(([label, count]) => (
+          <Card key={label}>
+            <span className="block text-[9px] text-muted">{label}</span>
+            <b className="mt-2 block text-[24px] font-semibold">{count ?? "—"}</b>
+          </Card>
+        ))}
+      </div>
       <Card>
         <form onSubmit={(event) => { event.preventDefault(); applyFilters(); }} className="grid gap-3">
           <div className="flex flex-wrap items-end gap-2">
@@ -291,7 +306,7 @@ export function HistoricalRecords() {
             <SelectField label="Sort order" value={draft.sort ?? "newest"}
               options={[{ value: "newest", label: "Newest first" }, { value: "oldest", label: "Oldest first" }]}
               onChange={(sort) => setDraft({ ...draft, sort: sort as HistoryFilters["sort"] })} />
-            <button type="submit" className="h-[38px] rounded-[7px] border border-maroon bg-maroon px-4 text-[10px] font-semibold text-white">Apply filters</button>
+            <button type="submit" disabled={!hasFilterInput} className="h-[38px] rounded-[7px] border border-maroon bg-maroon px-4 text-[10px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45">Apply filters</button>
             <button type="button" className="h-[38px] rounded-[7px] border border-border bg-white px-4 text-[10px] font-semibold" onClick={clearFilters}>Clear</button>
             <i className="flex-1" />
             <button type="button" className="h-[38px] rounded-[7px] border border-border bg-white px-4 text-[10px] font-semibold disabled:opacity-40" onClick={() => { records.refetch(); setTypesVersion((version) => version + 1); }} disabled={records.status === "loading"}>Refresh</button>
@@ -305,21 +320,9 @@ export function HistoricalRecords() {
       </Card>
       {error && <ErrorNotice message={error} />}
       {notice && <div role="status" className="rounded-[7px] border border-[#c4decf] bg-green-soft px-4 py-3 text-[10px] text-status-green">{notice}</div>}
-      <div className="grid grid-cols-3 gap-4 max-[650px]:gap-2">
-        {[
-          ["Matching incidents", records.data?.total],
-          ["Resolved", records.data?.counts.resolved],
-          ["Closed", records.data?.counts.closed],
-        ].map(([label, count]) => (
-          <Card key={label}>
-            <span className="block text-[9px] text-muted">{label}</span>
-            <b className="mt-2 block text-[24px] font-semibold">{count ?? "—"}</b>
-          </Card>
-        ))}
-      </div>
       {records.status === "error" && <ErrorNotice message={records.error ?? "Historical records could not be loaded."} retry={records.refetch} />}
-      <div className="grid grid-cols-[minmax(0,1.8fr)_minmax(340px,1fr)] items-start gap-4 max-[1180px]:grid-cols-1">
-        <Card>
+      <div className="grid grid-cols-[minmax(0,1.8fr)_minmax(340px,1fr)] items-stretch gap-4 max-[1180px]:grid-cols-1">
+        <Card className="flex h-full flex-col">
           <SectionHead title="Completed incident records" subtitle="One record per incident, including all linked reports" />
           {records.status === "loading" && <p role="status" className="py-8 text-center text-[11px] text-muted">Loading historical records…</p>}
           {records.status === "ready" && !records.data.total && (
@@ -354,7 +357,7 @@ export function HistoricalRecords() {
               </table>
             </div>
           )}
-          {records.data && <Pager data={records.data} label="Incidents" onPage={(value) => { setPage(value); setSelectedId(null); }} />}
+          {records.data && <div className="mt-auto"><Pager data={records.data} label="Incidents" onPage={(value) => { setPage(value); setSelectedId(null); }} /></div>}
         </Card>
         {selected ? <RecordDetails key={selected.incident_id} record={selected} /> : (
           <Card><SectionHead title="Incident detail" /><p className="text-[10px] text-muted">Select a completed incident to view its reports, assignments, and timeline.</p></Card>

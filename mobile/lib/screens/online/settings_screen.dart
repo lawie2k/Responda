@@ -443,9 +443,23 @@ class _SettingsScreenState extends State<SettingsScreen>
     }
 
     setState(() => _resettingTestData = true);
+    try {
+      await accountController?.clearLocalSession();
+    } catch (_) {
+      if (mounted) {
+        setState(() => _resettingTestData = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not sign out. Check your connection and try again.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
     unawaited(widget.homeTutorialStore.reset());
     await Future.wait([
-      if (accountController != null) accountController.clearLocalSession(),
       if (languageController != null) languageController.resetSelection(),
       if (gpsController != null) gpsController.resetPreference(),
       if (testingModeController != null) testingModeController.reset(),

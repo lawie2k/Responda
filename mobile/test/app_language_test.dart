@@ -17,6 +17,8 @@ import 'package:responda/features/onboarding/presentation/screens/verification/p
 import 'package:responda/screens/online/home_screen.dart';
 import 'package:responda/screens/online/settings_screen.dart';
 
+import 'support/mobile_account_fakes.dart';
+
 void main() {
   test('loads and saves the selected language', () async {
     final store = _MemoryLanguageStore(AppLanguage.filipino.code);
@@ -303,7 +305,13 @@ void main() {
     final gpsStore = _MemoryGpsStore(false);
     final gpsController = GpsPreferenceController(store: gpsStore);
     final accountStore = _MemoryAccountStore();
-    final accountController = AccountController(store: accountStore);
+    final accountController = AccountController(
+      store: accountStore,
+      api: FakeMobileAccountApi(),
+      tokenStore: MemoryTokenStore(),
+    );
+    await accountController.sendCode('+639171234567');
+    await accountController.verifyCode('+639171234567', '123456');
     await Future.wait([
       languageController.load(),
       gpsController.load(),

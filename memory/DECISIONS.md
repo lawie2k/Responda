@@ -9,6 +9,81 @@ updated: 2026-10-19
 
 ## Active decisions
 
+### 2026-10-19 — Keep breathing room below the Mobile Accounts panels
+
+- Desktop roster and account details fill the remaining viewport with a 20px
+  bottom gutter. Keep pagination at the roster's bottom and natural stacked
+  heights below the desktop breakpoint.
+
+### 2026-10-19 — Connect dashboard citizen monitoring and Super Admin suspension
+
+- Both administrator tiers may monitor registered mobile citizens. Only Super
+  Admins suspend/restore; this follows the existing account-management authority.
+  Registration requires phone verification plus privacy acknowledgement, keeping
+  staff and manually encoded callers out of the Mobile Accounts roster.
+- Expose masked phone data and exact full-phone lookup; name/barangay and full
+  account UUID are searchable. Show real last sign-in and app-report totals,
+  with active/suspended states only. Do not invent live activity or attention flags.
+- Require explicit confirmation, a last-seen account version and a categorical
+  reason (misuse/security for suspension, completed review for restoration).
+  Recheck the Super Admin/session, serialize on user rows, revoke sessions and
+  save minimal reason audits atomically. Restoring never revives old tokens;
+  citizen OTP sign-in is required again. No free-text personal notes are stored.
+
+### 2026-10-19 — Build local OTP before choosing real SMS delivery
+
+- User selected development OTP first; real SMS provider selection remains open.
+  Return random codes only with the explicit local development flag; reject that
+  flag in staging/production and fail closed without a delivery provider.
+- OTP uses five-minute expiry, five guesses, one-minute resend cooldown, old-code
+  invalidation, IP/phone limits, HMAC storage, and serialized phone registration.
+  Acknowledge privacy using server time during verification. Reuse existing
+  reporter accounts; reject staff, inactive, and deleted identities.
+- Mobile uses hashed opaque bearer sessions (thirty days, maximum five), device
+  secure storage for tokens, and cached unexpired profile data for offline UI.
+  Legacy preference-only profiles are not authenticated. Server logout must
+  succeed, or confirm the session already invalid, before local state is cleared.
+  Recheck account/session on resume; optional name/barangay persist in PostgreSQL.
+  ID/face capture has been removed from the source flow.
+
+### 2026-10-19 — Use Ponytail guidance by default across Codex chats
+
+- Adopt the smallest complete solution, reuse existing patterns, keep responses
+  concise, and preserve validation, security, accessibility, and required checks.
+- Persistent instruction-file guidance is in `/Users/lawie/.codex/AGENTS.md`
+  for future local Codex sessions; Responda's root and coordination instructions
+  also capture the preference. The reviewed upstream revision is
+  `09c434ab73ca43761c5d8b0c5d341926c2fba710` from DietrichGebert/ponytail.
+- This is the supported rules-file adaptation, not installed plugin commands
+  or lifecycle hooks. Do not re-download upstream each prompt. Preserve the
+  existing per-action model recommendation and confirmation requirement.
+
+### 2026-10-19 — Protect Super Admins in the first staff-management release
+
+- Super Admins manage only normal Administrators through Settings. All Super
+  Admins are protected from editing, deactivation, and session revocation here.
+  Role promotion and citizen management are outside this API.
+- Creation accepts name, email, and initial password. Edits accept identity and
+  activation with a concurrency timestamp. Password recovery and editable
+  organization/notification/retention policies need separate product choices.
+- Email or activation changes revoke sessions. Explicit sign-out revokes
+  sessions while allowing later login if active. Account, session, and minimal
+  audit changes commit together; login shares user locking.
+- Show current operational rules and non-secret session/login limits read-only.
+  Remove controls that only simulate backend behavior.
+
+### 2026-10-19 — Define Analytics cohorts and dispatch timing explicitly
+
+- Reports belong to a period by received date; incidents belong by opened date,
+  with dates and daily buckets in Asia/Manila and a maximum 366-day range.
+- Verification and incident priority/status show the current state of those
+  cohorts; several reports linked to an incident never multiply incident counts.
+- Average dispatch time is incident opening to its earliest qualifying team
+  assignment, one sample per incident. Exclude cancelled/deleted assignments,
+  deleted units, and pre-opening timestamps. Display missing timings as unknown.
+- Export only dates and numeric daily aggregates, with minimal staff/day-count
+  auditing. Do not invent response targets or on-scene metrics.
+
 ### 2026-10-18 — Recommend the lowest sufficient model before each new task
 
 - Before substantive work on a new task, state the recommended model and
@@ -21,6 +96,8 @@ updated: 2026-10-19
   that reads `AGENTS.md` and memory instead of replaying the full transcript.
 - Do not claim the active model changed automatically; model selection remains
   under the user's control.
+- Repeat the recommendation before every separate user-requested action,
+  including follow-ups within the same feature, then wait for confirmation.
 
 ### 2026-10-16 — Use two administrator tiers for dashboard operations
 

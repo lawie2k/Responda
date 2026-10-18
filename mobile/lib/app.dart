@@ -60,6 +60,7 @@ class _RespondaAppState extends State<RespondaApp> with WidgetsBindingObserver {
   late final bool _ownsAccountController;
   late final bool _ownsSettingsController;
   late final bool _ownsTestingModeController;
+  final _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   void initState() {
@@ -100,6 +101,18 @@ class _RespondaAppState extends State<RespondaApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _connectivityController.refresh();
+      _refreshAccount();
+    }
+  }
+
+  Future<void> _refreshAccount() async {
+    final hadAccount = _accountController.profile != null;
+    await _accountController.refreshSession();
+    if (mounted && hadAccount && !_accountController.hasAccount) {
+      _navigatorKey.currentState?.pushAndRemoveUntil(
+        MaterialPageRoute<void>(builder: (_) => const PrivacyNoticeScreen()),
+        (_) => false,
+      );
     }
   }
 
@@ -145,6 +158,7 @@ class _RespondaAppState extends State<RespondaApp> with WidgetsBindingObserver {
                 child: ConnectivityScope(
                   controller: _connectivityController,
                   child: MaterialApp(
+                    navigatorKey: _navigatorKey,
                     title: 'RESPONDA',
                     locale: _languageController.language.frameworkLocale,
                     localizationsDelegates:

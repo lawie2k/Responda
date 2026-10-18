@@ -25,6 +25,7 @@ class AccountProfile {
     required this.privacyNoticeAcceptedAt,
     this.fullName = '',
     this.barangay = '',
+    this.sessionExpiresAt,
   });
 
   final String phoneNumber;
@@ -33,6 +34,7 @@ class AccountProfile {
   final DateTime privacyNoticeAcceptedAt;
   final String fullName;
   final String barangay;
+  final DateTime? sessionExpiresAt;
 
   Map<String, Object?> toJson() => {
     'phoneNumber': phoneNumber,
@@ -41,6 +43,7 @@ class AccountProfile {
     'privacyNoticeAcceptedAt': privacyNoticeAcceptedAt.toIso8601String(),
     'fullName': fullName,
     'barangay': barangay,
+    'sessionExpiresAt': sessionExpiresAt?.toIso8601String(),
   };
 
   factory AccountProfile.fromJson(Map<String, Object?> json) {
@@ -65,6 +68,9 @@ class AccountProfile {
           submittedAt,
       fullName: json['fullName'] as String? ?? '',
       barangay: json['barangay'] as String? ?? '',
+      sessionExpiresAt: DateTime.tryParse(
+        json['sessionExpiresAt'] as String? ?? '',
+      ),
     );
   }
 }

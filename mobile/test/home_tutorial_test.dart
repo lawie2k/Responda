@@ -7,10 +7,18 @@ import 'package:responda/features/onboarding/presentation/account_scope.dart';
 import 'package:responda/features/tutorial/data/home_tutorial_store.dart';
 import 'package:responda/screens/online/main_shell.dart';
 
+import 'support/mobile_account_fakes.dart';
+
 void main() {
   Future<AccountController> accountController() async {
-    final controller = AccountController(store: _MemoryAccountStore());
+    final controller = AccountController(
+      store: _MemoryAccountStore(),
+      api: FakeMobileAccountApi(),
+      tokenStore: MemoryTokenStore(),
+    );
     await controller.load();
+    await controller.sendCode('+639171234567');
+    await controller.verifyCode('+639171234567', '123456');
     await controller.completePhoneVerification(
       phoneNumber: '+639171234567',
       privacyNoticeAcceptedAt: DateTime(2026, 10, 8),

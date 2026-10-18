@@ -34,6 +34,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     application.state.settings = current_settings
+    for kind, attempts, window in (("send", 5, 600), ("verify", 10, 600)):
+        setattr(
+            application.state,
+            f"mobile_{kind}_limiter",
+            LoginRateLimiter(
+                max_attempts=attempts,
+                window_seconds=window,
+                secret_key=current_settings.secret_key.get_secret_value(),
+            ),
+        )
     application.state.database_engine = database_engine
     application.state.database_session_factory = create_session_factory(database_engine)
     application.state.admin_login_rate_limiter = LoginRateLimiter(

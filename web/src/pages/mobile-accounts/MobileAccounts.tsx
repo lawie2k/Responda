@@ -1,266 +1,143 @@
-import { useMemo, useState } from "react";
-import { Icon } from "../../components/Icon";
-import { Badge, Button, Card, PageTitle } from "../../components/ui";
-import {
-  initialMobileAccounts,
-  type MobileAccount,
-  type MobileAccountStatus,
-} from "../../data/mobileAccounts";
+import { useEffect, useRef, useState } from "react";
+import { changeMobileAccountStatus, type AccountReason, type MobileAccount } from "../../api/adminMobileAccounts";
+import type { AdminUser } from "../../api/respondaApi";
+import { Badge, Button, Card, PageTitle, SectionHead } from "../../components/ui";
+import { useAdminMobileAccounts } from "../../hooks/useAdminMobileAccounts";
 
-const accentClasses: Record<string, string> = {
-  blue: "bg-[#f3efed] text-maroon",
-  amber: "bg-[#f3efed] text-maroon",
-  green: "bg-[#f3efed] text-maroon",
-  rose: "bg-[#f3efed] text-maroon",
-};
+const inputClass = "h-[38px] rounded-[7px] border border-border bg-white px-3 text-[11px] outline-maroon";
+const stamp = (value: string | null) => value ? new Intl.DateTimeFormat("en-PH", {
+  timeZone: "Asia/Manila", dateStyle: "medium", timeStyle: "short",
+}).format(new Date(value)) : "Not recorded";
+const name = (account: MobileAccount) => account.full_name || "Name not provided";
+const reasons = { suspected_misuse: "Suspected misuse", account_security: "Account security", review_completed: "Review completed" };
 
-const statusLabel: Record<MobileAccountStatus, string> = {
-  ACTIVE: "ACTIVE",
-  NEEDS_ATTENTION: "NEEDS ATTENTION",
-  SUSPENDED: "SUSPENDED",
-};
-
-const statusTone = (status: MobileAccountStatus) =>
-  status === "ACTIVE" ? "green" : status === "SUSPENDED" ? "red" : "amber";
-
-const displayName = (account: MobileAccount) =>
-  account.fullName || "Name not provided";
-
-export function MobileAccounts() {
-  const [accounts, setAccounts] = useState(initialMobileAccounts);
-  const [selectedId, setSelectedId] = useState(initialMobileAccounts[0].id);
-  const [statusFilter, setStatusFilter] = useState("ALL");
+export function MobileAccounts({ userRole }: { userRole: AdminUser["role"] }) {
+  const [query, setQuery] = useState({ page: 1, search: "", active: "" });
   const [search, setSearch] = useState("");
-  const [notes, setNotes] = useState("");
-  const [feedback, setFeedback] = useState("");
+  const roster = useAdminMobileAccounts(query);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = roster.data?.items.find(item => item.user_id === selectedId) ?? roster.data?.items[0] ?? null;
+  const [pending, setPending] = useState<{ account: MobileAccount; isActive: boolean } | null>(null);
+  const [reason, setReason] = useState<AccountReason | "">("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const mutation = useRef<AbortController | null>(null);
+  const canManage = userRole === "admin";
+  useEffect(() => () => mutation.current?.abort(), []);
 
-  const filteredAccounts = useMemo(
-    () =>
-      accounts.filter((account) => {
-        const query = search.trim().toLowerCase();
-        return (
-          (!query ||
-            `${account.fullName} ${account.phone} ${account.id} ${account.barangay}`
-              .toLowerCase()
-              .includes(query)) &&
-          (statusFilter === "ALL" || account.status === statusFilter)
-        );
-      }),
-    [accounts, search, statusFilter],
-  );
-
-  const selected =
-    accounts.find((account) => account.id === selectedId) ??
-    filteredAccounts[0] ??
-    accounts[0];
-
-  const counts = {
-    ALL: accounts.length,
-    ACTIVE: accounts.filter((account) => account.status === "ACTIVE").length,
-    NEEDS_ATTENTION: accounts.filter(
-      (account) => account.status === "NEEDS_ATTENTION",
-    ).length,
-    SUSPENDED: accounts.filter((account) => account.status === "SUSPENDED")
-      .length,
+  const closePending = () => { setPending(null); setReason(""); setError(""); };
+  const changeQuery = (next: typeof query) => { closePending(); setSelectedId(null); setNotice(""); setQuery(next); };
+  const select = (account: MobileAccount) => { closePending(); setSelectedId(account.user_id); setNotice(""); };
+  const perform = async () => {
+    if (!pending || !reason || mutation.current || !canManage) return;
+    const controller = new AbortController(); mutation.current = controller;
+    setBusy(true); setError(""); setNotice("");
+    try {
+      await changeMobileAccountStatus(pending.account, pending.isActive, reason, controller.signal);
+      if (!controller.signal.aborted) {
+        setNotice(pending.isActive ? "Account restored. The citizen can sign in again with OTP." : "Account suspended and all sessions signed out.");
+        closePending(); roster.refetch();
+      }
+    } catch (caught) {
+      if (!controller.signal.aborted) setError(caught instanceof Error ? caught.message : "The account could not be updated.");
+    } finally {
+      if (!controller.signal.aborted) { mutation.current = null; setBusy(false); }
+    }
   };
 
-  const selectAccount = (account: MobileAccount) => {
-    setSelectedId(account.id);
-    setNotes("");
-    setFeedback("");
-  };
+  return <>
+    <PageTitle title="Mobile Accounts" subtitle="Monitor citizens registered through phone OTP verification." />
+    <div className="border border-border border-l-[3px] border-l-maroon bg-white px-4 py-3 text-[11px] leading-relaxed text-muted">
+      Phone OTP activates accounts. Name and barangay are optional. Phone numbers stay masked in this workspace.
+    </div>
 
-  const updateStatus = (status: MobileAccountStatus) => {
-    if (!notes.trim()) return;
-    setAccounts((current) =>
-      current.map((account) =>
-        account.id === selected.id ? { ...account, status } : account,
-      ),
-    );
-    setFeedback(
-      `${displayName(selected)} was marked ${statusLabel[status].toLowerCase()}.`,
-    );
-    setNotes("");
-  };
+    {roster.data && <div className="grid grid-cols-3 gap-3 max-[650px]:grid-cols-1">
+      {[["Registered accounts", roster.data.counts.total], ["Active", roster.data.counts.active], ["Suspended", roster.data.counts.suspended]].map(([label, value]) => <Card key={label} className="py-3">
+        <span className="text-[10px] text-muted">{label}</span><b className="mt-1 block text-[23px]">{value}</b>
+      </Card>)}
+    </div>}
 
-  return (
-    <>
-      <PageTitle
-        title="Mobile Accounts"
-        subtitle="Monitor accounts activated through mobile-number OTP verification."
-      />
-
-      <div className="flex min-h-[58px] items-center gap-3 border border-[#dedad8] border-l-[3px] border-l-maroon bg-white px-4 py-3 text-maroon max-[650px]:items-start">
-        <Icon name="phone" />
-        <div className="min-w-0 flex-1">
-          <b className="block text-[10px]">Phone OTP activates the account</b>
-          <span className="mt-1 block text-[9px] leading-[1.45] text-muted">
-            Users no longer submit a valid ID or face photo. MDRRMO staff do not
-            approve account creation; this page is for account monitoring and
-            administrative flags.
-          </span>
-        </div>
-        <Badge tone="green">OTP FLOW</Badge>
-      </div>
-
-      <Card className="flex min-h-[58px] items-center gap-[9px] overflow-x-auto px-[10px] py-2 max-[650px]:items-stretch [&_.account-search]:min-w-[230px] [&_.account-search]:flex-1 max-[650px]:[&_.account-search]:shrink-0">
-        <div className="flex gap-1 border-b border-[#dcd7d4] [&>button]:h-8 [&>button]:border-0 [&>button]:border-b-2 [&>button]:border-transparent [&>button]:bg-transparent [&>button]:px-3 [&>button]:text-[9px] [&>button]:text-muted [&>button.active]:border-maroon [&>button.active]:text-maroon">
-          {(
-            ["ALL", "ACTIVE", "NEEDS_ATTENTION", "SUSPENDED"] as const
-          ).map((status) => (
-            <button
-              className={statusFilter === status ? "active" : ""}
-              onClick={() => setStatusFilter(status)}
-              key={status}
-            >
-              {status === "NEEDS_ATTENTION"
-                ? "Needs attention"
-                : status[0] + status.slice(1).toLowerCase()} {counts[status]}
-            </button>
-          ))}
-        </div>
-        <label className="account-search flex h-[38px] min-w-[170px] items-center gap-[7px] rounded-[10px] border border-border bg-white px-[10px] text-muted [&_input]:w-full [&_input]:border-0 [&_input]:bg-transparent [&_input]:text-[9px] [&_input]:text-[#1c1c1e] [&_input]:outline-0">
-          <Icon name="search" size={15} />
-          <input
-            aria-label="Search mobile accounts"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search name, phone, barangay, or reference"
-          />
+    <Card>
+      <form className="flex flex-wrap items-end gap-3" onSubmit={event => { event.preventDefault(); changeQuery({ ...query, page: 1, search: search.trim() }); }}>
+        <label className="grid min-w-[220px] flex-1 gap-1 text-[10px] font-semibold">Search accounts
+          <input className={inputClass} aria-label="Search mobile accounts" maxLength={100} value={search}
+            disabled={busy} onChange={event => setSearch(event.target.value)} placeholder="Name, barangay, full phone number or account ID" />
         </label>
+        <label className="grid gap-1 text-[10px] font-semibold">Status
+          <select className={inputClass} aria-label="Account status filter" value={query.active} disabled={busy}
+            onChange={event => changeQuery({ ...query, page: 1, active: event.target.value })}>
+            <option value="">All accounts</option><option value="true">Active</option><option value="false">Suspended</option>
+          </select>
+        </label>
+        <Button type="submit" disabled={busy || roster.status === "loading"}>Search</Button>
+        <Button variant="secondary" disabled={busy} onClick={() => { setSearch(""); changeQuery({ page: 1, search: "", active: "" }); roster.refetch(); }}>Reset</Button>
+        <Button variant="secondary" disabled={busy || roster.status === "loading"} onClick={() => { closePending(); roster.refetch(); }}>Refresh</Button>
+      </form>
+    </Card>
+    {notice && <div role="status" className="border border-border bg-white p-3 text-[11px]">{notice}</div>}
+    {error && <div role="alert" className="border border-status-red p-3 text-[11px] text-status-red">{error} Refresh to load the latest account state.</div>}
+    {roster.status === "loading" && <Card><p role="status" className="text-[12px] text-muted">Loading mobile accounts…</p></Card>}
+    {roster.status === "error" && <Card><p role="alert" className="text-[12px] text-status-red">{roster.error}</p><Button variant="secondary" onClick={roster.refetch}>Retry</Button></Card>}
+    {roster.data && <div className="grid flex-1 grid-cols-[minmax(300px,.85fr)_minmax(420px,1.3fr)] items-stretch gap-4 max-[1000px]:flex-none max-[1000px]:grid-cols-1">
+      <Card className="flex flex-col gap-3">
+        <SectionHead title="Registered accounts" subtitle={`${roster.data.total} accounts match the current view`} />
+        <div className="grid gap-2">
+          {roster.data.items.map(account => <button key={account.user_id} disabled={busy} onClick={() => select(account)}
+            aria-pressed={selected?.user_id === account.user_id}
+            className={`flex items-center justify-between gap-3 rounded-lg border p-3 text-left disabled:opacity-50 ${selected?.user_id === account.user_id ? "border-maroon bg-blush" : "border-border bg-white hover:bg-soft-gray"}`}>
+            <span className="grid min-w-0 gap-1"><b className="truncate text-[12px]">{name(account)}</b>
+              <span className="text-[11px] text-muted">{account.masked_phone}</span>
+              <span className="text-[10px] text-muted">{account.barangay || "Barangay not provided"}</span></span>
+            <Badge tone={account.is_active ? "green" : "red"}>{account.is_active ? "ACTIVE" : "SUSPENDED"}</Badge>
+          </button>)}
+          {!roster.data.items.length && <p className="py-12 text-center text-[12px] text-muted">{roster.data.total ? "No accounts on this page. Go to the previous page." : "No registered mobile accounts match this view."}</p>}
+        </div>
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
+          <span className="text-[10px] text-muted">Page {roster.data.page} of {roster.data.total_pages || 1} · {roster.data.total} accounts</span>
+          <div className="flex gap-2">
+            <Button variant="secondary" disabled={busy || query.page <= 1} onClick={() => changeQuery({ ...query, page: query.page - 1 })}>Previous</Button>
+            <Button variant="secondary" disabled={busy || query.page >= roster.data.total_pages} onClick={() => changeQuery({ ...query, page: query.page + 1 })}>Next</Button>
+          </div>
+        </div>
       </Card>
 
-      {feedback && (
-        <div className="flex min-h-[42px] items-center gap-2 rounded-xl bg-green-soft px-3 text-[10px] font-semibold text-status-green" role="status">
-          <Icon name="check" />
-          {feedback}
-        </div>
-      )}
-
-      <div className="grid grid-cols-[minmax(300px,.78fr)_minmax(520px,1.7fr)] items-start gap-4 max-[1180px]:grid-cols-[340px_minmax(0,1fr)] max-[900px]:grid-cols-1">
-        <Card className="flex flex-col gap-3">
-          <div className="flex items-center gap-[10px] [&>div]:flex-1 [&_h3]:m-0 [&_h3]:text-[15px] [&_p]:mb-0 [&_p]:mt-[3px] [&_p]:text-[9px] [&_p]:text-muted">
-            <div>
-              <h3>Registered accounts</h3>
-              <p>{filteredAccounts.length} accounts shown</p>
-            </div>
-            <Badge tone="green">{counts.ACTIVE} ACTIVE</Badge>
+      <Card className="flex flex-col gap-4">
+        {selected ? <>
+          <div className="flex items-start justify-between gap-3">
+            <SectionHead title={name(selected)} subtitle="Mobile account details" />
+            <Badge tone={selected.is_active ? "green" : "red"}>{selected.is_active ? "ACTIVE" : "SUSPENDED"}</Badge>
           </div>
-
-          <div className="grid gap-2 max-[900px]:grid-cols-2 max-[650px]:grid-cols-1 [&>button]:flex [&>button]:min-h-[78px] [&>button]:items-center [&>button]:gap-[9px] [&>button]:rounded-[13px] [&>button]:border [&>button]:border-transparent [&>button]:bg-soft-gray [&>button]:p-[9px] [&>button]:text-left [&>button:hover]:border-[rgba(122,31,43,.35)] [&>button:hover]:bg-blush [&>button.selected]:border-[rgba(122,31,43,.35)] [&>button.selected]:bg-blush">
-            {filteredAccounts.length ? (
-              filteredAccounts.map((account) => (
-                <button
-                  className={selected.id === account.id ? "selected" : ""}
-                  onClick={() => selectAccount(account)}
-                  key={account.id}
-                >
-                  <span className={`grid size-[42px] shrink-0 place-items-center rounded-[13px] text-[11px] font-extrabold ${accentClasses[account.accent] ?? accentClasses.rose}`}>
-                    {account.initials}
-                  </span>
-                  <span className="grid min-w-0 flex-1 gap-[3px] [&_em]:overflow-hidden [&_em]:text-ellipsis [&_em]:whitespace-nowrap [&_em]:text-[8px] [&_em]:not-italic [&_em]:text-status-blue [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-nowrap [&_small]:text-[8px] [&_small]:text-muted [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-nowrap [&_strong]:text-[10px]">
-                    <strong>{displayName(account)}</strong>
-                    <small>Joined {account.joined}</small>
-                    <em>{account.phone}</em>
-                  </span>
-                  <Badge tone={statusTone(account.status)} dot={false}>
-                    {statusLabel[account.status]}
-                  </Badge>
-                  <Icon name="chevron" size={14} />
-                </button>
-              ))
-            ) : (
-              <div className="flex min-h-60 flex-col items-center justify-center gap-2 text-center text-muted [&_b]:text-[11px] [&_b]:text-[#1c1c1e] [&_span]:text-[9px]">
-                <Icon name="users" size={28} />
-                <b>No mobile accounts found</b>
-                <span>Change the filters or search text.</span>
-              </div>
-            )}
-          </div>
-        </Card>
-
-        <Card className="flex flex-col gap-3">
-          <div className="flex items-center gap-[10px] [&>div]:flex-1 [&_h3]:m-0 [&_h3]:text-[15px] [&_p]:mb-0 [&_p]:mt-[3px] [&_p]:text-[9px] [&_p]:text-muted">
-            <span className={`grid size-12 shrink-0 place-items-center rounded-[14px] text-[12px] font-extrabold ${accentClasses[selected.accent] ?? accentClasses.rose}`}>
-              {selected.initials}
-            </span>
-            <div>
-              <span className="block text-[9px] font-bold tracking-[.04em] text-muted">{selected.id}</span>
-              <h3>{displayName(selected)}</h3>
-              <p>Account created {selected.joined} from the mobile app</p>
-            </div>
-            <Badge tone={statusTone(selected.status)}>
-              {statusLabel[selected.status]}
-            </Badge>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 max-[650px]:grid-cols-1">
-            <div className="flex min-h-[116px] flex-col gap-2 border border-border border-l-[3px] border-l-status-green bg-white p-3">
-              <div className="flex items-center justify-between gap-2">
-                <span className="grid size-9 place-items-center text-status-green"><Icon name="phone" size={17} /></span>
-                <Badge tone="green">OTP VERIFIED</Badge>
-              </div>
-              <b className="text-[12px]">{selected.phone}</b>
-              <span className="text-[8px] text-muted">Verified {selected.phoneVerified}</span>
-            </div>
-            <div className="flex min-h-[116px] flex-col gap-2 border border-border border-l-[3px] border-l-maroon bg-white p-3">
-              <div className="flex items-center justify-between gap-2">
-                <span className="grid size-9 place-items-center text-maroon"><Icon name="shield" size={17} /></span>
-                <Badge tone="maroon" dot={false}>CONSENT SAVED</Badge>
-              </div>
-              <b className="text-[11px]">Privacy notice accepted</b>
-              <span className="text-[8px] text-muted">{selected.privacyAccepted}</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 max-[650px]:grid-cols-1">
-            <div className="rounded-[14px] bg-soft-gray p-3">
-              <span className="block text-[8px] font-extrabold tracking-[.05em] text-muted">OPTIONAL PROFILE</span>
-              <div className="mt-3 grid gap-3 text-[9px] [&>div]:flex [&>div]:justify-between [&>div]:gap-4 [&_b]:text-right">
-                <div><span className="text-muted">Full name</span><b>{selected.fullName || "Not provided"}</b></div>
-                <div><span className="text-muted">Barangay</span><b>{selected.barangay || "Not provided"}</b></div>
-              </div>
-            </div>
-            <div className="rounded-[14px] bg-soft-gray p-3">
-              <span className="block text-[8px] font-extrabold tracking-[.05em] text-muted">ACCOUNT ACTIVITY</span>
-              <div className="mt-3 grid gap-3 text-[9px] [&>div]:flex [&>div]:justify-between [&>div]:gap-4 [&_b]:text-right">
-                <div><span className="text-muted">Last active</span><b>{selected.lastActive}</b></div>
-                <div><span className="text-muted">Reports submitted</span><b>{selected.reportsSubmitted}</b></div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2 rounded-[14px] bg-soft-gray p-[11px] [&_textarea]:min-h-[74px] [&_textarea]:resize-y [&_textarea]:rounded-[10px] [&_textarea]:border [&_textarea]:border-border [&_textarea]:bg-white [&_textarea]:p-[9px] [&_textarea]:text-[9px]">
-            <span className="block text-[9px] font-bold tracking-[.04em] text-muted">ADMIN ACCOUNT NOTE</span>
-            <textarea
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              placeholder="Add a required note before changing the account status…"
-            />
-          </div>
-
-          <div className="flex min-h-16 items-center gap-[10px] rounded-[14px] bg-soft-gray px-3 py-[10px] max-[650px]:flex-col max-[650px]:items-stretch [&>div]:flex-1 [&_b]:block [&_b]:text-[10px] [&_span]:mt-[3px] [&_span]:block [&_span]:text-[8px] [&_span]:text-muted max-[650px]:[&_.button]:w-full">
-            <div>
-              <b>Administrative account status</b>
-              <span>OTP verification stays recorded. A note is required for status changes.</span>
-            </div>
-            {selected.status === "ACTIVE" ? (
-              <>
-                <Button variant="secondary" icon="alert" disabled={!notes.trim()} onClick={() => updateStatus("NEEDS_ATTENTION")}>
-                  Mark needs attention
-                </Button>
-                <Button variant="danger" icon="alert" disabled={!notes.trim()} onClick={() => updateStatus("SUSPENDED")}>
-                  Suspend
-                </Button>
-              </>
-            ) : (
-              <Button icon="check" disabled={!notes.trim()} onClick={() => updateStatus("ACTIVE")}>
-                Restore active account
-              </Button>
-            )}
-          </div>
-        </Card>
-      </div>
-    </>
-  );
+          <span className="break-all text-[10px] text-muted">Account ID · {selected.user_id}</span>
+          <dl className="grid grid-cols-2 gap-4 border-y border-border py-4 text-[11px] max-[650px]:grid-cols-1 [&_dt]:mb-1 [&_dt]:text-muted [&_dd]:m-0 [&_dd]:font-semibold">
+            <div><dt>Phone number</dt><dd>{selected.masked_phone}</dd></div>
+            <div><dt>Barangay</dt><dd>{selected.barangay || "Not provided"}</dd></div>
+            <div><dt>Account created</dt><dd>{stamp(selected.created_at)}</dd></div>
+            <div><dt>Phone verified</dt><dd>{stamp(selected.phone_verified_at)}</dd></div>
+            <div><dt>Privacy notice accepted</dt><dd>{stamp(selected.privacy_notice_accepted_at)}</dd></div>
+            <div><dt>Last sign-in</dt><dd>{stamp(selected.last_sign_in_at)}</dd></div>
+            <div><dt>App reports submitted</dt><dd>{selected.reports_submitted}</dd></div>
+          </dl>
+          <p className="m-0 text-[11px] leading-relaxed text-muted">Phone verification stays recorded when an account is suspended. Suspension prevents sign-in and signs out existing sessions. Restoration permits OTP sign-in again.</p>
+          {canManage ? <>
+            {!pending && <Button variant={selected.is_active ? "danger" : "secondary"} disabled={busy} onClick={() => {
+              setPending({ account: selected, isActive: !selected.is_active });
+              setReason(selected.is_active ? "" : "review_completed"); setError(""); setNotice("");
+            }}>{selected.is_active ? "Suspend account" : "Restore account"}</Button>}
+            {pending && <div className="grid gap-3 border border-border bg-soft-gray p-4" role="group" aria-label="Confirm account status change">
+              <b className="text-[12px]">{pending.isActive ? "Restore this account?" : "Suspend this account?"}</b>
+              <label className="grid gap-1 text-[11px]">Reason
+                <select aria-label="Account status reason" className={inputClass} value={reason} disabled={busy} onChange={event => setReason(event.target.value as AccountReason | "")}>
+                  <option value="">Choose a reason</option>
+                  {(pending.isActive ? ["review_completed"] as const : ["suspected_misuse", "account_security"] as const).map(value => <option value={value} key={value}>{reasons[value]}</option>)}
+                </select>
+              </label>
+              <div className="flex gap-2"><Button variant={pending.isActive ? "primary" : "danger"} disabled={busy || !reason} onClick={() => void perform()}>{busy ? "Saving…" : "Confirm change"}</Button>
+                <Button variant="secondary" disabled={busy} onClick={closePending}>Cancel</Button></div>
+            </div>}
+          </> : <p className="text-[11px] text-muted">Only Super Admins can suspend or restore citizen accounts.</p>}
+        </> : <p className="py-12 text-center text-[12px] text-muted">Select a registered account to view its details.</p>}
+      </Card>
+    </div>}
+  </>;
 }

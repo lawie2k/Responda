@@ -7,19 +7,20 @@ updated: 2026-10-19
 
 # Next steps
 
-Finish the database-backed web workspace before resuming mobile integration:
+Mobile account integration has resumed with local development OTP:
 
-1. Replace Analytics demonstration data with database-backed operational
-   metrics and trends.
-2. Complete the remaining Super Admin settings and staff-account controls after
-   confirming their product rules.
-3. Define the phone-number OTP request, verification, session, suspension, and
-   optional name/barangay contracts for citizen accounts.
-4. Remove the obsolete ID/face-review Flutter flow and connect phone OTP.
-5. Connect Mobile Accounts to real citizens with masked phone data.
-6. Implement online mobile reports, then the signed app-only SMS gateway, then
-   the approved advisory ML service.
+The next major implementation is authenticated online mobile report submission
+to the existing dashboard workflow, after checking the account flow below.
+
+1. Try the connected Flutter phone/OTP/profile flow on the user's target device.
+   Select and integrate a real SMS provider before production phone login.
+2. Try a newly registered mobile account in Mobile Accounts; Super Admins
+   can suspend/restore real citizens and both administrator tiers can monitor.
+3. Implement authenticated online mobile reports, then the signed app-only SMS
+   gateway, then the approved advisory ML service.
+4. Confirm any additional web Settings scope: staff password recovery/change,
+   editable organization details, notification delivery, and retention controls.
 
 Before the later account/report phases, confirm anonymous-report policy,
-mobile-account suspension/restoration, attachment retention, SMS signing/key
+attachment retention, SMS signing/key
 provisioning, and the exact ML model.

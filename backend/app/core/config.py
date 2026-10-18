@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     admin_login_rate_limit_attempts: int = Field(default=5, ge=1, le=100)
     admin_login_rate_limit_window_seconds: int = Field(default=60, ge=10, le=3600)
     trust_proxy_headers: bool = False
+    mobile_dev_otp_enabled: bool = False
+    mobile_session_ttl_seconds: int = Field(default=30 * 24 * 60 * 60, ge=300, le=2592000)
     allowed_origins: list[str] = Field(
         default_factory=lambda: [
             "http://localhost:3000",
@@ -60,6 +62,8 @@ class Settings(BaseSettings):
         if "*" in self.allowed_origins:
             raise ValueError("Wildcard CORS origins are not allowed when credentials are enabled")
         if self.environment in {Environment.STAGING, Environment.PRODUCTION}:
+            if self.mobile_dev_otp_enabled:
+                raise ValueError("Development OTP must be disabled outside local environments")
             secret_key = self.secret_key.get_secret_value()
             if secret_key == "development-only-change-me" or len(secret_key) < 32:
                 raise ValueError("A secure secret key is required outside development and testing")

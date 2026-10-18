@@ -7,14 +7,24 @@ from app.core.config import Settings
 from app.core.exceptions import ApplicationError
 from app.core.rate_limit import LoginRateLimiter
 from app.db.session import get_database_session
+from app.services.admin_analytics import AdminAnalyticsService
 from app.services.admin_assignments import AdminAssignmentService
 from app.services.admin_auth import AdminAuthService, AuthenticatedAdmin
 from app.services.admin_history import AdminHistoryService
 from app.services.admin_incidents import AdminIncidentService
 from app.services.admin_reports import AdminReportService
 from app.services.admin_response_units import AdminResponseUnitService
+from app.services.admin_staff import AdminStaffService
 
 DatabaseSession = Annotated[AsyncSession, Depends(get_database_session)]
+
+
+def get_admin_staff_service(database: DatabaseSession) -> AdminStaffService:
+    return AdminStaffService(database)
+
+
+def get_admin_analytics_service(database: DatabaseSession) -> AdminAnalyticsService:
+    return AdminAnalyticsService(database)
 
 
 def get_settings_from_request(request: Request) -> Settings:
@@ -75,6 +85,10 @@ def require_trusted_origin(
 
 
 AdminAuthServiceDependency = Annotated[AdminAuthService, Depends(get_admin_auth_service)]
+AdminStaffServiceDependency = Annotated[AdminStaffService, Depends(get_admin_staff_service)]
+AdminAnalyticsServiceDependency = Annotated[
+    AdminAnalyticsService, Depends(get_admin_analytics_service)
+]
 AdminAssignmentServiceDependency = Annotated[
     AdminAssignmentService, Depends(get_admin_assignment_service)
 ]

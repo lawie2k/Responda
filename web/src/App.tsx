@@ -403,7 +403,9 @@ function Dashboard({
         </header>
         <div
           className={
-            "mx-auto flex max-w-[1600px] flex-col gap-5 px-7 py-7 pb-10 max-[1100px]:px-4 max-[1100px]:py-5 max-[650px]:px-3 max-[650px]:py-4"
+            page === "Mobile Accounts"
+              ? "mx-auto flex min-h-[calc(100vh-72px)] max-w-[1600px] flex-col gap-5 px-7 pt-7 pb-5 max-[1100px]:px-4 max-[1100px]:pt-5 max-[650px]:px-3 max-[650px]:pt-4 max-[1000px]:min-h-0"
+              : "mx-auto flex max-w-[1600px] flex-col gap-5 px-7 py-7 pb-10 max-[1100px]:px-4 max-[1100px]:py-5 max-[650px]:px-3 max-[650px]:py-4"
           }
         >
           {reportNotice && (
@@ -454,7 +456,7 @@ function Dashboard({
               onReportReviewed={reportQuery.refetch}
             />
           )}
-          {page === "Mobile Accounts" && <MobileAccounts />}
+          {page === "Mobile Accounts" && <MobileAccounts userRole={session.user.role} />}
           {page === "Response Teams" && (
             <ResponseTeams
               role={session.user.role}

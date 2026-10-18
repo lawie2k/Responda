@@ -70,6 +70,7 @@ def test_administrator_login_creates_only_a_hashed_session_token(role: str) -> N
     assert stored_session.refresh_token_hash != result.token
     assert audit.action == "auth.login.succeeded"
     assert "users.deleted_at IS NULL" in str(user_lookup)
+    assert "FOR UPDATE" in str(user_lookup)
     database.commit.assert_awaited_once()
 
 

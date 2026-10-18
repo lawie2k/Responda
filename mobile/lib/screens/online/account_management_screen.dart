@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:responda/core/theme/app_colors.dart';
 import 'package:responda/features/onboarding/domain/account_profile.dart';
 import 'package:responda/features/onboarding/presentation/account_scope.dart';
+import 'package:responda/features/onboarding/presentation/screens/verification/privacy_notice_screen.dart';
 
 class AccountManagementScreen extends StatelessWidget {
   const AccountManagementScreen({super.key});
@@ -32,6 +33,8 @@ class AccountManagementScreen extends StatelessWidget {
                     _DetailsCard(profile: profile),
                     const SizedBox(height: 14),
                     const _RecoveryCard(),
+                    const SizedBox(height: 14),
+                    const _SignOutButton(),
                   ],
                 ],
               ),
@@ -41,6 +44,47 @@ class AccountManagementScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class _SignOutButton extends StatefulWidget {
+  const _SignOutButton();
+  @override
+  State<_SignOutButton> createState() => _SignOutButtonState();
+}
+
+class _SignOutButtonState extends State<_SignOutButton> {
+  bool _busy = false;
+  Future<void> _signOut() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await AccountScope.maybeOf(context)!.clearLocalSession();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute<void>(builder: (_) => const PrivacyNoticeScreen()),
+        (_) => false,
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not sign out. Check your connection and try again.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => TextButton.icon(
+    onPressed: _busy ? null : _signOut,
+    icon: const Icon(Icons.logout),
+    label: Text(_busy ? 'Signing out…' : 'Sign out'),
+  );
 }
 
 class _Header extends StatelessWidget {

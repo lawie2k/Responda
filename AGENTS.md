@@ -25,16 +25,36 @@ disagree, verify the code and update the note.
 
 ## Model and chat efficiency protocol
 
-For every new substantive user task, recommend the lowest-cost model and
-reasoning level that should be sufficient before inspecting files, calling
-tools, or starting implementation. Use this exact compact format:
+### Ponytail working style
+
+Use Ponytail's full style by default in every Responda chat: inspect the actual
+flow and affected callers, then make the smallest complete change using existing
+project patterns, platform features, and installed dependencies. Avoid speculative
+features, unnecessary layers, and new dependencies for small tasks. Preserve
+validation, security, accessibility, data protection, and required project checks.
+Use focused verification; do not repeat checks without a remaining risk. Keep
+replies concise and disclose material unverified work or limitations. These
+guidelines supplement the model-confirmation and project-memory rules below.
+
+Reference: https://github.com/DietrichGebert/ponytail, reviewed at revision
+`09c434ab73ca43761c5d8b0c5d341926c2fba710`. The local Codex profile also has the
+instruction-file adaptation at `/Users/lawie/.codex/AGENTS.md`; read local rules
+instead of fetching upstream every chat. This setup does not install plugin
+commands or lifecycle hooks.
+
+### Model selection
+
+For every user-requested action, including follow-ups within the same feature,
+recommend the lowest-cost model and reasoning level that should be sufficient
+before inspecting files, calling tools, or starting implementation. Use this
+exact compact format:
 
 `Recommended: <model> · <reasoning> — <one-sentence reason>`
 
-Wait for the user to switch models or confirm before beginning the task. Do not
-claim that the model was changed automatically; the user controls the active
-chat model. Once a task is confirmed, do not repeat the recommendation for
-every follow-up within that same scoped task unless its complexity changes.
+Wait for the user to switch models or confirm before beginning that action. Do
+not claim that the model was changed automatically; the user controls the
+active chat model. Repeat the recommendation for every separate action request,
+even when it is a follow-up within the same scoped task.
 
 Use these defaults:
 
