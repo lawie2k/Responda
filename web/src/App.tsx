@@ -449,7 +449,10 @@ function Dashboard({
           )}
           {page === "Mobile Accounts" && <MobileAccounts />}
           {page === "Response Teams" && (
-            <ResponseTeams role={session.user.role} />
+            <ResponseTeams
+              role={session.user.role}
+              onAssignmentsChanged={reportQuery.refetch}
+            />
           )}
           {page === "Analytics" && <Analytics go={setPage} />}
           {page === "Historical Records" && <HistoricalRecords />}

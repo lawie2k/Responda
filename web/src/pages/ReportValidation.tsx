@@ -126,7 +126,6 @@ export function ReportValidation({
       : emptyForm(selected)
     : null;
   const canReview = isAdministratorRole(userRole);
-  const allChecksComplete = form?.checks.every(Boolean) ?? false;
   const notesPresent = Boolean(form?.notes.trim());
 
   const updateForm = (change: Partial<ReviewForm>) => {
@@ -150,12 +149,6 @@ export function ReportValidation({
       setFeedback("Add reviewer notes before saving this decision.");
       return;
     }
-    if (decision === "verified" && !allChecksComplete) {
-      setFeedbackTone("error");
-      setFeedback("Complete every checklist item before validating the report.");
-      return;
-    }
-
     setSubmitting(true);
     setFeedback("");
     try {
@@ -426,7 +419,15 @@ export function ReportValidation({
                     </div>
 
                     <div className="grid gap-1.5 rounded-[13px] bg-soft-gray px-[10px] py-[9px] [&_label]:flex [&_label]:items-center [&_label]:gap-[7px] [&_label]:text-[9px] [&_input]:size-[17px] [&_input]:accent-status-green">
-                      <b className="text-[9px] text-muted">VALIDATION CHECKLIST</b>
+                      <div>
+                        <b className="block text-[9px] text-muted">
+                          OPTIONAL REVIEW CHECKLIST
+                        </b>
+                        <span className="text-[8px] text-muted">
+                          Check only the items you confirmed. Unchecked items do
+                          not block a decision.
+                        </span>
+                      </div>
                       {checklistItems.map((item, index) => (
                         <label key={item}>
                           <input

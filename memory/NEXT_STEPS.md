@@ -2,28 +2,27 @@
 tags:
   - responda/memory
   - responda/planning
-updated: 2026-10-16
+updated: 2026-10-18
 ---
 
 # Next steps
 
-The next backend-focused sequence is:
+Finish the database-backed web workspace before resuming mobile integration:
 
-1. Define the phone-number OTP request, verification, session, and optional
-   name/barangay contracts for citizen accounts.
-2. Remove the obsolete ID, face-capture, and identity-review route from the
-   Flutter onboarding flow and connect phone OTP accounts to PostgreSQL.
-3. Connect the dashboard Mobile Accounts view to real citizen accounts with
-   appropriately masked phone data and account-status controls.
-4. Freeze the mobile report request/response contract and report status values.
-5. Implement incident-type listing and online mobile report submission with
-   idempotency through `client_report_id`.
-6. Wire the Flutter report flow to the online submission endpoint.
-7. Finalize the signed SMS protocol and then implement gateway ingestion.
-8. Confirm the approved ML model and implement translation/priority inference
-   behind a replaceable service interface.
+1. Connect Incident Map to real active incidents and report locations.
+2. Connect Historical Records to resolved and closed incident data with safe
+   search, filters, pagination, and export.
+3. Replace Analytics demonstration data with database-backed operational
+   metrics and trends.
+4. Complete the remaining Super Admin settings and staff-account controls after
+   confirming their product rules.
+5. Define the phone-number OTP request, verification, session, suspension, and
+   optional name/barangay contracts for citizen accounts.
+6. Remove the obsolete ID/face-review Flutter flow and connect phone OTP.
+7. Connect Mobile Accounts to real citizens with masked phone data.
+8. Implement online mobile reports, then the signed app-only SMS gateway, then
+   the approved advisory ML service.
 
-Before database or API implementation continues, confirm remaining product
-rules that would change the schema: anonymous-report policy, mobile-account
-suspension/restoration, report status transitions, attachment retention, and
-SMS signing/key provisioning.
+Before the later account/report phases, confirm anonymous-report policy,
+mobile-account suspension/restoration, attachment retention, SMS signing/key
+provisioning, and the exact ML model.

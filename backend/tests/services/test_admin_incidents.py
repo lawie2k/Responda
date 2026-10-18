@@ -133,6 +133,7 @@ def test_create_incident_links_verified_report_and_writes_history_atomically() -
     assert audit.details is not None and incident.summary not in audit.details
     assert response.operation == "created"
     assert response.incident_id == incident.incident_id
+    assert response.incident_updated_at == incident.updated_at
     database.flush.assert_awaited_once()
     database.commit.assert_awaited_once()
 

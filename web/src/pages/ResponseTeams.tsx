@@ -105,7 +105,13 @@ function UnitCard({
   );
 }
 
-export function ResponseTeams({ role }: { role: AdminUser["role"] }) {
+export function ResponseTeams({
+  role,
+  onAssignmentsChanged,
+}: {
+  role: AdminUser["role"];
+  onAssignmentsChanged: () => void;
+}) {
   const canManageRoster = isAdministratorRole(role);
   const [statusFilter, setStatusFilter] = useState<ResponseUnitStatus | "">("");
   const [localSearch, setLocalSearch] = useState("");
@@ -281,6 +287,7 @@ export function ResponseTeams({ role }: { role: AdminUser["role"] }) {
       setConfirmCancellation(false);
       roster.refetch();
       activeAssignments.refetch();
+      onAssignmentsChanged();
     } catch (error) {
       setAssignmentError(
         error instanceof Error

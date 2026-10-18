@@ -282,6 +282,7 @@ class AdminIncidentService:
     ) -> AdminIncidentLinkResult:
         return AdminIncidentLinkResult(
             incident_id=incident.incident_id,
+            incident_updated_at=incident.updated_at,
             linked_report_id=report.report_id,
             incident_type_id=incident.incident_type_id,
             priority=cast(PriorityValue, incident.priority),

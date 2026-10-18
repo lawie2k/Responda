@@ -111,6 +111,7 @@ def build_result(
 ) -> AdminIncidentLinkResult:
     return AdminIncidentLinkResult(
         incident_id=INCIDENT_ID,
+        incident_updated_at=datetime.now(UTC),
         linked_report_id=report_id,
         incident_type_id=INCIDENT_TYPE_ID,
         priority="high",

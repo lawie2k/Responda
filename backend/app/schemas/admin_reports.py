@@ -141,8 +141,6 @@ class AdminReportReviewRequest(BaseModel):
             raise ValueError("Reviewer notes cannot be empty")
         if self.decision == "verified" and self.final_priority is None:
             raise ValueError("A final priority is required for verified reports")
-        if self.decision == "verified" and self.location_accurate is not True:
-            raise ValueError("Verified reports require a confirmed location")
         return self
 
 
@@ -158,7 +156,7 @@ class AdminReportReviewResult(BaseModel):
 class AdminManualReportCreateRequest(BaseModel):
     incident_type_id: uuid.UUID
     location: str = Field(min_length=1, max_length=255)
-    reporter_contact: str = Field(min_length=7, max_length=30)
+    reporter_contact: str = Field(min_length=10, max_length=30)
     intake_channel: ManualIntakeChannelValue
     description: str = Field(min_length=10, max_length=5000)
     people_need_help: bool
@@ -177,14 +175,18 @@ class AdminManualReportCreateRequest(BaseModel):
     @classmethod
     def normalize_reporter_contact(cls, value: str) -> str:
         compact = "".join(character for character in value.strip() if character not in " -()")
-        if compact.startswith("09") and len(compact) == 11:
-            compact = f"+63{compact[1:]}"
-        elif compact.startswith("639") and len(compact) == 12:
-            compact = f"+{compact}"
         digits = compact[1:] if compact.startswith("+") else compact
-        if not digits.isdigit() or not 7 <= len(digits) <= 15:
-            raise ValueError("Enter a valid reporter phone number")
-        return compact
+        if not digits.isdigit():
+            raise ValueError("Enter a valid Philippine mobile number")
+        if digits.startswith("09"):
+            local_number = digits[1:]
+        elif digits.startswith("63"):
+            local_number = digits[2:]
+        else:
+            local_number = digits
+        if len(local_number) != 10 or not local_number.startswith("9"):
+            raise ValueError("Enter a valid Philippine mobile number")
+        return f"+63{local_number}"
 
 
 class AdminManualReportCreateResult(BaseModel):

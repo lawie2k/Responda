@@ -230,6 +230,7 @@ export type AdminIncidentsQuery = {
 
 export type AdminIncidentLinkResult = {
   incident_id: string;
+  incident_updated_at: string;
   linked_report_id: string;
   incident_type_id: string;
   priority: ReportPriority;
@@ -1057,6 +1058,7 @@ function isAdminIncidentLinkResult(
   const result = value as Record<string, unknown>;
   return (
     typeof result.incident_id === "string" &&
+    typeof result.incident_updated_at === "string" &&
     typeof result.linked_report_id === "string" &&
     typeof result.incident_type_id === "string" &&
     typeof result.priority === "string" &&

@@ -43,7 +43,7 @@ const sourceLabel = (
   return "Manually encoded";
 };
 
-function IncidentManagement({
+function InitialIncidentDispatch({
   report,
   detail,
   incidents,
@@ -58,36 +58,55 @@ function IncidentManagement({
   incidentStatus: "idle" | "loading" | "ready" | "error";
   incidentError: string | null;
   retryIncidents: () => void;
-  onComplete: (message: string) => void;
+  onComplete: (message: string, tone?: "success" | "error") => void;
 }) {
-  const [summary, setSummary] = useState(
-    `${report.incident} at ${report.location}`,
-  );
+  const units = useAdminResponseUnits({
+    pageSize: 100,
+    statuses: ["available"],
+  });
+  const [unitId, setUnitId] = useState("");
   const [incidentId, setIncidentId] = useState("");
-  const [submitting, setSubmitting] = useState<"create" | "link" | null>(null);
+  const [submitting, setSubmitting] = useState<"dispatch" | "link" | null>(
+    null,
+  );
   const [error, setError] = useState("");
 
-  const createIncident = async () => {
-    const normalizedSummary = summary.trim();
-    if (!normalizedSummary) {
-      setError("Add a short operational summary before creating the incident.");
+  const dispatchUnit = async () => {
+    if (!unitId) {
+      setError("Select an available response team first.");
       return;
     }
-    setSubmitting("create");
+    setSubmitting("dispatch");
     setError("");
+    let createdIncidentId: string | null = null;
     try {
-      const result = await createAdminIncident({
+      const incident = await createAdminIncident({
         report_id: detail.report_id,
         expected_report_updated_at: detail.updated_at,
-        summary: normalizedSummary,
+        summary: `${report.incident} at ${report.location}`,
       });
+      createdIncidentId = incident.incident_id;
+      const result = await createAdminAssignment(incident.incident_id, {
+        unit_id: unitId,
+        expected_incident_updated_at: incident.incident_updated_at,
+      });
+      units.refetch();
       onComplete(
-        `${report.reference} created incident INC-${result.incident_id.slice(0, 8).toUpperCase()}.`,
+        `${result.assignment.unit.name} was assigned to ${report.reference}.`,
       );
     } catch (caught) {
-      setError(
-        caught instanceof Error ? caught.message : "The incident could not be created.",
-      );
+      const message =
+        caught instanceof Error
+          ? caught.message
+          : "The response team could not be assigned.";
+      if (createdIncidentId) {
+        onComplete(
+          `INC-${createdIncidentId.slice(0, 8).toUpperCase()} was created, but the response team was not assigned. Select the team again to retry. ${message}`,
+          "error",
+        );
+      } else {
+        setError(message);
+      }
     } finally {
       setSubmitting(null);
     }
@@ -122,31 +141,58 @@ function IncidentManagement({
   return (
     <div className="grid gap-3 rounded-[13px] border border-[#ead3d7] bg-blush p-3">
       <div>
-        <b className="block text-[10px] text-maroon">CONFIRM AS INCIDENT</b>
+        <b className="block text-[10px] text-maroon">DISPATCH RESPONSE TEAM</b>
         <span className="text-[9px] leading-[1.45] text-muted">
-          Create a new operational incident or connect this verified report to a
-          matching active incident.
+          Select an available team. RESPONDA creates the incident automatically
+          when the assignment is saved.
         </span>
       </div>
-      <label className="grid gap-1.5 text-[9px] font-semibold text-[#1c1c1e]">
-        New incident summary
-        <textarea
-          className="min-h-20 resize-y rounded-[10px] border border-border bg-white p-[10px] text-[10px] font-normal outline-0 focus:border-maroon"
-          value={summary}
-          maxLength={2000}
-          disabled={submitting !== null}
-          onChange={(event) => setSummary(event.target.value)}
-        />
-      </label>
-      <Button
-        icon="plus"
-        disabled={submitting !== null || !summary.trim()}
-        onClick={() => void createIncident()}
-      >
-        {submitting === "create" ? "Creating…" : "Create incident"}
-      </Button>
+      {units.status === "error" ? (
+        <div className="grid gap-2 rounded-[10px] bg-red-soft p-2 text-[9px] text-priority-red">
+          <span>{units.error}</span>
+          <Button variant="secondary" onClick={units.refetch}>
+            Reload available teams
+          </Button>
+        </div>
+      ) : (
+        <div className="grid gap-2">
+          <SelectField
+            label={
+              units.status === "loading"
+                ? "Loading available teams…"
+                : units.data.items.length
+                  ? "Select available response team"
+                  : "No response teams are available"
+            }
+            value={unitId}
+            options={
+              units.data?.items.map((unit) => ({
+                value: unit.unit_id,
+                label: `${unit.name} • ${unit.unit_type}`,
+              })) ?? []
+            }
+            onChange={(value) => {
+              setUnitId(value);
+              setError("");
+            }}
+          />
+          <Button
+            icon="truck"
+            disabled={
+              submitting !== null || !unitId || units.status !== "ready"
+            }
+            onClick={() => void dispatchUnit()}
+          >
+            {submitting === "dispatch"
+              ? "Creating incident and assigning…"
+              : "Assign response team"}
+          </Button>
+        </div>
+      )}
       <div className="border-t border-[#dfc4c9] pt-3">
-        <b className="mb-2 block text-[9px] text-muted">OR LINK EXISTING</b>
+        <b className="mb-2 block text-[9px] text-muted">
+          DUPLICATE REPORT? LINK IT INSTEAD
+        </b>
         {incidentStatus === "error" ? (
           <div className="grid gap-2 rounded-[10px] bg-red-soft p-2 text-[9px] text-priority-red">
             <span>{incidentError}</span>
@@ -204,7 +250,7 @@ function IncidentDispatch({
   incidentStatus: "idle" | "loading" | "ready" | "error";
   incidentError: string | null;
   retryIncident: () => void;
-  onComplete: (message: string) => void;
+  onComplete: (message: string, tone?: "success" | "error") => void;
 }) {
   const incidentId = incident?.incident_id ?? null;
   const assignments = useAdminAssignments(incidentId, Boolean(incidentId));
@@ -377,7 +423,7 @@ function ReportDetail({
   incidentError: string | null;
   retryIncidents: () => void;
   onOpenValidation: () => void;
-  onIncidentChanged: (message: string) => void;
+  onIncidentChanged: (message: string, tone?: "success" | "error") => void;
 }) {
   const canVerify = report.verificationStatus === "pending";
   const canManageIncidents = isAdministratorRole(userRole);
@@ -529,7 +575,7 @@ function ReportDetail({
             )}
         </div>
       ) : isReadyForIncident && canManageIncidents && detail ? (
-        <IncidentManagement
+        <InitialIncidentDispatch
           key={report.id}
           report={report}
           detail={detail}
@@ -541,8 +587,8 @@ function ReportDetail({
         />
       ) : isReadyForIncident ? (
         <div className="rounded-xl bg-amber-soft px-[11px] py-[10px] text-[9px] text-priority-amber">
-          This report is verified. An authorized administrator must create or
-          link its incident.
+          This report is verified. An authorized administrator must assign a
+          response team or link it to an existing incident.
         </div>
       ) : (
         <div className="flex min-h-[52px] items-center gap-[10px] rounded-xl bg-green-soft px-[11px] py-[9px] text-status-green [&>.icon]:size-[30px] [&>.icon]:rounded-[10px] [&>.icon]:bg-white [&>.icon]:p-1.5 [&_div]:grid [&_div]:gap-0.5 [&_b]:text-[10px] [&_span]:text-[9px] [&_span]:text-muted">
@@ -580,6 +626,9 @@ export function LiveReports({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState("");
+  const [feedbackTone, setFeedbackTone] = useState<"success" | "error">(
+    "success",
+  );
   const [page, setPage] = useState(1);
   const filtersRef = useRef<HTMLDivElement>(null);
 
@@ -604,7 +653,7 @@ export function LiveReports({
 
   const reportQuery = useAdminReports({
     page,
-    pageSize: 20,
+    pageSize: 7,
     search: search || undefined,
     incidentTypeId: incidentTypeId || undefined,
     reportStatuses: ["new", "under_review", "linked"],
@@ -702,6 +751,7 @@ export function LiveReports({
     link.download = "responda-live-reports.csv";
     link.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setFeedbackTone("success");
     setFeedback(`${rows.length} reports from this page exported to CSV.`);
     window.setTimeout(() => setFeedback(""), 2800);
   };
@@ -810,15 +860,19 @@ export function LiveReports({
       </Card>
       {feedback && (
         <div
-          className="flex min-h-[42px] items-center gap-2 rounded-xl bg-green-soft px-3 text-[10px] font-semibold text-status-green"
-          role="status"
+          className={`flex min-h-[42px] items-center gap-2 rounded-xl px-3 text-[10px] font-semibold ${
+            feedbackTone === "error"
+              ? "bg-red-soft text-priority-red"
+              : "bg-green-soft text-status-green"
+          }`}
+          role={feedbackTone === "error" ? "alert" : "status"}
         >
-          <Icon name="check" />
+          <Icon name={feedbackTone === "error" ? "alert" : "check"} />
           {feedback}
         </div>
       )}
-      <div className="grid grid-cols-[minmax(0,1fr)_348px] gap-4 max-[1180px]:grid-cols-1 [&>.card:first-child]:overflow-auto">
-        <Card className="flex min-h-[520px] flex-col">
+      <div className="grid h-[calc(100vh-290px)] min-h-[460px] max-h-[720px] grid-cols-[minmax(0,1fr)_348px] gap-4 max-[1180px]:h-auto max-[1180px]:max-h-none max-[1180px]:grid-cols-1 [&>.card]:min-h-0 [&>.card]:overflow-auto max-[1180px]:[&>.card]:h-auto">
+        <Card className="flex flex-col">
           <SectionHead
             title="Active report queue"
             subtitle={`${reportQuery.data?.total ?? 0} matching • Sorted by latest`}
@@ -895,7 +949,8 @@ export function LiveReports({
             incidentError={incidentQuery.error}
             retryIncidents={incidentQuery.refetch}
             onOpenValidation={() => openValidation(selected.id)}
-            onIncidentChanged={(message) => {
+            onIncidentChanged={(message, tone = "success") => {
+              setFeedbackTone(tone);
               setFeedback(message);
               reportQuery.refetch();
               detailState.refetch();

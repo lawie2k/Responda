@@ -28,7 +28,7 @@ export function ReportModal({
   >("loading");
   const [incidentTypesVersion, setIncidentTypesVersion] = useState(0);
   const [location, setLocation] = useState("");
-  const [reporterContact, setReporterContact] = useState("");
+  const [reporterContact, setReporterContact] = useState("9");
   const [reportSource, setReportSource] = useState<
     ManualIntakeChannel | ""
   >("");
@@ -74,7 +74,7 @@ export function ReportModal({
     incidentTypesStatus === "ready" &&
     incidentType &&
     location.trim() &&
-    reporterContact.trim() &&
+    /^9\d{9}$/.test(reporterContact) &&
     reportSource &&
     incidentDetails.trim().length >= 10 &&
     answers.every((answer) => answer !== null),
@@ -88,7 +88,7 @@ export function ReportModal({
       const result = await createAdminManualReport({
         incident_type_id: incidentType,
         location: location.trim(),
-        reporter_contact: reporterContact.trim(),
+        reporter_contact: `+63${reporterContact}`,
         intake_channel: reportSource,
         description: incidentDetails.trim(),
         people_need_help: answers[0] === true,
@@ -178,16 +178,38 @@ export function ReportModal({
         </label>
         <div className="grid grid-cols-2 gap-3 max-[650px]:grid-cols-1">
           <label className="grid gap-1.5 text-[9px] font-semibold">
-            Reporter contact
-            <input
-              required
-              type="tel"
-              maxLength={30}
-              disabled={submitting}
-              value={reporterContact}
-              onChange={(event) => setReporterContact(event.target.value)}
-              placeholder="09XX XXX XXXX"
-            />
+            Reporter mobile number
+            <span className="flex items-center overflow-hidden rounded-[10px] border border-border bg-white focus-within:border-maroon focus-within:shadow-[0_0_0_3px_rgba(122,31,43,.08)]">
+              <span className="border-r border-border bg-soft-gray px-3 py-[10px] text-[11px] font-semibold text-[#4a4143]">
+                +63
+              </span>
+              <input
+                required
+                aria-label="Reporter mobile number after plus sixty-three"
+                autoComplete="tel-national"
+                className="min-w-0 flex-1 !rounded-none !border-0 !px-2 !shadow-none !outline-0"
+                disabled={submitting}
+                inputMode="numeric"
+                maxLength={10}
+                pattern="9[0-9]{9}"
+                type="tel"
+                value={reporterContact}
+                onChange={(event) => {
+                  let digits = event.target.value.replace(/\D/g, "");
+                  if (digits.startsWith("63")) digits = digits.slice(2);
+                  if (digits.startsWith("0")) digits = digits.slice(1);
+                  if (!digits) {
+                    setReporterContact("9");
+                    return;
+                  }
+                  if (!digits.startsWith("9")) return;
+                  setReporterContact(digits.slice(0, 10));
+                }}
+              />
+            </span>
+            <span className="text-[8px] font-normal text-muted">
+              10 digits beginning with 9
+            </span>
           </label>
           <label className="grid gap-1.5 text-[9px] font-semibold">
             Report source

@@ -303,6 +303,21 @@ def test_operations_admin_can_create_a_manual_report() -> None:
     assert report_service.create_call[1].reporter_contact == "+639170000000"
 
 
+def test_manual_report_normalizes_a_ten_digit_local_mobile_number() -> None:
+    payload = AdminManualReportCreateRequest(
+        incident_type_id=INCIDENT_TYPE_ID,
+        location="Public market",
+        reporter_contact="9170000000",
+        intake_channel="walk_in",
+        description="A person needs emergency assistance.",
+        people_need_help=True,
+        additional_assistance=False,
+        immediate_danger=False,
+    )
+
+    assert payload.reporter_contact == "+639170000000"
+
+
 def test_manual_report_rejects_invalid_contact_input() -> None:
     auth_service = FakeAdminAuthService(role="operations_admin")
     report_service = FakeAdminReportService()
@@ -319,7 +334,7 @@ def test_manual_report_rejects_invalid_contact_input() -> None:
             json={
                 "incident_type_id": str(INCIDENT_TYPE_ID),
                 "location": "Public market",
-                "reporter_contact": "unknown",
+                "reporter_contact": "08170000000",
                 "intake_channel": "walk_in",
                 "description": "A person needs emergency assistance.",
                 "people_need_help": True,
@@ -489,7 +504,7 @@ def test_viewer_cannot_review_reports() -> None:
     assert report_service.review_call is None
 
 
-def test_verified_review_requires_priority_and_confirmed_location() -> None:
+def test_verified_review_requires_a_final_priority() -> None:
     auth_service = FakeAdminAuthService(role="operations_admin")
     report_service = FakeAdminReportService()
 
@@ -511,6 +526,35 @@ def test_verified_review_requires_priority_and_confirmed_location() -> None:
 
     assert response.status_code == 422
     assert report_service.review_call is None
+
+
+def test_verified_review_allows_unchecked_advisory_items() -> None:
+    auth_service = FakeAdminAuthService(role="operations_admin")
+    report_service = FakeAdminReportService()
+
+    with build_test_client(auth_service, report_service) as client:
+        client.cookies.set(
+            "responda_admin_session",
+            auth_service.token,
+            path="/api/v1/admin",
+        )
+        response = client.post(
+            f"/api/v1/admin/reports/{REPORT_ID}/reviews",
+            headers={"Origin": "http://localhost:5173"},
+            json={
+                "expected_updated_at": "2026-10-16T02:30:00Z",
+                "decision": "verified",
+                "final_priority": "high",
+                "location_accurate": False,
+                "possible_duplicate": False,
+                "callback_needed": False,
+                "notes": "Validated from the available report information.",
+            },
+        )
+
+    assert response.status_code == 200
+    assert report_service.review_call is not None
+    assert report_service.review_call[2].location_accurate is False
 
 
 def test_report_review_rejects_an_untrusted_browser_origin() -> None:

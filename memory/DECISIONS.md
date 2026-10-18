@@ -2,7 +2,7 @@
 tags:
   - responda/memory
   - responda/decisions
-updated: 2026-10-15
+updated: 2026-10-16
 ---
 
 # Decisions
@@ -131,9 +131,11 @@ dispatches.
 - Reviews accept only pending, non-deleted reports. The write locks the report
   and compares the detail response's `updated_at` value to prevent stale staff
   screens from overwriting newer decisions.
-- Verified decisions require a final priority and confirmed location. Verified
-  and unverified reports move to `under_review`; invalid reports are closed and
-  do not retain a final emergency priority.
+- Verified decisions require reviewer notes and a final priority. The location,
+  duplicate, callback, and classification checklist indicators are advisory;
+  staff may leave any or all of them unchecked without blocking the decision.
+  Verified and unverified reports move to `under_review`; invalid reports are
+  closed and do not retain a final emergency priority.
 - The report update, `report_reviews` row, `report_events` row, and `audit_logs`
   row commit together. Audit/event metadata excludes reviewer notes and raw
   report content.
@@ -141,6 +143,9 @@ dispatches.
 ### 2026-10-16 — Treat staff-encoded reports as pending manual intake
 
 - Only Super Admin and Administrator accounts may encode a manual report.
+- Manual reporter phone numbers must be Philippine mobile numbers and are stored
+  canonically as `+639XXXXXXXXX`; local `9XXXXXXXXX`, `09XXXXXXXXX`, and
+  country-code input normalize to the same value.
 - The selected incident type must be an active database record; the dashboard
   does not use hard-coded type identifiers.
 - Phone call, walk-in, radio communication, and other offline intake channels
@@ -199,11 +204,14 @@ dispatches.
 - Completing the final active assignment resolves the incident and releases the
   unit. Cancelling the final active assignment reopens the incident and releases
   the unit. Other active teams keep the incident dispatched or responding.
-- The dashboard starts dispatch from a report that is already linked to an
-  active incident, while acknowledgment, responding, completion, and
-  cancellation are recorded from the assigned unit's Response Teams detail.
-  Both surfaces read and refresh server state; neither derives lifecycle state
-  only in the browser.
+- For an unlinked verified report, the dashboard presents response-team
+  selection first. Saving that assignment creates the incident automatically
+  and then assigns the selected team; incident creation remains an internal
+  persistence boundary instead of a separate staff-facing step. Linking to an
+  existing incident is only for duplicate reports about the same emergency.
+  Acknowledgment, responding, completion, and cancellation are recorded from
+  the assigned unit's Response Teams detail. Both surfaces read and refresh
+  server state; neither derives lifecycle state only in the browser.
 
 ### Use strict app-only SMS ingestion
 

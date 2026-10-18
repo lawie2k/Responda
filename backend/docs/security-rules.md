@@ -29,7 +29,9 @@ VA101 to FastAPI and PostgreSQL; VA101's Next.js code is a reference, not code t
 - Use transactions for multi-table writes, status transitions, dispatch operations, and audit
   records that belong to the same operation.
 - For staff report review, lock the pending report and require the caller's last-seen `updated_at`
-  value. Reject stale or repeated decisions instead of overwriting a newer review.
+  value. Reject stale or repeated decisions instead of overwriting a newer review. Reviewer notes
+  and a final priority remain required for verified decisions; checklist indicators are advisory
+  and may be left unchecked.
 - Allow only Super Admin and Administrator accounts to review reports, create incidents, or link
   reports. Lock the report,
   require its last-seen `updated_at`, and accept only verified reports with a final priority that

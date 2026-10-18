@@ -2,7 +2,7 @@
 tags:
   - responda/memory
   - responda/status
-updated: 2026-10-16
+updated: 2026-10-18
 ---
 
 # Current state
@@ -40,15 +40,18 @@ updated: 2026-10-16
   keys or checksums.
 - Super Admin and Administrator accounts can now encode manual reports through
   a protected endpoint. It loads active database incident types, normalizes the
-  reporter phone, records the offline intake channel and three safety answers,
-  supports a written location without invented GPS coordinates, and commits the
-  caller, report, location, event, and privacy-minimized audit record together.
+  reporter phone to the Philippine `+639XXXXXXXXX` form, records the offline
+  intake channel and three safety answers, supports a written location without
+  invented GPS coordinates, and commits the caller, report, location, event,
+  and privacy-minimized audit record together.
   Six canonical incident types are seeded for the current web and Flutter flows.
 - A protected report-review endpoint allows Super Admin and Administrator
   accounts to decide pending reports. Each decision locks and version-checks
   the report, updates verification/final-priority state, and creates a review,
   report event, and audit entry in one transaction. Verified and unverified
-  reports move to `under_review`; invalid reports are closed.
+  reports move to `under_review`; invalid reports are closed. Reviewer notes
+  and a final priority remain required for verified decisions, while all review
+  checklist indicators are optional evidence and may remain unchecked.
 - Protected incident write endpoints allow Super Admin and Administrator
   accounts to create an incident from a verified report or link a verified report to an
   existing active incident of the same type. Both operations lock and
@@ -98,8 +101,9 @@ updated: 2026-10-16
 - The Encode a Report modal is connected to PostgreSQL. It loads real incident
   types, submits validated manual reports with loading/error states, prevents
   duplicate clicks, confirms success, opens Live Reports, and refreshes both
-  dashboard and queue data. Written manual locations remain visible even when
-  no coordinates were provided.
+  dashboard and queue data. Its phone input fixes `+63 9` as the beginning,
+  accepts digits only, and limits the local number to 10 digits. Written manual
+  locations remain visible even when no coordinates were provided.
 - Normal Administrators receive the operational workspace but cannot navigate
   to or discover the system Settings page; that configuration surface remains
   Super Admin-only.
@@ -107,14 +111,21 @@ updated: 2026-10-16
   global report search, and Live Reports queue now read from the protected
   report APIs. Live Reports supports server-side search, filters, capped
   pagination, real protected details, and explicit loading, error, and empty
-  states. Report Validation now loads pending reports and protected details from
-  the backend, submits real verified/unverified/invalid decisions, respects
-  reviewer roles, and handles validation and concurrency failures. Zero-count
+  states. The desktop Live Reports queue and detail panels fit within the
+  available viewport and scroll internally, with seven reports per page;
+  stacked responsive layouts retain natural height. Report Validation now loads
+  pending reports and protected details from the backend, submits real
+  verified/unverified/invalid decisions, treats every checklist item as
+  optional, respects reviewer roles, and handles validation and concurrency
+  failures. Zero-count
   validation alerts, summary cards, and queue badges are hidden while the clear
   queue empty state remains visible. In Live Reports, Super Admin and
-  Administrator accounts can create an incident from a verified report or choose a
-  matching active incident and link it; all report and incident views refresh
-  after success. Response Teams now reads
+  Administrator accounts select an available response team directly from an
+  unlinked verified report. The dashboard automatically creates the incident
+  and then assigns that team, using the new incident's returned concurrency
+  timestamp; staff no longer see incident creation as a separate primary step.
+  Existing-incident linking remains a secondary option only for duplicate
+  reports. All report and incident views refresh after success. Response Teams now reads
   the real PostgreSQL response-unit roster with search, status filters,
   pagination, refresh, unit details, and explicit loading, error, and empty
   states. Administrators can register available response units and edit their
@@ -126,7 +137,8 @@ updated: 2026-10-16
   team with optimistic-concurrency protection. Response Teams now resolves the
   active assignment for each in-service unit and lets administrators record
   acknowledgment, responding, completion, or confirmed cancellation while
-  refreshing the roster and assignment state after each change.
+  refreshing the roster, assignment state, and shared report summaries after
+  each change so Live Reports counters cannot retain a stale dispatch status.
   Analytics, historical, and incident-map views still contain demonstration data.
 
 ## Mobile app
@@ -145,6 +157,19 @@ updated: 2026-10-16
   wired end to end.
 
 ## Verification history
+
+- A real-browser development workflow created a manual report, validated it
+  with every optional checklist item unchecked, selected a response team first,
+  automatically created the incident, assigned the team, recorded
+  acknowledgment and responding, completed the response, resolved the report,
+  and returned the unit to Available. The browser console had no errors. Web
+  lint and production build passed after fixing shared report-summary refreshes
+  from Response Teams.
+
+- Optional validation checks and the compact Live Reports workspace passed
+  backend Ruff, strict mypy, and all 108 tests plus web lint and production
+  build. Browser accessibility inspection confirmed the live queue, linked
+  incident, and response-team assignment controls render from the running app.
 
 - Manual report intake passed backend Ruff, strict mypy, and all 107 tests plus
   web lint and production build. PostgreSQL is at the new migration head with
@@ -205,8 +230,8 @@ updated: 2026-10-16
 - Human-written project memory is in `memory/`.
 - Graphify indexes code from backend, web, mobile, and the monorepo root into one
   combined graph.
-- The combined graph currently contains 2,537 code nodes, 4,731 relationships,
-  and 214 detected communities. Generated graph artifacts remain local and
+- The combined graph currently contains 2,539 code nodes, 4,754 relationships,
+  and 218 detected communities. Generated graph artifacts remain local and
   ignored.
 - `AGENTS.md` directs future coding sessions to read memory and query Graphify
   before broad filesystem searches.

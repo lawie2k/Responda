@@ -46,6 +46,7 @@ class AdminIncidentReportLinkRequest(BaseModel):
 
 class AdminIncidentLinkResult(BaseModel):
     incident_id: uuid.UUID
+    incident_updated_at: datetime
     linked_report_id: uuid.UUID
     incident_type_id: uuid.UUID
     priority: PriorityValue

@@ -2,10 +2,59 @@
 tags:
   - responda/memory
   - responda/work-log
-updated: 2026-10-16
+updated: 2026-10-18
 ---
 
 # Work log
+
+## 2026-10-18 — Verify the complete staff report workflow
+
+- Completed a real-browser development flow from manual report encoding through
+  optional-checklist validation, team-first dispatch, automatic incident
+  creation, acknowledgment, responding, completion, report resolution, and
+  response-unit release.
+- Found and fixed stale Live Reports summary counters after assignment
+  transitions by refreshing the shared report query from Response Teams.
+- Confirmed the final report status was Resolved, the test unit returned to
+  Available, the Dispatched counter returned to zero, and the browser console
+  contained no errors.
+- Verification: web lint and production build passed. Synchronized the changed
+  web files into the WebStorm-compatible mirror used for local development.
+- Refreshed the combined Graphify index to 2,539 nodes, 4,754 relationships,
+  and 218 communities.
+
+## 2026-10-16 — Constrain encoded-report phone numbers
+
+- Changed the Encode a Report phone control to show a fixed `+63` prefix, keep
+  `9` as the first local digit, ignore an attempted leading zero, accept digits
+  only, and cap the local number at 10 digits.
+- Tightened backend validation to accept only Philippine mobile-number forms
+  and normalize them to `+639XXXXXXXXX` before lookup or storage.
+- Added coverage for 10-digit local normalization and a rejected non-mobile
+  prefix.
+- Verification: backend Ruff and strict mypy passed with all 109 tests; web lint
+  and production build passed.
+- Refreshed the combined Graphify index to 2,539 nodes, 4,754 relationships,
+  and 218 communities.
+
+## 2026-10-16 — Simplify validation and dispatch entry
+
+- Made every report-review checklist indicator optional in both the dashboard
+  and backend while retaining required reviewer notes and a final priority for
+  verified reports.
+- Replaced the visible create-incident-first form with response-team selection.
+  One staff action now creates the incident automatically and assigns the chosen
+  team; linking an existing incident remains secondary and only for duplicate
+  reports. Incident-based assignments still prevent duplicate deployments.
+- Added the incident `updated_at` value to creation/link results so the immediate
+  assignment keeps the backend's optimistic-concurrency protection.
+- Reduced Live Reports to seven rows per page and constrained its desktop queue
+  and detail panels to the viewport with internal scrolling.
+- Verification: backend Ruff and strict mypy passed with all 108 tests; web lint
+  and production build passed. Browser accessibility inspection confirmed the
+  running Live Reports queue, linked incident, and assignment controls.
+- Refreshed the combined Graphify index to 2,538 nodes, 4,752 relationships,
+  and 219 communities.
 
 ## 2026-10-16 — Connect manual report encoding end to end
 
