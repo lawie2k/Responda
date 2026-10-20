@@ -33,6 +33,17 @@ The IP address can change when the Mac reconnects to Wi-Fi. Check it with:
 ipconfig getifaddr en0
 ```
 
+For a beta build with no OTP sender, pass
+`--dart-define=RESPONDA_BETA_SKIP_MOBILE_VERIFICATION=true`. Onboarding then saves a local-only
+beta profile and skips the phone-number screen. With the local backend setting
+`RESPONDA_MOBILE_BETA_ACCOUNTS_ENABLED=true`, the first online report obtains an unverified beta
+session automatically. No OTP is required. The session is stored securely and reused; photo
+uploads remain unavailable. Omit the mobile define to restore normal OTP setup.
+
+When the development backend returns its test OTP, the OTP screen offers “Continue with test code.”
+It verifies that server-issued code and continues to optional profile setup. Production builds do
+not show this development-only shortcut.
+
 ## Verification
 
 ```bash

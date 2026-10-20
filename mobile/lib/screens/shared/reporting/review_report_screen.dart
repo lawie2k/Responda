@@ -154,15 +154,16 @@ class _ReviewReportScreenState extends State<ReviewReportScreen> {
           label: widget.flowMode.isOffline
               ? 'SAVE REPORT & OPEN SMS'
               : 'SUBMIT EMERGENCY REPORT',
-          onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(
+          onPressed: () async {
+            final updatedDraft = await Navigator.of(context).push<ReportDraft>(
+              MaterialPageRoute<ReportDraft>(
                 builder: (_) => SubmittingReportScreen(
                   draft: _draft,
                   flowMode: widget.flowMode,
                 ),
               ),
             );
+            _applyUpdate(updatedDraft);
           },
         ),
       ],

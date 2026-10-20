@@ -12,35 +12,89 @@ type ReportListState =
   | { status: "ready"; data: AdminReportList; error: null }
   | { status: "error"; data: AdminReportList | null; error: string };
 
-export function useAdminReports(query: AdminReportsQuery = {}) {
+export function useAdminReports(
+  query: AdminReportsQuery = {},
+  refreshIntervalMs = 0,
+) {
   const queryKey = JSON.stringify(query);
   const [requestVersion, setRequestVersion] = useState(0);
-  const [state, setState] = useState<ReportListState>({
+  const [state, setState] = useState<ReportListState & { queryKey: string }>({
+    queryKey,
     status: "loading",
     data: null,
     error: null,
   });
 
   useEffect(() => {
-    const controller = new AbortController();
     const stableQuery = JSON.parse(queryKey) as AdminReportsQuery;
-    getAdminReports(stableQuery, controller.signal)
-      .then((data) => setState({ status: "ready", data, error: null }))
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") return;
-        setState((current) => ({
-          status: "error",
-          data: current.data,
-          error:
-            error instanceof Error
-              ? error.message
-              : "The report queue could not be loaded.",
-        }));
-      });
-    return () => controller.abort();
-  }, [queryKey, requestVersion]);
+    let controller: AbortController | null = null;
+    let timer: number | undefined;
+    let disposed = false;
+
+    const load = async () => {
+      if (
+        disposed ||
+        controller ||
+        (refreshIntervalMs > 0 && document.visibilityState === "hidden")
+      ) {
+        return;
+      }
+      window.clearTimeout(timer);
+      const request = new AbortController();
+      controller = request;
+      try {
+        const data = await getAdminReports(stableQuery, request.signal);
+        if (!disposed && !request.signal.aborted) {
+          setState({ queryKey, status: "ready", data, error: null });
+        }
+      } catch (error: unknown) {
+        if (!disposed && !request.signal.aborted) {
+          setState((current) => ({
+            queryKey,
+            status: "error",
+            data: current.queryKey === queryKey ? current.data : null,
+            error:
+              error instanceof Error
+                ? error.message
+                : "The report queue could not be loaded.",
+          }));
+        }
+      } finally {
+        controller = null;
+        if (
+          !disposed &&
+          refreshIntervalMs > 0 &&
+          document.visibilityState !== "hidden"
+        ) {
+          timer = window.setTimeout(() => void load(), refreshIntervalMs);
+        }
+      }
+    };
+    const refreshWhenVisible = () => {
+      window.clearTimeout(timer);
+      if (document.visibilityState !== "hidden") void load();
+    };
+
+    void load();
+    if (refreshIntervalMs > 0) {
+      document.addEventListener("visibilitychange", refreshWhenVisible);
+      window.addEventListener("focus", refreshWhenVisible);
+      window.addEventListener("online", refreshWhenVisible);
+    }
+    return () => {
+      disposed = true;
+      window.clearTimeout(timer);
+      controller?.abort();
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+      window.removeEventListener("focus", refreshWhenVisible);
+      window.removeEventListener("online", refreshWhenVisible);
+    };
+  }, [queryKey, requestVersion, refreshIntervalMs]);
 
   const refetch = useCallback(() => setRequestVersion((value) => value + 1), []);
+  if (state.queryKey !== queryKey) {
+    return { status: "loading", data: null, error: null, refetch } as const;
+  }
   return { ...state, refetch };
 }
 

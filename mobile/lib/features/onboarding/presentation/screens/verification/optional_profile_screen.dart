@@ -17,7 +17,7 @@ class OptionalProfileScreen extends StatefulWidget {
     super.key,
   });
 
-  final String phoneNumber;
+  final String? phoneNumber;
   final DateTime privacyNoticeAcceptedAt;
 
   @override
@@ -65,17 +65,27 @@ class _OptionalProfileScreenState extends State<OptionalProfileScreen> {
 
     setState(() => _saving = true);
     try {
-      await accountController.completePhoneVerification(
-        phoneNumber: widget.phoneNumber,
-        privacyNoticeAcceptedAt: widget.privacyNoticeAcceptedAt,
-        fullName: _nameController.text,
-        barangay: _selectedBarangay ?? '',
-      );
+      if (widget.phoneNumber == null) {
+        await accountController.completeBetaProfile(
+          privacyNoticeAcceptedAt: widget.privacyNoticeAcceptedAt,
+          fullName: _nameController.text,
+          barangay: _selectedBarangay ?? '',
+        );
+      } else {
+        await accountController.completePhoneVerification(
+          phoneNumber: widget.phoneNumber!,
+          privacyNoticeAcceptedAt: widget.privacyNoticeAcceptedAt,
+          fullName: _nameController.text,
+          barangay: _selectedBarangay ?? '',
+        );
+      }
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
-          builder: (_) =>
-              VerificationSubmittedScreen(phoneNumber: widget.phoneNumber),
+          builder: (_) => VerificationSubmittedScreen(
+            phoneNumber: widget.phoneNumber,
+            isBetaLocalSetup: widget.phoneNumber == null,
+          ),
         ),
       );
     } catch (error) {
@@ -94,7 +104,7 @@ class _OptionalProfileScreenState extends State<OptionalProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return OnboardingStepScaffold(
-      step: 5,
+      step: widget.phoneNumber == null ? 3 : 5,
       title: 'Optional account details',
       subtitle: 'These details can help responders recognize your account, but they are not required.',
       children: [

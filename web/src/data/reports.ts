@@ -65,6 +65,11 @@ export const toReport = (report: AdminReportListItem): Report => {
   };
 };
 
+export const isMappableActiveReport = (report: Report) =>
+  report.verificationStatus === "verified" &&
+  (!report.incidentStatus ||
+    ["open", "dispatched", "responding"].includes(report.incidentStatus));
+
 export const tone = (value: string) =>
   value === "CRITICAL"
     ? "red"
@@ -74,7 +79,7 @@ export const tone = (value: string) =>
         ? "amber"
         : value === "LOW"
           ? "green"
-        : value === "DISPATCHED"
+        : value === "DISPATCHED" || value === "RESOLVED"
           ? "green"
           : value === "VALIDATED"
             ? "blue"

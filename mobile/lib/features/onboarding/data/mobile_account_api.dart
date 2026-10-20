@@ -38,10 +38,33 @@ class MobileAccountApi {
     String? token,
     Map<String, Object?>? body,
   }) async {
-    final request = http.Request(
-      method,
+    return _request(
       ApiConfig.endpoint('/api/v1/mobile/auth/$path', overrideBaseUrl: baseUrl),
+      method: method,
+      token: token,
+      body: body,
     );
+  }
+
+  Future<Map<String, dynamic>> submitReport({
+    required String token,
+    required Map<String, Object?> body,
+  }) {
+    return _request(
+      ApiConfig.endpoint('/api/v1/mobile/reports', overrideBaseUrl: baseUrl),
+      method: 'POST',
+      token: token,
+      body: body,
+    );
+  }
+
+  Future<Map<String, dynamic>> _request(
+    Uri uri, {
+    required String method,
+    String? token,
+    Map<String, Object?>? body,
+  }) async {
+    final request = http.Request(method, uri);
     request.headers.addAll({
       'Accept': 'application/json',
       'Content-Type': 'application/json',

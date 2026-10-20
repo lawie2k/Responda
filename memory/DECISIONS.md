@@ -2,12 +2,69 @@
 tags:
   - responda/memory
   - responda/decisions
-updated: 2026-10-19
+updated: 2026-10-20
 ---
 
 # Decisions
 
 ## Active decisions
+
+### 2026-10-20 — Poll Live Reports without resetting the staff workspace
+
+- Use existing authenticated report reads every five seconds on the visible
+  Live Reports page, including summary counts. Pause while hidden; resume on
+  focus, visibility and network reconnection. Fetch serially with abort cleanup
+  instead of adding a push transport for this stage.
+- Keep applied filters, pagination and selected detail stable. Retain loaded
+  rows on transient failures and disclose stale results while retrying.
+
+### 2026-10-20 — Allow skipping OTP entry with the server's development code
+
+- Only the OTP screen offers “Continue with test code,” and only when the
+  development backend returns its test OTP. The app submits that server-issued
+  code through the ordinary OTP verification endpoint, then continues to
+  optional profile setup. Phone-number entry still requires requesting a code;
+  there is no client-created verified identity or account.
+- Production has no development code, so the shortcut is not displayed and
+  users must enter the OTP they receive. Online/Offline shell selection depends
+  on network access and backend health, independently of authentication.
+
+### 2026-10-20 — Offer an opt-in local beta profile without an OTP sender
+
+- A beta build may bypass the phone-number step using
+  `RESPONDA_BETA_SKIP_MOBILE_VERIFICATION=true`, then save optional name and
+  barangay locally and enter the app. With backend
+  `RESPONDA_MOBILE_BETA_ACCOUNTS_ENABLED=true`, its first report may register a
+  fresh beta reporter and session without OTP. This account remains phone-
+  unverified; it cannot claim an existing account. The server rejects beta mode
+  in staging/production and refuses beta sessions when the flag is disabled.
+  Report validation, rate limits, receipt/idempotency and staff review still
+  apply. Beta reporters stay outside the phone-verified Mobile Accounts roster.
+
+### 2026-10-20 — Use the wired iPhone link when local Wi-Fi blocks the API
+
+- The current iPhone can reach the development backend over its direct wired
+  link. Read the Mac-side interface address dynamically (`ipconfig getifaddr
+  en8`) and pass it as `RESPONDA_API_BASE_URL`; do not hardcode the temporary
+  link-local address. Online status means API/DB health, not account verification.
+
+### 2026-10-20 — Build mobile from the user's Documents copy and retain Git source
+
+- Use `/Users/lawie/local Documents/Responda/mobile` as the user's local Flutter
+  build location while retaining `/Users/lawie/develop/responda/mobile` in the
+  Responda monorepo for version control. The build copy has no Git metadata.
+- Keep application sources synchronized between the two locations before Git
+  commits; do not copy path-specific generated Flutter/Xcode environment files.
+
+### 2026-10-20 — Submit online mobile reports through verified accounts
+
+- Online API submissions require the existing verified, active reporter session;
+  each report has a client UUID for idempotent retries and is created as `app_api`
+  with location, safety answers, event, and minimal audit in one transaction.
+- Do not silently drop selected photos. Online photo submission stays blocked
+  until secure storage and retention are decided. Offline/SMS remains separate.
+- The API provides creation and server receipt only; live reporter status/history
+  still needs a protected read API. No database migration was required.
 
 ### 2026-10-19 — Keep breathing room below the Mobile Accounts panels
 
@@ -127,7 +184,8 @@ updated: 2026-10-19
 ### 2026-10-18 — Map only verified operational reports with real coordinates
 
 - Incident Map uses protected report and active-assignment data; seeded
-  incidents are not mixed with operational records.
+  incidents are not mixed with operational records. Overview shares the same
+  map eligibility predicate, so resolved/closed incidents leave both maps.
 - A verified, unlinked report and a report linked to an `open`, `dispatched`, or
   `responding` incident are eligible for the live map.
 - Every mapped point represents a report location. Several reports linked to
@@ -333,9 +391,10 @@ dispatches.
   and then assigns the selected team; incident creation remains an internal
   persistence boundary instead of a separate staff-facing step. Linking to an
   existing incident is only for duplicate reports about the same emergency.
-  Acknowledgment, responding, completion, and cancellation are recorded from
-  the assigned unit's Response Teams detail. Both surfaces read and refresh
-  server state; neither derives lifecycle state only in the browser.
+  Acknowledgment, responding, and completion actions appear on the assigned
+  unit's operational roster card so staff can update status without opening
+  details. Confirmed cancellation remains in unit details. Both surfaces read
+  and refresh server state; neither derives lifecycle state only in the browser.
 
 ### Use strict app-only SMS ingestion
 

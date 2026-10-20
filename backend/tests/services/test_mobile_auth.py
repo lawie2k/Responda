@@ -14,8 +14,10 @@ from app.core.exceptions import ApplicationError
 from app.core.security import hash_session_token
 from app.db.base import Base
 from app.models import AuditLog, AuthSession, OtpChallenge, User
-from app.schemas.mobile_auth import MobileProfileUpdate, OtpVerify
+from app.schemas.mobile_auth import BetaRegistration, MobileProfileUpdate, OtpVerify
+from app.schemas.mobile_reports import MobileReportCreateRequest
 from app.services.mobile_auth import MobileAuthService
+from app.services.mobile_reports import MobileReportService
 
 PHONE = "+639000000001"
 
@@ -35,6 +37,7 @@ def mobile_database():
         for method in ("execute", "scalar", "scalars", "flush", "commit", "rollback"):
             setattr(database, method, AsyncMock(side_effect=getattr(db, method)))
         database.add.side_effect = db.add
+        database.add_all.side_effect = db.add_all
         settings = Settings(_env_file=None, environment="testing", mobile_dev_otp_enabled=True)
         yield MobileAuthService(database, settings), db
     engine.dispose()
@@ -50,6 +53,92 @@ async def login(service):
             privacy_notice_accepted=True,
         )
     )
+
+
+def test_beta_session_submits_report_without_claiming_phone_verification(mobile_database):
+    from app.models import IncidentType, Report
+
+    service, db = mobile_database
+    service.settings.mobile_beta_accounts_enabled = True
+    db.add(IncidentType(code="fire", name="Fire", default_priority="high", active=True))
+    db.commit()
+
+    async def exercise():
+        result = await service.register_beta(
+            BetaRegistration(
+                full_name="Synthetic beta tester",
+                barangay="Kingking",
+                privacy_notice_accepted=True,
+            )
+        )
+        assert result.access_token.startswith("mobile_beta_")
+        assert result.user.phone_number is None
+        assert result.user.phone_verified_at is None
+        assert db.scalar(select(OtpChallenge)) is None
+        reporter, session = await service.authenticate(result.access_token)
+        assert session.refresh_token_hash == hash_session_token(result.access_token)
+        receipt = await MobileReportService(service.db).create_report(
+            reporter=reporter,
+            payload=MobileReportCreateRequest(
+                client_report_id=uuid.uuid4(),
+                incident_type_code="fire",
+                description="Synthetic beta report for automated verification.",
+                landmark="Synthetic test area",
+            ),
+        )
+        assert db.get(Report, receipt.report_id).reporter_id == reporter.user_id
+        assert (await service.profile(result.access_token)).user.full_name == result.user.full_name
+        await service.logout(result.access_token)
+        with pytest.raises(ApplicationError):
+            await service.profile(result.access_token)
+
+    asyncio.run(exercise())
+
+
+@pytest.mark.parametrize(
+    "state", ["disabled", "staging", "inactive", "deleted", "verified", "revoked"]
+)
+def test_beta_session_fails_closed_when_disabled_or_identity_changes(mobile_database, state):
+    service, db = mobile_database
+    service.settings.mobile_beta_accounts_enabled = True
+
+    async def exercise():
+        result = await service.register_beta(BetaRegistration(privacy_notice_accepted=True))
+        user = db.scalar(select(User))
+        if state == "disabled":
+            service.settings.mobile_beta_accounts_enabled = False
+        elif state == "staging":
+            service.settings.environment = "staging"
+        elif state == "inactive":
+            user.is_active = False
+        elif state == "deleted":
+            user.deleted_at = datetime.now(UTC)
+        elif state == "verified":
+            user.phone_number = PHONE
+            user.phone_verified_at = datetime.now(UTC)
+        elif state == "revoked":
+            db.scalar(select(AuthSession)).revoked_at = datetime.now(UTC)
+        db.commit()
+        with pytest.raises(ApplicationError):
+            await service.authenticate(result.access_token)
+
+    asyncio.run(exercise())
+
+
+def test_beta_registration_requires_server_flag_and_consent(mobile_database):
+    service, db = mobile_database
+
+    async def exercise():
+        with pytest.raises(ApplicationError) as error:
+            await service.register_beta(BetaRegistration(privacy_notice_accepted=True))
+        assert error.value.status_code == 403
+        service.settings.mobile_beta_accounts_enabled = True
+        with pytest.raises(ApplicationError) as error:
+            await service.register_beta(BetaRegistration(privacy_notice_accepted=False))
+        assert error.value.code == "privacy_required"
+        assert db.scalar(select(User)) is None
+
+    asyncio.run(exercise())
 
 
 def test_signup_profile_restore_logout_and_no_sensitive_audit(mobile_database):

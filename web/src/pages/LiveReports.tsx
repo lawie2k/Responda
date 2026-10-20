@@ -5,6 +5,7 @@ import {
   linkAdminReportToIncident,
   type AdminIncidentListItem,
   type AdminReportDetail,
+  type AdminReportsQuery,
   type AdminUser,
   type ManualIntakeChannel,
   type ReportPriority,
@@ -454,7 +455,7 @@ function ReportDetail({
     : "Loading…";
 
   return (
-    <Card className="flex flex-col gap-[9px] max-[1180px]:grid max-[1180px]:grid-cols-2 max-[650px]:flex max-[1180px]:[&>.section-head]:col-span-full max-[1180px]:[&>.button]:col-span-full [&_.map-canvas]:h-[136px]">
+    <Card className="max-h-[calc(100vh-300px)] min-h-0 overflow-y-auto flex flex-col gap-[9px] max-[1180px]:grid max-[1180px]:grid-cols-2 max-[650px]:flex max-[1180px]:[&>.section-head]:col-span-full max-[1180px]:[&>.button]:col-span-full [&_.map-canvas]:h-[120px] [&_.map-canvas]:min-h-[120px] [&_.map-canvas]:shrink-0 max-[1180px]:[&_.map-canvas]:col-span-2">
       <SectionHead title="Report details" subtitle={report.reference} />
       <div className="rounded-[13px] bg-red-soft p-[10px] [&>div]:flex [&>div]:items-center [&>div]:justify-between [&>div]:text-[9px] [&>div]:text-priority-red [&_h3]:my-[7px] [&_h3]:mb-[3px] [&_h3]:text-base [&_p]:m-0 [&_p]:text-[10px] [&_p]:text-muted">
         <div>
@@ -624,7 +625,10 @@ export function LiveReports({
   const [incidentTypeId, setIncidentTypeId] = useState("");
   const [priorities, setPriorities] = useState<Report["priority"][]>([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selection, setSelection] = useState<{
+    queryKey: string;
+    report: Report;
+  } | null>(null);
   const [feedback, setFeedback] = useState("");
   const [feedbackTone, setFeedbackTone] = useState<"success" | "error">(
     "success",
@@ -651,7 +655,7 @@ export function LiveReports({
     return () => document.removeEventListener("mousedown", closeFilters);
   }, []);
 
-  const reportQuery = useAdminReports({
+  const filters: AdminReportsQuery = {
     page,
     pageSize: 7,
     search: search || undefined,
@@ -663,17 +667,25 @@ export function LiveReports({
         ? ["critical"]
         : (priorities.map((value) => value.toLowerCase()) as ReportPriority[]),
     incidentStatuses: tab === "Dispatched" ? ["dispatched"] : undefined,
-  });
+  };
+  const selectionKey = JSON.stringify(filters);
+  const reportQuery = useAdminReports(filters, 5000);
   const rows = useMemo(
     () => reportQuery.data?.items.map(toReport) ?? [],
     [reportQuery.data],
   );
 
-  const effectiveSelectedId = rows.some((report) => report.id === selectedId)
-    ? selectedId
-    : (rows[0]?.id ?? null);
   const selected =
-    rows.find((report) => report.id === effectiveSelectedId) ?? null;
+    selection?.queryKey === selectionKey
+      ? rows.find((report) => report.id === selection.report.id) ?? selection.report
+      : rows[0] ?? null;
+  // Keep the open report when new arrivals push its row onto another page.
+  if (
+    selected &&
+    (selection?.queryKey !== selectionKey || selection.report !== selected)
+  ) {
+    setSelection({ queryKey: selectionKey, report: selected });
+  }
   const detailState = useAdminReportDetail(selected?.id ?? null);
   const canManageSelectedIncident = Boolean(
     isAdministratorRole(userRole) &&
@@ -760,7 +772,7 @@ export function LiveReports({
     <>
       <PageTitle
         title="Live Reports"
-        subtitle="Monitor, filter, and open active incident submissions."
+        subtitle="Monitor active incident submissions. Updates automatically every 5 seconds."
         action="Encode a report"
         onAction={openModal}
       />
@@ -858,6 +870,19 @@ export function LiveReports({
           )}
         </div>
       </Card>
+      {reportQuery.status === "error" && rows.length > 0 && (
+        <div
+          role="status"
+          className="flex items-center justify-between gap-3 rounded-xl bg-red-soft px-3 py-2 text-[10px] text-priority-red"
+        >
+          <span>
+            Could not update reports. Showing the last loaded queue and retrying automatically.
+          </span>
+          <Button variant="secondary" onClick={reportQuery.refetch}>
+            Try again
+          </Button>
+        </div>
+      )}
       {feedback && (
         <div
           className={`flex min-h-[42px] items-center gap-2 rounded-xl px-3 text-[10px] font-semibold ${
@@ -895,7 +920,10 @@ export function LiveReports({
           ) : rows.length ? (
             <ReportTable
               rows={rows}
-              onSelect={setSelectedId}
+              onSelect={(id) => {
+                const report = rows.find((row) => row.id === id);
+                if (report) setSelection({ queryKey: selectionKey, report });
+              }}
               selectedId={selected?.id}
             />
           ) : (

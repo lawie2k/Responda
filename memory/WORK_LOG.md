@@ -2,10 +2,186 @@
 tags:
   - responda/memory
   - responda/work-log
-updated: 2026-10-19
+updated: 2026-10-20
 ---
 
 # Work log
+
+## 2026-10-20 — Save mobile reporting and web operations checkpoint
+
+- Checkpoint includes authenticated online report creation, retry-safe client
+  IDs/server receipts, local-only beta registration and onboarding, wired
+  iPhone setup, five-second Live Reports refresh, visible team lifecycle actions,
+  scrollable report details with a non-shrinking 120px map, and consistent
+  resolved-marker removal/green status badges.
+- Backend lint, typing and 310 tests passed; Flutter analysis and 81 normal-mode
+  tests passed with one beta-only test skipped; both targeted beta-mode tests
+  also passed. Web lint/build passed in both copies during the latest
+  implementation. Canonical and local build source copies match. Memory checks
+  passed and all component graphs were refreshed. Private environment files
+  remain excluded from Git.
+- Remaining work: protected reporter history/status reads, production SMS OTP
+  provider, secure photo uploads/retention, signed SMS gateway ingestion, and
+  the exact advisory ML model. Beta account flags must stay disabled outside
+  local development. No new phone submission was performed during this save.
+
+## 2026-10-20 — Keep resolved reports off the Overview map
+
+- Reused the Incident Map eligibility rule on Overview so resolved reports no
+  longer retain GPS markers. Resolved status badges now use green. Updated the
+  canonical and WebStorm web copies; lint and production builds passed in both.
+
+## 2026-10-20 — Keep the Live Reports map visible inside scrollable details
+
+- Report details scrolls within the viewport. Its map spans both responsive
+  columns, uses the user's final 120px height, and cannot flex-shrink under
+  longer resolved-report content. Canonical and WebStorm copies match; both
+  passed lint and production build.
+
+## 2026-10-20 — Show assignment status actions on the unit roster
+
+- Moved the next assignment lifecycle action (acknowledgment, responding, or
+  completion) onto each assigned unit's card in the left Operational units
+  panel. Unit details retain assignment context and confirmed cancellation;
+  errors now appear beside the affected unit's action. Synced the canonical web
+  and active WebStorm copies. Lint and production build passed in both copies.
+
+## 2026-10-20 — Automatically refresh Live Reports
+
+- Added opt-in polling to the shared report-list hook and enabled five-second
+  updates for Live Reports and its summary counts. Polling pauses while hidden,
+  refreshes on focus/reconnection, avoids overlap and cancels obsolete requests.
+  Queue selection persists when a new arrival moves it to another page; query
+  changes reset selection normally. Loaded rows and filters survive failures,
+  with a visible stale-data/retry notice.
+- Updated both canonical web and the active WebStorm copy. Lint and production
+  build passed. An isolated browser fixture confirmed automatic arrival,
+  count/pagination updates, off-page selection retention, filtered stale-data
+  handling and automatic recovery without creating database reports. The
+  temporary fixture was removed. Real iPhone submission remains a user walkthrough.
+
+## 2026-10-20 — Allow beta report submission without OTP
+
+- Added gated beta registration and hashed revocable beta bearer sessions.
+  Accounts have no phone verification; staging/production reject the setting.
+  The beta app registers lazily on its first report, securely retains its session
+  and reuses the existing report endpoint. Updated beta copy and setup docs;
+  synchronized source/tests to the Documents build copy and enabled local beta
+  mode. Report validations, photo limitation and dashboard authorization remain.
+- Backend lint/type checks and all 310 tests passed. Flutter analysis and 81
+  normal-mode tests passed (one beta-only test skipped); both targeted beta-mode
+  tests passed. A PostgreSQL transaction rehearsal confirmed registration,
+  report creation and dashboard queue/detail visibility, then rolled back all
+  synthetic rows. The updated beta release installed/launched on the physical
+  iPhone using the wired API address. An on-device report has not been sent.
+
+## 2026-10-20 — Connect the iPhone to the backend over USB
+
+- The iPhone could not load the backend over Wi-Fi although both showed the
+  same subnet/router. Confirmed the backend was listening on all interfaces and
+  healthy locally; the backend process was permitted by macOS Firewall. Found
+  an active direct wired interface and peer, verified the health endpoint on
+  the Mac-side interface, then rebuilt/relaunched the beta app using that
+  temporary USB-side address.
+- A screenshot of the physical iPhone showed the app Online. The temporary
+  link-local address may change after reconnecting; tests were not run.
+
+## 2026-10-20 — Bypass phone setup in the local-only beta build
+
+- Added the opt-in `RESPONDA_BETA_SKIP_MOBILE_VERIFICATION` build define. The
+  privacy step now opens optional profile setup directly; completion stores a
+  local profile marked pending and continues into the app without creating a
+  server account or claiming OTP verification. Account Management and the
+  completion screen explain the beta limitations. Normal builds retain OTP.
+- Mirrored mobile source into the tracked monorepo and documented the define.
+  Flutter analysis passed in the Documents build copy and the opted-in release
+  build installed/launched on the physical iPhone. The screen flow was not
+  manually exercised and Flutter tests were not run.
+
+## 2026-10-20 — Skip OTP entry while retaining server verification
+
+- Removed the Home shortcut from phone-number onboarding and replaced the OTP
+  screen's Home shortcut with “Continue with test code.” It is shown only when
+  the development API supplies a code, and submits that code through the normal
+  verification endpoint before opening optional profile setup. Production still
+  requires users to enter their received OTP. Mirrored code and regression
+  coverage in the Documents build copy and tracked mobile source.
+- Flutter analysis and a physical release rebuild/install are pending. Tests
+  were not run for this change.
+
+## 2026-10-20 — Launch the new iPhone build with reachable backend settings
+
+- Confirmed OTP skip goes to Home and that Offline/Online selection is based on
+  device network plus backend health, not account verification. The physical
+  iPhone build had defaulted to loopback, so its health check could not reach the
+  Mac. Rebuilt and launched a release app from the Documents mobile copy using
+  the Mac's Wi-Fi API address; the backend health endpoint returned healthy.
+- Online report creation still requires a verified OTP session. The build
+  launched on device, but the screen's live Online state was not visually
+  confirmed. No Flutter tests were run.
+
+## 2026-10-20 — Sync the iPhone build copy with tracked mobile sources
+
+- The user selected `/Users/lawie/local Documents/Responda/mobile` for mobile
+  builds and asked to retain the monorepo copy. Compared source trees and synced
+  the missing phone/OTP skip buttons, their tests, and README guidance. Other
+  application source already matched; left generated Xcode environment files
+  path-specific. Kept `/Users/lawie/develop/responda/mobile` intact for Git.
+- Updated the build-copy instructions and project map to explain the two paths
+  and Git workflow. Flutter analysis and an iOS simulator build passed in the
+  Documents copy; project-memory validation passed. Tests and a physical iPhone
+  install were not run.
+
+## 2026-10-20 — Show guest skip on both phone-verification screens
+
+- Made “Skip verification” visible in every build below the phone-number and
+  OTP controls. Removed the opt-in build flag so installed iPhone builds need no
+  special compilation setting. Skip clears onboarding and opens guest browsing;
+  it does not create a verified account or permit online submission.
+- Updated mobile README and project memory. Flutter analysis and tests have not
+  yet been rerun; no physical-device build/install was performed.
+
+## 2026-10-20 — Enable verification skip in opted-in iPhone test builds
+
+- Replaced the debug-only screen checks with a shared compile-time setting:
+  debug builds show the skip, and installed builds show it only when built with
+  `RESPONDA_ALLOW_VERIFICATION_SKIP=true`. Added the physical-device build
+  command and guest limitations to the mobile README.
+- Flutter analysis passed; tests were not rerun for this follow-up. Refreshed
+  mobile Graphify and validated project memory. No physical iPhone build/install
+  was performed. The user must rebuild/reinstall with the documented flag for
+  the button to appear.
+
+## 2026-10-20 — Add a temporary phone-verification skip for local testing
+
+- Added debug-only skip buttons on the phone-number and OTP screens, opening
+  Home while clearing onboarding routes. No network, fabricated profile,
+  verification state, or token is needed. Release/profile builds retain OTP;
+  skipped users still need verification to send online reports.
+- Added coverage for both skip entry points, verifying Home opens and no
+  account/token is created. Flutter analysis and all 80 tests passed; refreshed
+  the mobile Graphify graph. No physical-device walkthrough was performed.
+- Changes remain local; no commit or push requested.
+
+## 2026-10-20 — Connect authenticated online mobile report submission
+
+- Added the protected mobile report-creation endpoint and service. Verified
+  reporter sessions submit validated `app_api` reports with location and safety
+  answers; report/location/event/minimal audit persist together. Client UUIDs
+  make retries idempotent, while account/IP throttling limits abuse. Existing
+  Live Reports reads these rows; no schema migration was needed.
+- Replaced the Flutter online success simulation with the real authenticated
+  request. The app stores the server UUID/receipt after success, retains its
+  idempotency key through retries and returning to review, and reports failures
+  without claiming delivery. Offline SMS handoff remains unchanged. Photo
+  attachments are explicitly blocked pending the unresolved storage/retention
+  decision; no image bytes or local paths are sent.
+- Verification: backend Ruff, mypy and 298 tests; Flutter analyze and all 78
+  tests; project-memory validation and `git diff --check` passed. Refreshed the
+  combined Graphify graph for backend/mobile (3,029 nodes, 6,166 edges, 232
+  communities); the exporter preserved pre-existing hand-written notes.
+- Next: exercise a real mobile submission through Live Reports, then connect
+  reporter history/status reads. No commit or push requested.
 
 ## 2026-10-19 — Save and push account and dashboard integration
 

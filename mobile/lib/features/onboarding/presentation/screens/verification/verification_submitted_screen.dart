@@ -5,9 +5,14 @@ import 'package:responda/core/theme/app_colors.dart';
 import 'package:responda/core/widgets/responda_button.dart';
 
 class VerificationSubmittedScreen extends StatelessWidget {
-  const VerificationSubmittedScreen({required this.phoneNumber, super.key});
+  const VerificationSubmittedScreen({
+    required this.phoneNumber,
+    this.isBetaLocalSetup = false,
+    super.key,
+  });
 
-  final String phoneNumber;
+  final String? phoneNumber;
+  final bool isBetaLocalSetup;
 
   @override
   Widget build(BuildContext context) {
@@ -29,15 +34,21 @@ class VerificationSubmittedScreen extends StatelessWidget {
                       color: AppColors.brandSoft,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.verified_user_rounded,
-                      color: AppColors.success,
+                    child: Icon(
+                      isBetaLocalSetup
+                          ? Icons.account_circle_outlined
+                          : Icons.verified_user_rounded,
+                      color: isBetaLocalSetup
+                          ? AppColors.warning
+                          : AppColors.success,
                       size: 46,
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const LocalizedText(
-                    'Phone verified',
+                  LocalizedText(
+                    isBetaLocalSetup
+                        ? 'Beta account setup complete'
+                        : 'Phone verified',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: AppColors.textPrimary,
@@ -48,8 +59,10 @@ class VerificationSubmittedScreen extends StatelessWidget {
                   const SizedBox(height: 10),
                   LocalizedText(
                     context.tr(
-                      'Your number {phone} is verified. You can now use RESPONDA and report emergencies.',
-                      values: {'phone': phoneNumber},
+                      isBetaLocalSetup
+                          ? 'Your beta profile is ready. You can send reports when connected to the beta server.'
+                          : 'Your number {phone} is verified. You can now use RESPONDA and report emergencies.',
+                      values: {'phone': phoneNumber ?? ''},
                     ),
                     textAlign: TextAlign.center,
                     style: const TextStyle(
@@ -63,11 +76,15 @@ class VerificationSubmittedScreen extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppColors.successSoft,
+                      color: isBetaLocalSetup
+                          ? AppColors.warningSoft
+                          : AppColors.successSoft,
                       borderRadius: BorderRadius.circular(15),
                     ),
-                    child: const LocalizedText(
-                      'No valid ID or face photo was collected.',
+                    child: LocalizedText(
+                      isBetaLocalSetup
+                          ? 'Phone verification is paused during beta testing.'
+                          : 'No valid ID or face photo was collected.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: AppColors.textPrimary,

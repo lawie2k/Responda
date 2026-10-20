@@ -13,6 +13,7 @@ class ReportDraft {
     this.additionalAssistance,
     this.stillDangerous,
     this.photoPath,
+    this.clientReportId,
   });
 
   final IncidentType incidentType;
@@ -26,6 +27,7 @@ class ReportDraft {
   final bool? additionalAssistance;
   final bool? stillDangerous;
   final String? photoPath;
+  final String? clientReportId;
 
   bool get hasLocation => latitude != null && longitude != null;
 
@@ -55,6 +57,7 @@ class ReportDraft {
     'additionalAssistance': additionalAssistance,
     'stillDangerous': stillDangerous,
     'photoPath': photoPath,
+    'clientReportId': clientReportId,
   };
 
   factory ReportDraft.fromJson(Map<String, Object?> json) {
@@ -76,6 +79,7 @@ class ReportDraft {
       additionalAssistance: json['additionalAssistance'] as bool?,
       stillDangerous: json['stillDangerous'] as bool?,
       photoPath: json['photoPath'] as String?,
+      clientReportId: json['clientReportId'] as String?,
     );
   }
 
@@ -90,6 +94,7 @@ class ReportDraft {
     bool? additionalAssistance,
     bool? stillDangerous,
     String? photoPath,
+    String? clientReportId,
   }) {
     return ReportDraft(
       incidentType: incidentType,
@@ -103,6 +108,7 @@ class ReportDraft {
       additionalAssistance: additionalAssistance ?? this.additionalAssistance,
       stillDangerous: stillDangerous ?? this.stillDangerous,
       photoPath: photoPath ?? this.photoPath,
+      clientReportId: clientReportId ?? this.clientReportId,
     );
   }
 }

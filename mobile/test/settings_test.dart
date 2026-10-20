@@ -188,7 +188,10 @@ void main() {
   ) async {
     const onlineStore = OnlineReportStore();
     const offlineStore = OfflineReportStore();
-    await onlineStore.save(report);
+    await onlineStore.save(
+      report,
+      reportId: '00000000-0000-4000-8000-000000000005',
+    );
     await offlineStore.save(report);
     await pumpSettings(tester);
 

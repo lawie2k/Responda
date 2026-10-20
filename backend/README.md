@@ -51,6 +51,11 @@ make run-mobile
 
 The interactive API documentation will be available at `http://127.0.0.1:8000/docs`.
 
+For local beta report testing without OTP, enable
+`RESPONDA_MOBILE_BETA_ACCOUNTS_ENABLED=true` in the private `.env` and restart the server.
+The beta mobile build obtains its own unverified session from `/api/v1/mobile/auth/beta/register`.
+Staging and production reject this setting. Disable it when beta testing is complete.
+
 Check that the API is running:
 
 ```bash

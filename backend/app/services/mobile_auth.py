@@ -12,6 +12,7 @@ from app.core.exceptions import ApplicationError
 from app.core.security import generate_session_token, hash_session_token
 from app.models import AuditLog, AuthSession, OtpChallenge, User
 from app.schemas.mobile_auth import (
+    BetaRegistration,
     MobileLogin,
     MobileProfileUpdate,
     MobileSession,
@@ -29,6 +30,36 @@ class MobileAuthService:
     def __init__(self, database: AsyncSession, settings: Settings) -> None:
         self.db = database
         self.settings = settings
+
+    def _beta_enabled(self) -> bool:
+        return self.settings.mobile_beta_accounts_enabled and self.settings.environment in {
+            Environment.DEVELOPMENT,
+            Environment.TESTING,
+        }
+
+    async def register_beta(self, payload: BetaRegistration) -> MobileLogin:
+        if not self._beta_enabled():
+            raise ApplicationError(
+                "Beta registration is unavailable.", code="beta_unavailable", status_code=403
+            )
+        if not payload.privacy_notice_accepted:
+            raise ApplicationError("Read and accept the privacy notice.", code="privacy_required")
+        now = datetime.now(UTC)
+        user_id = uuid.uuid4()
+        user = User(
+            user_id=user_id,
+            full_name=payload.full_name,
+            barangay=payload.barangay or None,
+            # Reserved non-deliverable identity satisfies the existing contact constraint.
+            email=f"beta-{user_id}@responda.invalid",
+            role="reporter",
+            is_active=True,
+            privacy_notice_accepted_at=now,
+            updated_at=now,
+        )
+        self.db.add(user)
+        await self.db.flush()
+        return await self._issue_session(user, now, beta=True)
 
     async def _lock_phone(self, phone: str) -> None:
         # Serialize first registration and resend/verify across API workers.
@@ -173,6 +204,9 @@ class MobileAuthService:
         user.phone_verified_at = now
         user.privacy_notice_accepted_at = now
         user.updated_at = now
+        return await self._issue_session(user, now)
+
+    async def _issue_session(self, user: User, now: datetime, *, beta: bool = False) -> MobileLogin:
         sessions = (
             await self.db.scalars(
                 select(AuthSession)
@@ -186,7 +220,7 @@ class MobileAuthService:
         ).all()
         for old in sessions[4:]:
             old.revoked_at = now
-        token = "mobile_" + generate_session_token()
+        token = ("mobile_beta_" if beta else "mobile_") + generate_session_token()
         session = AuthSession(
             created_at=now,
             session_id=uuid.uuid4(),
@@ -195,7 +229,7 @@ class MobileAuthService:
             expires_at=now + timedelta(seconds=self.settings.mobile_session_ttl_seconds),
         )
         self.db.add(session)
-        self._audit(user, "mobile.auth.login")
+        self._audit(user, "mobile.auth.beta_registered" if beta else "mobile.auth.login")
         await self.db.commit()
         return MobileLogin(
             user=MobileUser.model_validate(user), expires_at=session.expires_at, access_token=token
@@ -207,6 +241,14 @@ class MobileAuthService:
         )
         if not token or not token.startswith("mobile_"):
             raise error
+        beta = token.startswith("mobile_beta_")
+        if beta and not self._beta_enabled():
+            raise error
+        identity_check = (
+            User.phone_verified_at.is_(None) & User.phone_number.is_(None)
+            if beta
+            else User.phone_verified_at.is_not(None)
+        )
         row = (
             await self.db.execute(
                 select(User, AuthSession)
@@ -221,7 +263,7 @@ class MobileAuthService:
                     User.role == "reporter",
                     User.is_active.is_(True),
                     User.deleted_at.is_(None),
-                    User.phone_verified_at.is_not(None),
+                    identity_check,
                     User.privacy_notice_accepted_at.is_not(None),
                 )
                 .with_for_update(of=User)

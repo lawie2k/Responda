@@ -2,7 +2,7 @@
 tags:
   - responda/memory
   - responda/status
-updated: 2026-10-19
+updated: 2026-10-20
 ---
 
 # Current state
@@ -90,8 +90,19 @@ updated: 2026-10-19
   spreadsheet formulas, omit report text, exact locations, and contacts, and
   audit only the exporting staff identity and record count. No migration was
   required.
-- Mobile report creation, gateway ingestion, and notification APIs are not
-  implemented yet.
+- Authenticated `POST /api/v1/mobile/reports` now creates app-origin reports with
+  GPS/manual landmark location, safety answers, a report event, and a minimal
+  audit in one transaction. It validates payloads, limits submissions by
+  account/IP, and uses the client UUID for retry-safe creation. The existing
+  dashboard Live Reports API already includes these `app_api` rows; no migration
+  was required. Gateway ingestion and reporter notifications remain unimplemented.
+- Local report testing can now use `/api/v1/mobile/auth/beta/register` without
+  OTP when `RESPONDA_MOBILE_BETA_ACCOUNTS_ENABLED` is explicitly enabled.
+  Registration creates a fresh unverified reporter/session; it cannot claim an
+  existing account. Beta tokens retain expiry/revocation and account checks and
+  stop working when the flag is disabled. Staging/production reject the flag.
+  No schema migration was required; a reserved `.invalid` email identity meets
+  the existing contact constraint without claiming a phone number.
 - Mobile account endpoints now request/verify OTP, restore sessions, update
   optional name/barangay, and revoke logout under `/api/v1/mobile/auth`. Local
   development OTP is explicitly enabled in the private local configuration;
@@ -165,9 +176,23 @@ updated: 2026-10-19
   On desktop, the account roster and detail panels fill the remaining viewport
   height with pagination at the roster's bottom and a 20px bottom gutter.
   Stacked layouts retain natural height; the WebStorm mirror matches.
+- Live Reports now quietly polls its queue and dashboard summary every five
+  seconds while visible, refreshes on focus/reconnection and pauses polling
+  while hidden. Requests do not overlap and are cancelled on query changes or
+  unmount. Applied filters, page and the open report are retained, including
+  when a new arrival pushes that report beyond the current page. Failed updates
+  retain the loaded queue with a retry notice. Both tracked web and the running
+  WebStorm copy contain this change. The report detail map spans both columns
+  in the responsive detail panel at a fixed 120px minimum height and cannot
+  flex-shrink when resolved-report controls expand the content. The Report
+  details card scrolls internally when it exceeds the viewport space.
 - The Overview report metrics, priority queue, map markers, recent-report table,
   global report search, and Live Reports queue now read from the protected
-  report APIs. Live Reports supports server-side search, filters, capped
+  report APIs. Overview and Incident Map share the rule that only verified
+  reports with coordinates, unlinked or linked to open/dispatched/responding
+  incidents, are mapped; resolved
+  reports disappear from both. Resolved status badges are green. Live Reports
+  supports server-side search, filters, capped
   pagination, real protected details, and explicit loading, error, and empty
   states. The desktop Live Reports queue and detail panels fit within the
   available viewport and scroll internally, with seven reports per page;
@@ -192,11 +217,12 @@ updated: 2026-10-19
   the left, and roster totals plus readiness summaries in a stacked right rail.
   Linked active incidents in Live Reports now load their current assignments
   and available response teams, and administrators can assign another available
-  team with optimistic-concurrency protection. Response Teams now resolves the
-  active assignment for each in-service unit and lets administrators record
-  acknowledgment, responding, completion, or confirmed cancellation while
-  refreshing the roster, assignment state, and shared report summaries after
-  each change so Live Reports counters cannot retain a stale dispatch status.
+  team with optimistic-concurrency protection. Response Teams resolves each
+  active unit assignment and displays its next lifecycle action directly on the
+  left-side operational-unit card, without opening unit details. Administrators
+  can record acknowledgment, responding, and completion there; confirmed
+  cancellation remains in unit details. Successful changes refresh the roster,
+  assignments, and shared report summaries.
   Incident Map now uses protected PostgreSQL report and assignment data instead
   of seeded markers. It maps verified reports whose incidents are unlinked,
   open, dispatched, or responding when real coordinates exist; reports without
@@ -230,20 +256,47 @@ updated: 2026-10-19
 ## Mobile app
 
 - The active mobile codebase is Flutter, not React Native.
+- The user-selected iPhone build copy is `/Users/lawie/local Documents/Responda/mobile`;
+  the tracked Git source remains `/Users/lawie/develop/responda/mobile`. They now
+  match for application code; the Documents copy has no Git metadata and its
+  generated Flutter/Xcode environment files remain path-specific.
+- Normal builds still require phone OTP; when the development backend returns
+  a test code, the OTP screen can submit that server-issued code through normal
+  verification. Beta builds may opt in with
+  `RESPONDA_BETA_SKIP_MOBILE_VERIFICATION=true`, which bypasses the phone screen
+  and saves a device-local profile marked pending. With server beta mode enabled,
+  its first online report obtains a beta bearer session automatically and saves
+  it in secure storage for later reports/session restoration. Phone verification
+  remains pending. Online/Offline
+  shell selection is determined independently by device connectivity and backend
+  health.
 - The citizen-account flow now connects privacy acknowledgement, phone OTP,
   optional name/barangay, session restoration, and sign-out to the backend.
   Local development shows the backend-generated test code; it sends no SMS.
+  The separate beta registration is explicitly opt-in on both app and backend.
   Tokens use `flutter_secure_storage` with native platform configuration;
   preferences retain only profile/expiry for offline UI, never tokens. Resume
   rechecks the session. Old local profiles without a real token must verify again.
   Retired ID/face screens, media-picker reference, and prototype code were removed
   (recoverable from Git). The optional profile form preserves recovered details.
 - It has a backend health client and environment-aware base URLs, including the
-  Android emulator host address.
+  Android emulator host address. On the current iPhone/Mac pair, Wi-Fi access
+  was blocked despite matching subnet/router settings; the app reached the
+  backend over the wired device link when built with the Mac-side USB interface
+  address. That address is dynamic; check `ipconfig getifaddr en8` before a
+  wired build.
+- Online report submission now uses the verified mobile bearer session and the
+  protected report-creation endpoint. It stores the server report UUID and
+  receipt time locally only after success, retains the client idempotency UUID
+  across retries/back-to-review, and leaves the offline/SMS handoff unchanged.
+  Failed sends do not show success. Photo-attached online reports are blocked
+  with an explicit message until secure attachment storage/retention is chosen;
+  attachments are never silently discarded or uploaded.
 - The application contains onboarding, connectivity handling, reporting flows,
   localization, offline-related behavior, and tests.
-- The complete report-submission API and signed SMS gateway protocol are not yet
-  wired end to end.
+- Report status/history still comes from local records rather than a protected
+  reporter read API; signed SMS gateway ingestion and notification delivery are
+  also not wired end to end.
 
 ## Verification history
 

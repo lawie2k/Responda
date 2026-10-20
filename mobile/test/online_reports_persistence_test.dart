@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:responda/core/widgets/responda_bottom_navigation.dart';
 import 'package:responda/features/reporting/data/online_report_store.dart';
+import 'package:responda/features/reporting/data/mobile_report_api.dart';
 import 'package:responda/features/reporting/domain/models/incident_type.dart';
 import 'package:responda/features/reporting/domain/models/report_draft.dart';
 import 'package:responda/screens/online/my_reports_screen.dart';
@@ -62,6 +63,7 @@ void main() {
     const store = OnlineReportStore();
     final saved = await store.save(
       draft,
+      reportId: '00000000-0000-4000-8000-000000000001',
       submittedAt: DateTime(2026, 9, 19, 9, 41),
     );
 
@@ -90,6 +92,7 @@ void main() {
     const store = OnlineReportStore();
     final saved = await store.save(
       draft,
+      reportId: '00000000-0000-4000-8000-000000000002',
       submittedAt: DateTime(2026, 9, 19, 9, 41),
     );
 
@@ -123,15 +126,19 @@ void main() {
       tester,
       SubmittingReportScreen(
         draft: draft,
-        submitReport: (_) async {},
-        saveOnlineReport: (submittedDraft) async {
-          saved = true;
-          return SavedOnlineReport(
-            id: 'RSP-2026-00001',
-            submittedAt: submittedAt,
-            draft: submittedDraft,
-          );
-        },
+        submitReport: (_, _) async => MobileReportReceipt(
+          reportId: '00000000-0000-4000-8000-000000000003',
+          receivedAt: submittedAt,
+        ),
+        saveOnlineReport:
+            (submittedDraft, {required reportId, required submittedAt}) async {
+              saved = true;
+              return SavedOnlineReport(
+                id: reportId,
+                submittedAt: submittedAt,
+                draft: submittedDraft,
+              );
+            },
       ),
     );
 
@@ -139,13 +146,30 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pump();
     expect(find.text('REPORT SENT'), findsOneWidget);
-    expect(find.text('RSP-2026-00001'), findsOneWidget);
+    expect(find.text('00000000-0000-4000-8000-000000000003'), findsOneWidget);
   });
+
+  testWidgets(
+    'online submission without an authenticated account never shows success',
+    (tester) async {
+      await pumpPhoneScreen(tester, const SubmittingReportScreen(draft: draft));
+
+      expect(
+        find.text(
+          'Sign in to your Responda account before submitting an online report.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('REPORT SENT'), findsNothing);
+      expect(find.text('Retry submission'), findsOneWidget);
+    },
+  );
 
   test('online reports persist as structured local records', () async {
     const store = OnlineReportStore();
     final saved = await store.save(
       draft,
+      reportId: '00000000-0000-4000-8000-000000000004',
       submittedAt: DateTime(2026, 9, 19, 9, 41),
     );
     final loaded = await store.loadAll();

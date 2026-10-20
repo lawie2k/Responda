@@ -68,11 +68,12 @@ class OnlineReportStore {
 
   Future<SavedOnlineReport> save(
     ReportDraft draft, {
+    required String reportId,
     DateTime? submittedAt,
   }) async {
     final time = submittedAt ?? DateTime.now();
     final report = SavedOnlineReport(
-      id: _makeId(time),
+      id: reportId,
       submittedAt: time,
       draft: draft,
     );
@@ -110,10 +111,5 @@ class OnlineReportStore {
       _storageKey,
       reports.map((report) => jsonEncode(report.toJson())).toList(),
     );
-  }
-
-  static String _makeId(DateTime time) {
-    final sequence = time.millisecondsSinceEpoch.remainder(100000);
-    return 'RSP-${time.year}-${sequence.toString().padLeft(5, '0')}';
   }
 }

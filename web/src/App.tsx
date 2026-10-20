@@ -107,7 +107,10 @@ function Dashboard({
   ]);
   const searchRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
-  const reportQuery = useAdminReports({ pageSize: 100 });
+  const reportQuery = useAdminReports(
+    { pageSize: 100 },
+    page === "Live Reports" ? 5000 : 0,
+  );
   const dashboardReports = useMemo(
     () => reportQuery.data?.items.map(toReport) ?? [],
     [reportQuery.data],

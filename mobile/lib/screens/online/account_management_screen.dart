@@ -32,7 +32,7 @@ class AccountManagementScreen extends StatelessWidget {
                     const SizedBox(height: 14),
                     _DetailsCard(profile: profile),
                     const SizedBox(height: 14),
-                    const _RecoveryCard(),
+                    if (profile.phoneNumber.isNotEmpty) const _RecoveryCard(),
                     const SizedBox(height: 14),
                     const _SignOutButton(),
                   ],
@@ -140,6 +140,7 @@ class _StatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final verified = profile.status == AccountVerificationStatus.verified;
+    final beta = profile.phoneNumber.isEmpty;
     final color = verified ? AppColors.success : AppColors.warning;
     final background = verified ? AppColors.successSoft : AppColors.warningSoft;
     return Container(
@@ -159,7 +160,9 @@ class _StatusCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
             ),
             child: LocalizedText(
-              context.tr(profile.status.label).toUpperCase(),
+              context
+                  .tr(beta ? 'Beta account' : profile.status.label)
+                  .toUpperCase(),
               style: TextStyle(
                 color: color,
                 fontSize: 12,
@@ -169,7 +172,11 @@ class _StatusCard extends StatelessWidget {
           ),
           const SizedBox(height: 13),
           LocalizedText(
-            verified ? 'Mobile number verified' : 'Account needs attention',
+            beta
+                ? 'Beta account ready'
+                : verified
+                ? 'Mobile number verified'
+                : 'Account needs attention',
             style: const TextStyle(
               color: AppColors.surface,
               fontSize: 20,
@@ -178,7 +185,9 @@ class _StatusCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           LocalizedText(
-            verified
+            beta
+                ? 'Phone verification is paused for beta. You can send reports while the beta server is enabled.'
+                : verified
                 ? 'Your phone number is verified and your RESPONDA account is active.'
                 : 'Check your phone verification before recovering this account.',
             style: const TextStyle(
@@ -213,7 +222,9 @@ class _DetailsCard extends StatelessWidget {
           _DetailRow(
             icon: Icons.phone_iphone_rounded,
             label: 'Phone number',
-            value: profile.phoneNumber,
+            value: profile.phoneNumber.isEmpty
+                ? 'Not verified for beta'
+                : profile.phoneNumber,
           ),
           const Divider(height: 24, color: AppColors.border),
           _DetailRow(

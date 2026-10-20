@@ -53,13 +53,17 @@ class MobileProfileUpdate(BaseModel):
         return value
 
 
+class BetaRegistration(MobileProfileUpdate):
+    privacy_notice_accepted: bool
+
+
 class MobileUser(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     user_id: UUID
     full_name: str
-    phone_number: str
+    phone_number: str | None
     barangay: str | None
-    phone_verified_at: datetime
+    phone_verified_at: datetime | None
     privacy_notice_accepted_at: datetime
 
 

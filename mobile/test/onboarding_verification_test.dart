@@ -8,6 +8,7 @@ import 'package:responda/features/onboarding/domain/account_profile.dart';
 import 'package:responda/features/onboarding/presentation/account_scope.dart';
 import 'package:responda/features/onboarding/presentation/screens/identity_verification_screen.dart';
 import 'package:responda/features/onboarding/presentation/screens/verification/privacy_notice_screen.dart';
+import 'package:responda/features/onboarding/presentation/screens/verification/otp_verification_screen.dart';
 import 'package:responda/screens/online/account_management_screen.dart';
 import 'package:responda/screens/online/settings_screen.dart';
 
@@ -22,6 +23,72 @@ void main() {
   }
 
   final privacyAcceptedAt = DateTime(2026, 10, 8, 9, 30);
+
+  testWidgets(
+    'skip OTP entry uses the development code and continues to optional profile',
+    (tester) async {
+      await setPhoneSize(tester);
+      final tokens = MemoryTokenStore();
+      final api = FakeMobileAccountApi();
+      final controller = AccountController(
+        store: _MemoryAccountStore(),
+        api: api,
+        tokenStore: tokens,
+      );
+      addTearDown(controller.dispose);
+      await controller.load();
+      await controller.sendCode('+639171234567');
+      await tester.pumpWidget(
+        AccountScope(
+          controller: controller,
+          child: MaterialApp(
+            home: OtpVerificationScreen(
+              phoneNumber: '+639171234567',
+              otpService: controller,
+              privacyNoticeAcceptedAt: privacyAcceptedAt,
+            ),
+            routes: {AppRoutes.home: (_) => const _HomeMarker()},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('skip_otp_verification')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Optional account details'), findsOneWidget);
+      expect(find.byType(_HomeMarker), findsNothing);
+      expect(api.verifiedCode, '123456');
+      expect(controller.hasAccount, isTrue);
+      expect(controller.profile?.status, AccountVerificationStatus.verified);
+      expect(await tokens.read(), isNotNull);
+
+      await tester.enterText(
+        find.byKey(const Key('optional_profile_name_field')),
+        'Beta Tester',
+      );
+      final finish = find.byKey(const Key('finish_account_setup_button'));
+      await tester.ensureVisible(finish);
+      await tester.tap(finish);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Phone verified'), findsOneWidget);
+      expect(api.fullName, 'Beta Tester');
+    },
+  );
+
+  testWidgets('phone entry keeps verification required', (tester) async {
+    await setPhoneSize(tester);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: IdentityVerificationScreen(
+          privacyNoticeAcceptedAt: privacyAcceptedAt,
+        ),
+      ),
+    );
+
+    expect(find.byKey(const Key('skip_phone_verification')), findsNothing);
+  });
 
   test(
     'account profile persists phone verification and optional details',

@@ -103,9 +103,14 @@ void main() {
       tester,
       const SubmittingReportScreen(draft: completeDraft),
     );
-    expect(find.text('Sending your report to MDRRMO…'), findsOneWidget);
-    await tester.pump(const Duration(milliseconds: 1400));
-    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('Report not sent'), findsOneWidget);
+    expect(
+      find.text(
+        'Sign in to your Responda account before submitting an online report.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('REPORT SENT'), findsNothing);
 
     await pumpPhoneScreen(
       tester,

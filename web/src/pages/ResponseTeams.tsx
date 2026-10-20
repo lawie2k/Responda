@@ -70,12 +70,39 @@ function locationLabel(unit: AdminResponseUnitListItem) {
 
 function UnitCard({
   unit,
+  assignment,
+  assignmentError,
+  transitioning,
+  onTransition,
   onSelect,
 }: {
   unit: AdminResponseUnitListItem;
+  assignment?: AdminAssignmentListItem;
+  assignmentError?: string;
+  transitioning: AssignmentTransitionStatus | null;
+  onTransition: (
+    assignment: AdminAssignmentListItem,
+    status: AssignmentTransitionStatus,
+  ) => void;
   onSelect: () => void;
 }) {
   const meta = statusMeta[unit.status];
+  const nextStatus =
+    assignment?.status === "assigned"
+      ? "acknowledged"
+      : assignment?.status === "acknowledged"
+        ? "responding"
+        : assignment?.status === "responding"
+          ? "completed"
+          : null;
+  const actionLabel =
+    nextStatus === "acknowledged"
+      ? "Record acknowledgment"
+      : nextStatus === "responding"
+        ? "Mark responding"
+        : nextStatus === "completed"
+          ? "Complete response"
+          : null;
   return (
     <Card className="flex min-h-[230px] flex-col">
       <div className="flex items-center justify-between gap-3">
@@ -96,7 +123,22 @@ function UnitCard({
           <b className="text-right">{locationLabel(unit)}</b>
         </div>
       </div>
-      <div className="mt-auto pt-4">
+      <div className="mt-auto grid gap-2 pt-4">
+        {assignment && actionLabel && nextStatus && (
+          <>
+            {assignmentError && (
+              <p className="m-0 text-[9px] text-priority-red" role="alert">
+                {assignmentError}
+              </p>
+            )}
+            <Button
+              disabled={transitioning !== null}
+              onClick={() => onTransition(assignment, nextStatus)}
+            >
+              {transitioning === nextStatus ? "Saving…" : actionLabel}
+            </Button>
+          </>
+        )}
         <Button variant="secondary" onClick={onSelect}>
           View unit
         </Button>
@@ -132,7 +174,10 @@ export function ResponseTeams({
   const [feedback, setFeedback] = useState("");
   const [transitioning, setTransitioning] =
     useState<AssignmentTransitionStatus | null>(null);
-  const [assignmentError, setAssignmentError] = useState("");
+  const [assignmentError, setAssignmentError] = useState<{
+    assignmentId: string;
+    message: string;
+  } | null>(null);
   const [confirmCancellation, setConfirmCancellation] = useState(false);
 
   useEffect(() => {
@@ -181,14 +226,14 @@ export function ResponseTeams({
 
   const openUnit = (unitId: string) => {
     setSelectedUnitId(unitId);
-    setAssignmentError("");
+    setAssignmentError(null);
     setConfirmCancellation(false);
   };
 
   const closeUnit = () => {
     if (transitioning) return;
     setSelectedUnitId(null);
-    setAssignmentError("");
+    setAssignmentError(null);
     setConfirmCancellation(false);
   };
 
@@ -265,7 +310,7 @@ export function ResponseTeams({
   ) => {
     if (transitioning) return;
     setTransitioning(status);
-    setAssignmentError("");
+      setAssignmentError(null);
     try {
       const result = await transitionAdminAssignment(
         assignment.assignment_id,
@@ -289,11 +334,13 @@ export function ResponseTeams({
       activeAssignments.refetch();
       onAssignmentsChanged();
     } catch (error) {
-      setAssignmentError(
-        error instanceof Error
-          ? error.message
-          : "The assignment status could not be updated.",
-      );
+      setAssignmentError({
+        assignmentId: assignment.assignment_id,
+        message:
+          error instanceof Error
+            ? error.message
+            : "The assignment status could not be updated.",
+      });
     } finally {
       setTransitioning(null);
     }
@@ -411,13 +458,29 @@ export function ResponseTeams({
 
           {roster.status === "ready" && roster.data.items.length > 0 && (
             <div className="grid grid-cols-2 gap-3 max-[650px]:grid-cols-1">
-              {roster.data.items.map((unit) => (
-                <UnitCard
-                  key={unit.unit_id}
-                  onSelect={() => openUnit(unit.unit_id)}
-                  unit={unit}
-                />
-              ))}
+              {roster.data.items.map((unit) => {
+                const assignment = activeAssignments.data?.find(
+                  (item) => item.unit.unit_id === unit.unit_id,
+                );
+                return (
+                  <UnitCard
+                    key={unit.unit_id}
+                    assignment={assignment}
+                    assignmentError={
+                      assignmentError &&
+                      assignmentError.assignmentId === assignment?.assignment_id
+                        ? assignmentError.message
+                        : undefined
+                    }
+                    onTransition={(item, status) =>
+                      void transitionAssignment(item, status)
+                    }
+                    onSelect={() => openUnit(unit.unit_id)}
+                    transitioning={transitioning}
+                    unit={unit}
+                  />
+                );
+              })}
             </div>
           )}
 
@@ -793,61 +856,17 @@ export function ResponseTeams({
                         </Badge>
                       </div>
 
-                      {assignmentError && (
+                      {assignmentError?.assignmentId ===
+                        selectedAssignment.assignment_id && (
                         <div
                           className="border border-[#efc7c4] bg-white px-3 py-2.5 text-[9px] text-priority-red"
                           role="alert"
                         >
-                          {assignmentError}
+                          {assignmentError.message}
                         </div>
                       )}
 
                       <div className="flex flex-wrap gap-2">
-                        {selectedAssignment.status === "assigned" && (
-                          <Button
-                            disabled={transitioning !== null}
-                            onClick={() =>
-                              void transitionAssignment(
-                                selectedAssignment,
-                                "acknowledged",
-                              )
-                            }
-                          >
-                            {transitioning === "acknowledged"
-                              ? "Saving…"
-                              : "Record acknowledgment"}
-                          </Button>
-                        )}
-                        {selectedAssignment.status === "acknowledged" && (
-                          <Button
-                            disabled={transitioning !== null}
-                            onClick={() =>
-                              void transitionAssignment(
-                                selectedAssignment,
-                                "responding",
-                              )
-                            }
-                          >
-                            {transitioning === "responding"
-                              ? "Saving…"
-                              : "Mark responding"}
-                          </Button>
-                        )}
-                        {selectedAssignment.status === "responding" && (
-                          <Button
-                            disabled={transitioning !== null}
-                            onClick={() =>
-                              void transitionAssignment(
-                                selectedAssignment,
-                                "completed",
-                              )
-                            }
-                          >
-                            {transitioning === "completed"
-                              ? "Saving…"
-                              : "Complete response"}
-                          </Button>
-                        )}
                         {!confirmCancellation ? (
                           <Button
                             variant="secondary"

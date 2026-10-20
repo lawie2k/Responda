@@ -57,6 +57,15 @@ VA101 to FastAPI and PostgreSQL; VA101's Next.js code is a reference, not code t
   that do not echo phone numbers or OTPs. Profile fields are optional, bounded,
   and barangay values come from the Pantukan list. Audits contain account IDs and
   action names only, never codes, bearer tokens, or contact/profile values.
+- Local beta builds may register without OTP through `/mobile/auth/beta/register`
+  only when `RESPONDA_MOBILE_BETA_ACCOUNTS_ENABLED` is explicitly enabled in
+  development/testing. Staging/production reject that setting. Registration
+  creates a new reporter with no phone or phone-verification timestamp, a
+  reserved non-deliverable `.invalid` email identity, consent and a hashed opaque
+  `mobile_beta_` session. It cannot claim an existing account or phone. These
+  sessions retain expiry, revocation, active-account checks and report limits;
+  they stop working when beta mode is disabled. Phone-verified dashboard account
+  lists continue to exclude them. Normal mobile sessions still require OTP.
 - Dashboard Mobile Accounts reads allow both administrator tiers and include only
   undeleted, phone-verified reporter accounts with privacy acknowledgement.
   Exclude manual-intake callers and staff. Mask contacts in all returned account

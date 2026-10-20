@@ -19,6 +19,7 @@ class FakeMobileAccountApi extends MobileAccountApi {
   String fullName = '';
   String barangay = '';
   String phone = '';
+  String? verifiedCode;
   @override
   Future<Map<String, dynamic>> request(
     String path, {
@@ -33,6 +34,9 @@ class FakeMobileAccountApi extends MobileAccountApi {
         'resend_after_seconds': 60,
         'development_code': '123456',
       };
+    }
+    if (path == 'otp/verify') {
+      verifiedCode = body!['code'] as String;
     }
     if (path == 'profile') {
       fullName = body!['full_name'] as String;

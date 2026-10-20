@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "../components/Icon";
 import { MiniMap } from "../components/Map";
 import type { MapPoint } from "../data/mapData";
-import type { Report } from "../data/reports";
+import { isMappableActiveReport, type Report } from "../data/reports";
 import { useActiveAdminAssignments } from "../hooks/useAdminAssignments";
 import {
   Badge,
@@ -28,8 +28,6 @@ const layerNames = [
   "Landslide hazard",
   "Storm surge hazard",
 ];
-const activeIncidentStatuses = new Set(["open", "dispatched", "responding"]);
-
 const priorityLabel = (priority: Report["priority"]): MapPoint["priority"] =>
   priority === "CRITICAL"
     ? "Critical"
@@ -88,10 +86,7 @@ export function IncidentMap({
   const operationalReports = useMemo(
     () =>
       reports.filter(
-        (report) =>
-          report.verificationStatus === "verified" &&
-          (!report.incidentStatus ||
-            activeIncidentStatuses.has(report.incidentStatus)),
+        isMappableActiveReport,
       ),
     [reports],
   );

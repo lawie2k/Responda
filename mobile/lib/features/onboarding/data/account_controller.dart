@@ -2,11 +2,14 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:responda/core/config/beta_features.dart';
 
 import '../domain/account_profile.dart';
 import '../../../core/network/responda_api_client.dart';
 import 'identity_otp_service.dart';
 import 'mobile_account_api.dart';
+import '../../reporting/data/mobile_report_api.dart';
+import '../../reporting/domain/models/report_draft.dart';
 
 abstract interface class AccountStore {
   Future<AccountProfile?> read();
@@ -74,9 +77,10 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
 
   AccountProfile? get profile => _profile;
   bool get hasAccount =>
-      _profile != null &&
-      _token != null &&
-      (_expiresAt?.isAfter(DateTime.now()) ?? false);
+      _profile?.isBetaLocal == true ||
+      (_profile != null &&
+          _token != null &&
+          (_expiresAt?.isAfter(DateTime.now()) ?? false));
   bool get isLoaded => _isLoaded;
 
   Future<void> refreshSession() async {
@@ -120,7 +124,11 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
           _profile = cached;
         }
       } else {
-        await _store.clear();
+        if (cached?.isBetaLocal == true) {
+          _profile = cached;
+        } else {
+          await _store.clear();
+        }
       }
     } catch (_) {
       _profile = null;
@@ -158,10 +166,7 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
         'privacy_notice_accepted': true,
       },
     );
-    final token = result['access_token'] as String;
-    await _tokenStore.write(token);
-    _token = token;
-    await _accept(result);
+    await _acceptLogin(result);
     _challengeId = null;
     developmentCode = null;
     return true;
@@ -169,11 +174,16 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
 
   Future<void> _accept(Map<String, dynamic> result) async {
     final user = result['user'] as Map;
+    final verifiedAt = user['phone_verified_at'] as String?;
     _expiresAt = DateTime.parse(result['expires_at'] as String);
     final profile = AccountProfile(
-      phoneNumber: user['phone_number'] as String,
-      status: AccountVerificationStatus.verified,
-      submittedAt: DateTime.parse(user['phone_verified_at'] as String),
+      phoneNumber: user['phone_number'] as String? ?? '',
+      status: verifiedAt == null
+          ? AccountVerificationStatus.pending
+          : AccountVerificationStatus.verified,
+      submittedAt: DateTime.parse(
+        verifiedAt ?? user['privacy_notice_accepted_at'] as String,
+      ),
       privacyNoticeAcceptedAt: DateTime.parse(
         user['privacy_notice_accepted_at'] as String,
       ),
@@ -184,6 +194,13 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
     await _store.write(profile);
     _profile = profile;
     notifyListeners();
+  }
+
+  Future<void> _acceptLogin(Map<String, dynamic> result) async {
+    final token = result['access_token'] as String;
+    await _tokenStore.write(token);
+    _token = token;
+    await _accept(result);
   }
 
   Future<void> completePhoneVerification({
@@ -205,6 +222,59 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
     );
     _isLoaded = true;
     notifyListeners();
+  }
+
+  Future<void> completeBetaProfile({
+    required DateTime privacyNoticeAcceptedAt,
+    String fullName = '',
+    String barangay = '',
+  }) async {
+    final profile = AccountProfile(
+      phoneNumber: '',
+      status: AccountVerificationStatus.pending,
+      submittedAt: DateTime.now(),
+      privacyNoticeAcceptedAt: privacyNoticeAcceptedAt,
+      fullName: fullName.trim(),
+      barangay: barangay.trim(),
+      isBetaLocal: true,
+    );
+    await _store.write(profile);
+    _profile = profile;
+    _isLoaded = true;
+    notifyListeners();
+  }
+
+  Future<MobileReportReceipt> submitReport(
+    ReportDraft draft, {
+    required String clientReportId,
+  }) async {
+    if (draft.photoPath != null) {
+      throw const RespondaApiException(
+        'Remove the attached photo to submit this report. Photo uploads are not available yet.',
+      );
+    }
+    final profile = _profile;
+    if (betaSkipMobileVerification &&
+        profile?.isBetaLocal == true &&
+        _token == null) {
+      await _acceptLogin(
+        await _api.request(
+          'beta/register',
+          method: 'POST',
+          body: {
+            'full_name': profile!.fullName,
+            'barangay': profile.barangay,
+            'privacy_notice_accepted': true,
+          },
+        ),
+      );
+    }
+    final token = _token;
+    if (!hasAccount || token == null) {
+      throw const RespondaApiException('Sign in with your phone number first.');
+    }
+    return MobileReportApi(_api)
+        .submit(token: token, clientReportId: clientReportId, draft: draft);
   }
 
   Future<void> clearLocalSession() async {

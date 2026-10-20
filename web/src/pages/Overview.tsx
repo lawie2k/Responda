@@ -1,5 +1,5 @@
 import type { Page } from "../types";
-import { tone, type Report } from "../data/reports";
+import { isMappableActiveReport, tone, type Report } from "../data/reports";
 import type { MapPoint } from "../data/mapData";
 import { Icon } from "../components/Icon";
 import { MiniMap } from "../components/Map";
@@ -36,7 +36,9 @@ export function Overview({
 }) {
   const criticalReports = reports.filter((report) => report.priority === "CRITICAL");
   const pendingReports = reports.filter((report) => report.status === "VERIFYING");
-  const activeReports = reports.filter((report) => report.status !== "CLOSED");
+  const activeReports = reports.filter(
+    (report) => report.status !== "CLOSED" && report.status !== "RESOLVED",
+  );
   const reportedLocations = new Set(
     activeReports.map((report) => report.location),
   ).size;
@@ -46,7 +48,7 @@ export function Overview({
     day: "numeric",
   }).format(new Date());
   const mapPoints: MapPoint[] = reports.flatMap((report) =>
-    report.position
+    report.position && isMappableActiveReport(report)
       ? [
           {
             id: report.reference,

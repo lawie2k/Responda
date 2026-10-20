@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
 import 'package:responda/core/navigation/app_routes.dart';
+import 'package:responda/core/config/beta_features.dart';
 import 'package:responda/core/theme/app_colors.dart';
 import 'package:responda/core/widgets/responda_button.dart';
 import 'package:responda/features/onboarding/presentation/widgets/identity_verification_widgets.dart';
 import 'package:responda/features/onboarding/presentation/widgets/onboarding_step_scaffold.dart';
 
 import 'phone_verification_screen.dart';
+import 'optional_profile_screen.dart';
 
 class PrivacyNoticeScreen extends StatefulWidget {
   const PrivacyNoticeScreen({super.key});
@@ -28,8 +30,12 @@ class _PrivacyNoticeScreenState extends State<PrivacyNoticeScreen> {
       children: [
         const IdentityInfoCard(
           icon: Icons.phone_iphone_rounded,
-          title: 'Only your phone number is required',
-          message: 'Your number is used for OTP account access and emergency follow-up. RESPONDA does not require a valid ID or face photo.',
+          title: betaSkipMobileVerification
+              ? 'Phone verification is paused for beta'
+              : 'Only your phone number is required',
+          message: betaSkipMobileVerification
+              ? 'You can finish setup and test report submission without an SMS code during beta testing.'
+              : 'Your number is used for OTP account access and emergency follow-up. RESPONDA does not require a valid ID or face photo.',
         ),
         const IdentityInfoCard(
           icon: Icons.person_outline_rounded,
@@ -92,8 +98,14 @@ class _PrivacyNoticeScreenState extends State<PrivacyNoticeScreen> {
   void _continue() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) =>
-            IdentityVerificationScreen(privacyNoticeAcceptedAt: DateTime.now()),
+        builder: (_) => betaSkipMobileVerification
+            ? OptionalProfileScreen(
+                phoneNumber: null,
+                privacyNoticeAcceptedAt: DateTime.now(),
+              )
+            : IdentityVerificationScreen(
+                privacyNoticeAcceptedAt: DateTime.now(),
+              ),
       ),
     );
   }

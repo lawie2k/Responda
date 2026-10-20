@@ -97,6 +97,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     }
   }
 
+  Future<void> _continueWithDevelopmentCode() async {
+    final code = _account?.developmentCode;
+    if (code == null || _verifying || _resending) return;
+    _codeController.text = code;
+    setState(() => _error = null);
+    await _verify();
+  }
+
   Future<void> _resend() async {
     if (_resending || _verifying || _remaining > 0) return;
     setState(() {
@@ -179,6 +187,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             style: const TextStyle(color: AppColors.brand),
           ),
         ),
+        if (_account?.developmentCode != null)
+          TextButton(
+            key: const Key('skip_otp_verification'),
+            onPressed: _verifying || _resending
+                ? null
+                : _continueWithDevelopmentCode,
+            child: const LocalizedText('Continue with test code'),
+          ),
       ],
     );
   }

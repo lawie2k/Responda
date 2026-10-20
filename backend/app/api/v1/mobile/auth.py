@@ -9,7 +9,9 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.api.dependencies import DatabaseSession, SettingsDependency
 from app.core.exceptions import ApplicationError
 from app.core.rate_limit import LoginRateLimiter
+from app.models import User
 from app.schemas.mobile_auth import (
+    BetaRegistration,
     MobileLogin,
     MobileProfileUpdate,
     MobileSession,
@@ -63,6 +65,14 @@ def token(
 Token = Annotated[str | None, Depends(token)]
 
 
+async def current_mobile_user(auth: Service, access: Token) -> User:
+    user, _ = await auth.authenticate(access)
+    return user
+
+
+CurrentMobileUser = Annotated[User, Depends(current_mobile_user)]
+
+
 async def limit(request: Request, phone: str, kind: str) -> None:
     limiter: LoginRateLimiter = getattr(request.app.state, f"mobile_{kind}_limiter")
     ip = request.client.host if request.client is not None else "unknown"
@@ -91,6 +101,12 @@ async def verify(payload: OtpVerify, request: Request, auth: Service) -> MobileL
 @router.get("/me", response_model=MobileSession)
 async def me(auth: Service, access: Token) -> MobileSession:
     return await auth.profile(access)
+
+
+@router.post("/beta/register", response_model=MobileLogin, status_code=201)
+async def register_beta(payload: BetaRegistration, request: Request, auth: Service) -> MobileLogin:
+    await limit(request, "beta-registration", "send")
+    return await auth.register_beta(payload)
 
 
 @router.patch("/profile", response_model=MobileSession)

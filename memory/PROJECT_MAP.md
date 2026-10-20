@@ -2,7 +2,7 @@
 tags:
   - responda/memory
   - responda/code-map
-updated: 2026-10-15
+updated: 2026-10-20
 ---
 
 # Project map
@@ -64,6 +64,11 @@ Local URL: `http://localhost:5173`
 Path: `/Users/lawie/develop/responda/mobile`
 
 - Framework: Flutter/Dart; Android is the first deployment target.
+- The user-selected iPhone build copy is
+  `/Users/lawie/local Documents/Responda/mobile`. It currently mirrors this
+  tracked source but is outside Git; synchronize application changes back to
+  the monorepo before committing or pushing. Keep generated Flutter/Xcode
+  environment files local to each path.
 - Entry: `lib/main.dart`.
 - Application root: `lib/app.dart`.
 - API configuration: `lib/core/network/api_config.dart`.

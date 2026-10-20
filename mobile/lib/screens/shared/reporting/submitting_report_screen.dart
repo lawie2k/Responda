@@ -3,11 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'package:responda/core/theme/app_colors.dart';
+import 'package:responda/core/network/responda_api_client.dart';
 import 'package:responda/features/reporting/data/offline_report_store.dart';
 import 'package:responda/features/reporting/data/offline_sms_handoff.dart';
 import 'package:responda/features/reporting/data/online_report_store.dart';
+import 'package:responda/features/reporting/data/mobile_report_api.dart';
 import 'package:responda/features/reporting/domain/models/report_draft.dart';
 import 'package:responda/features/reporting/domain/models/report_flow_mode.dart';
+import 'package:responda/features/onboarding/presentation/account_scope.dart';
 
 import 'report_success_screen.dart';
 
@@ -24,11 +27,20 @@ class SubmittingReportScreen extends StatefulWidget {
 
   final ReportDraft draft;
   final ReportFlowMode flowMode;
-  final Future<void> Function(ReportDraft draft)? submitReport;
+  final Future<MobileReportReceipt> Function(
+    ReportDraft draft,
+    String clientReportId,
+  )?
+  submitReport;
   final Future<SavedOfflineReport> Function(ReportDraft draft)?
   saveOfflineReport;
   final Future<bool> Function(SavedOfflineReport report)? openSmsComposer;
-  final Future<SavedOnlineReport> Function(ReportDraft draft)? saveOnlineReport;
+  final Future<SavedOnlineReport> Function(
+    ReportDraft draft, {
+    required String reportId,
+    required DateTime submittedAt,
+  })?
+  saveOnlineReport;
 
   @override
   State<SubmittingReportScreen> createState() => _SubmittingReportScreenState();
@@ -38,6 +50,9 @@ class _SubmittingReportScreenState extends State<SubmittingReportScreen> {
   final _timers = <Timer>[];
   int _completedSteps = 1;
   bool _submissionStarted = false;
+  String? _errorMessage;
+  late final String _clientReportId =
+      widget.draft.clientReportId ?? MobileReportApi.createClientReportId();
 
   @override
   void didChangeDependencies() {
@@ -59,7 +74,7 @@ class _SubmittingReportScreenState extends State<SubmittingReportScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false,
+      canPop: _errorMessage != null,
       child: Scaffold(
         body: SafeArea(
           child: Align(
@@ -71,18 +86,27 @@ class _SubmittingReportScreenState extends State<SubmittingReportScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const SizedBox(
-                      width: 84,
-                      height: 84,
-                      child: CircularProgressIndicator(
-                        color: AppColors.brand,
-                        strokeWidth: 8,
-                        strokeCap: StrokeCap.round,
+                    if (_errorMessage == null)
+                      const SizedBox(
+                        width: 84,
+                        height: 84,
+                        child: CircularProgressIndicator(
+                          color: AppColors.brand,
+                          strokeWidth: 8,
+                          strokeCap: StrokeCap.round,
+                        ),
+                      )
+                    else
+                      const Icon(
+                        Icons.error_outline_rounded,
+                        color: AppColors.warning,
+                        size: 84,
                       ),
-                    ),
                     const SizedBox(height: 30),
                     LocalizedText(
-                      widget.flowMode.isOffline
+                      _errorMessage != null
+                          ? 'Report not sent'
+                          : widget.flowMode.isOffline
                           ? 'Saving report and preparing SMS…'
                           : 'Sending your report to MDRRMO…',
                       textAlign: TextAlign.center,
@@ -95,7 +119,9 @@ class _SubmittingReportScreenState extends State<SubmittingReportScreen> {
                     ),
                     const SizedBox(height: 12),
                     LocalizedText(
-                      widget.flowMode.isOffline
+                      _errorMessage != null
+                          ? 'Your report was not confirmed as received. Retry safely or return to review.'
+                          : widget.flowMode.isOffline
                           ? 'Your report will stay available even without internet.'
                           : 'Please keep Responda open while submission completes.',
                       textAlign: TextAlign.center,
@@ -106,20 +132,46 @@ class _SubmittingReportScreenState extends State<SubmittingReportScreen> {
                       ),
                     ),
                     const SizedBox(height: 30),
-                    _SubmissionStep(
-                      label: 'Preparing report',
-                      complete: _completedSteps >= 1,
-                    ),
-                    _SubmissionStep(
-                      label: 'Checking GPS coordinates',
-                      complete: _completedSteps >= 2,
-                    ),
-                    _SubmissionStep(
-                      label: widget.flowMode.isOffline
-                          ? 'Opening your phone SMS app'
-                          : 'Sending securely',
-                      complete: _completedSteps >= 3,
-                    ),
+                    if (_errorMessage == null) ...[
+                      _SubmissionStep(
+                        label: 'Preparing report',
+                        complete: _completedSteps >= 1,
+                      ),
+                      _SubmissionStep(
+                        label: 'Checking GPS coordinates',
+                        complete: _completedSteps >= 2,
+                      ),
+                      _SubmissionStep(
+                        label: widget.flowMode.isOffline
+                            ? 'Opening your phone SMS app'
+                            : 'Sending securely',
+                        complete: _completedSteps >= 3,
+                      ),
+                    ] else ...[
+                      const SizedBox(height: 12),
+                      LocalizedText(
+                        _errorMessage!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 14,
+                          height: 20 / 14,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      FilledButton(
+                        onPressed: _retrySubmission,
+                        child: const LocalizedText('Retry submission'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(
+                          widget.draft.copyWith(
+                            clientReportId: _clientReportId,
+                          ),
+                        ),
+                        child: const LocalizedText('Back to review'),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -155,15 +207,38 @@ class _SubmittingReportScreenState extends State<SubmittingReportScreen> {
         smsComposerOpened = false;
       }
     } else {
-      final submit = widget.submitReport;
-      if (submit != null) {
-        await submit(widget.draft);
-      } else {
-        await Future<void>.delayed(const Duration(milliseconds: 1300));
+      try {
+        final account = AccountScope.maybeOf(context);
+        if (widget.submitReport == null && account == null) {
+          throw const RespondaApiException(
+            'Sign in to your Responda account before submitting an online report.',
+          );
+        }
+        final receipt = widget.submitReport != null
+            ? await widget.submitReport!(widget.draft, _clientReportId)
+            : await account!.submitReport(
+                widget.draft,
+                clientReportId: _clientReportId,
+              );
+        final saveOnline = widget.saveOnlineReport;
+        onlineReport = saveOnline != null
+            ? await saveOnline(
+                widget.draft,
+                reportId: receipt.reportId,
+                submittedAt: receipt.receivedAt,
+              )
+            : await const OnlineReportStore().save(
+                widget.draft,
+                reportId: receipt.reportId,
+                submittedAt: receipt.receivedAt,
+              );
+      } catch (error) {
+        if (!mounted) return;
+        setState(() {
+          _errorMessage = error is RespondaApiException ? error.message : 'We could not confirm that your report was received. Check your connection and retry.';
+        });
+        return;
       }
-      final saveOnline =
-          widget.saveOnlineReport ?? const OnlineReportStore().save;
-      onlineReport = await saveOnline(widget.draft);
     }
 
     if (!mounted) {
@@ -191,6 +266,14 @@ class _SubmittingReportScreenState extends State<SubmittingReportScreen> {
         );
       }),
     );
+  }
+
+  void _retrySubmission() {
+    setState(() {
+      _errorMessage = null;
+      _completedSteps = 1;
+    });
+    _beginSubmission();
   }
 }
 
