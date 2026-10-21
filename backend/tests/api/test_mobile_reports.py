@@ -9,7 +9,11 @@ from app.core.config import Environment, Settings
 from app.core.exceptions import ApplicationError
 from app.main import create_app
 from app.models import User
-from app.schemas.mobile_reports import MobileReportCreateResponse
+from app.schemas.mobile_reports import (
+    MobileReportCreateResponse,
+    MobileReportListResponse,
+    MobileReportTrackingResponse,
+)
 
 CLIENT_REPORT_ID = uuid.UUID("00000000-0000-4000-8000-000000000101")
 REPORT_ID = uuid.UUID("00000000-0000-4000-8000-000000000102")
@@ -36,6 +40,23 @@ class FakeMobileAuthService:
 class FakeMobileReportService:
     def __init__(self) -> None:
         self.calls: list[tuple[User, object]] = []
+
+    async def list_reports(self, **kwargs: object) -> MobileReportListResponse:
+        self.read_arguments = kwargs
+        return MobileReportListResponse(
+            items=[],
+            total=0,
+            page=int(str(kwargs["page"])),
+            page_size=int(str(kwargs["page_size"])),
+            total_pages=0,
+            active_count=0,
+        )
+
+    async def get_report(self, **kwargs: object) -> MobileReportTrackingResponse:
+        self.read_arguments = kwargs
+        raise ApplicationError(
+            "This report is not available.", code="report_not_found", status_code=404
+        )
 
     async def create_report(self, *, reporter: User, payload: object) -> MobileReportCreateResponse:
         self.calls.append((reporter, payload))
@@ -125,3 +146,50 @@ def test_report_submission_is_rate_limited() -> None:
     response = client.post("/api/v1/mobile/reports", json=valid_payload(), headers=headers)
     assert response.status_code == 429
     assert int(response.headers["retry-after"]) > 0
+
+
+def test_tracking_reads_require_bearer_authentication_and_are_private() -> None:
+    client, _, _ = build_client()
+    for path in ("/api/v1/mobile/reports", f"/api/v1/mobile/reports/{REPORT_ID}"):
+        response = client.get(path)
+        assert response.status_code == 401
+        assert response.headers["cache-control"] == "no-store"
+
+
+def test_tracking_list_scopes_the_request_to_authenticated_reporter() -> None:
+    client, auth, reports = build_client()
+    response = client.get(
+        "/api/v1/mobile/reports?category=completed&page=2&page_size=10",
+        headers={"Authorization": "Bearer mobile_verified-session"},
+    )
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert reports.read_arguments == {
+        "reporter_id": auth.user.user_id,
+        "category": "completed",
+        "page": 2,
+        "page_size": 10,
+    }
+
+
+def test_tracking_detail_uses_generic_not_found_and_owned_lookup() -> None:
+    client, auth, reports = build_client()
+    response = client.get(
+        f"/api/v1/mobile/reports/{REPORT_ID}",
+        headers={"Authorization": "Bearer mobile_verified-session"},
+    )
+    assert response.status_code == 404
+    assert response.headers["cache-control"] == "no-store"
+    assert reports.read_arguments == {"reporter_id": auth.user.user_id, "report_id": REPORT_ID}
+
+
+def test_tracking_pagination_and_identifier_are_validated() -> None:
+    client, _, _ = build_client()
+    for suffix in ("?page=0", "?page_size=51", "?category=unknown", "/invalid-private-value"):
+        response = client.get(
+            f"/api/v1/mobile/reports{suffix}",
+            headers={"Authorization": "Bearer mobile_verified-session"},
+        )
+        assert response.status_code == 422
+        assert response.headers["cache-control"] == "no-store"
+        assert "invalid-private-value" not in response.text

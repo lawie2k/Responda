@@ -1,12 +1,45 @@
-from fastapi import APIRouter, Request, status
+import uuid
+from typing import Annotated, Literal
+
+from fastapi import APIRouter, Query, Request, status
 
 from app.api.dependencies import MobileReportServiceDependency, SettingsDependency
 from app.api.v1.mobile.auth import CurrentMobileUser, PrivateRoute
 from app.core.exceptions import ApplicationError
 from app.core.rate_limit import LoginRateLimiter
-from app.schemas.mobile_reports import MobileReportCreateRequest, MobileReportCreateResponse
+from app.schemas.mobile_reports import (
+    MobileReportCreateRequest,
+    MobileReportCreateResponse,
+    MobileReportListResponse,
+    MobileReportTrackingResponse,
+)
 
 router = APIRouter(prefix="/reports", route_class=PrivateRoute)
+
+
+@router.get("", response_model=MobileReportListResponse)
+async def list_reports(
+    reporter: CurrentMobileUser,
+    service: MobileReportServiceDependency,
+    category: Literal["active", "completed"] = "active",
+    page: Annotated[int, Query(ge=1, le=100000)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=50)] = 20,
+) -> MobileReportListResponse:
+    return await service.list_reports(
+        reporter_id=reporter.user_id,
+        category=category,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.get("/{report_id}", response_model=MobileReportTrackingResponse)
+async def report_tracking(
+    report_id: uuid.UUID,
+    reporter: CurrentMobileUser,
+    service: MobileReportServiceDependency,
+) -> MobileReportTrackingResponse:
+    return await service.get_report(reporter_id=reporter.user_id, report_id=report_id)
 
 
 @router.post(

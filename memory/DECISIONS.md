@@ -2,12 +2,26 @@
 tags:
   - responda/memory
   - responda/decisions
-updated: 2026-10-20
+updated: 2026-10-21
 ---
 
 # Decisions
 
 ## Active decisions
+
+### 2026-10-21 — Track citizen reports from protected server state
+
+- List/detail reads use the existing mobile bearer session and reporter ownership
+  on every query. Missing, deleted and other-account IDs share a generic 404;
+  collections are capped, paginated and no-store. Internal reviews, staff
+  identities, unit contacts and raw event metadata are excluded.
+- My Reports polls every five seconds only while visible and resumed, retains
+  the open report and bottom navigation, and discloses stale results on failure.
+  Online history comes from the account, not device-local receipts. Saved offline
+  reports keep their existing local behavior.
+- Completed contains resolved and closed reports. The journey uses real review
+  and response timestamps and Team responding rather than claiming arrival on
+  site, since the current staff lifecycle records no arrival state.
 
 ### 2026-10-20 — Poll Live Reports without resetting the staff workspace
 

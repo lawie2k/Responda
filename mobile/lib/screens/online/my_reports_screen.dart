@@ -1,6 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import 'package:responda/core/network/responda_api_client.dart';
 import 'package:responda/core/theme/app_colors.dart';
+import 'package:responda/features/onboarding/data/account_controller.dart';
+import 'package:responda/features/onboarding/presentation/account_scope.dart';
+import 'package:responda/features/reporting/data/mobile_report_api.dart';
 import 'package:responda/features/reporting/data/offline_report_store.dart';
 import 'package:responda/features/reporting/data/online_report_store.dart';
 
@@ -10,22 +16,196 @@ enum ReportFilter { active, resolved, saved }
 
 class MyReportsScreen extends StatefulWidget {
   const MyReportsScreen({
-    this.onlineStore = const OnlineReportStore(),
     this.offlineStore = const OfflineReportStore(),
+    this.isActive = true,
     super.key,
   });
 
-  final OnlineReportStore onlineStore;
   final OfflineReportStore offlineStore;
+  final bool isActive;
 
   @override
   State<MyReportsScreen> createState() => _MyReportsScreenState();
 }
 
-class _MyReportsScreenState extends State<MyReportsScreen> {
+class _MyReportsScreenState extends State<MyReportsScreen>
+    with WidgetsBindingObserver {
   ReportFilter _filter = ReportFilter.active;
   SavedOnlineReport? _selectedReport;
-  late Future<_ReportsSnapshot> _reports = _loadReports();
+  AccountController? _account;
+  MobileReportsPage? _reports;
+  List<SavedOfflineReport> _offline = [];
+  Timer? _timer;
+  bool _busy = false;
+  bool _reloadAfterRequest = false;
+  bool _resumed = true;
+  bool _started = false;
+  bool _hadAccount = false;
+  int _page = 1;
+  int _activeCount = 0;
+  int _requestVersion = 0;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final account = AccountScope.maybeOf(context);
+    if (!_started ||
+        _account != account ||
+        _hadAccount != (account?.hasAccount ?? false)) {
+      _started = true;
+      _account = account;
+      _hadAccount = account?.hasAccount ?? false;
+      _requestVersion++;
+      _reports = null;
+      _activeCount = 0;
+      _selectedReport = null;
+      _page = 1;
+      _updatePolling();
+      unawaited(_refresh());
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant MyReportsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _updatePolling();
+    if (widget.isActive && !oldWidget.isActive) unawaited(_refresh());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _resumed = state == AppLifecycleState.resumed;
+    _updatePolling();
+    if (_resumed) unawaited(_refresh());
+  }
+
+  void _updatePolling() {
+    _timer?.cancel();
+    if (widget.isActive &&
+        _resumed &&
+        _filter != ReportFilter.saved &&
+        (_account?.hasAccount ?? false)) {
+      _timer = Timer.periodic(
+        const Duration(seconds: 5),
+        (_) => unawaited(_refresh()),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _requestVersion++;
+    _timer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  Future<void> _refresh() async {
+    if (!mounted || !widget.isActive || !_resumed) return;
+    if (_busy) {
+      _reloadAfterRequest = true;
+      return;
+    }
+    final version = _requestVersion;
+    final account = _account;
+    final selectedId = _selectedReport?.id;
+    setState(() => _busy = true);
+    try {
+      final offline = await widget.offlineStore.loadAll();
+      if (version != _requestVersion || !mounted) return;
+      if (_filter == ReportFilter.saved) {
+        setState(() {
+          _offline = offline;
+          _error = null;
+        });
+        return;
+      }
+      if (account == null) {
+        throw const RespondaApiException(
+          'Sign in to track your reports.',
+          statusCode: 401,
+        );
+      }
+      final selected = selectedId == null
+          ? null
+          : await account.fetchReport(selectedId);
+      final reports = await account.fetchReports(
+        completed: _filter == ReportFilter.resolved,
+        page: _page,
+      );
+      if (!mounted || version != _requestVersion) return;
+      if (reports.totalPages > 0 && _page > reports.totalPages) {
+        _page = reports.totalPages;
+        _requestVersion++;
+        _reloadAfterRequest = true;
+        return;
+      }
+      setState(() {
+        _reports = reports;
+        _activeCount = reports.activeCount;
+        _offline = offline;
+        _error = null;
+        if (_selectedReport?.id == selectedId) _selectedReport = selected;
+      });
+    } catch (error) {
+      if (!mounted || version != _requestVersion) return;
+      setState(() {
+        if (error is RespondaApiException &&
+            (error.statusCode == 401 || error.statusCode == 403)) {
+          _reports = null;
+          _activeCount = 0;
+          _selectedReport = null;
+          _timer?.cancel();
+          _error = 'Sign in to track your reports.';
+        } else if (error is RespondaApiException &&
+            error.statusCode == 404 &&
+            selectedId != null) {
+          _selectedReport = null;
+          _error = 'This report is no longer available.';
+        } else {
+          _error = _reports == null
+              ? 'Reports could not be loaded. Please try again.'
+              : 'Could not refresh. Showing the last received update.';
+        }
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+        if (_reloadAfterRequest) {
+          _reloadAfterRequest = false;
+          unawaited(_refresh());
+        }
+      }
+    }
+  }
+
+  void _selectFilter(ReportFilter filter) {
+    if (_filter == filter) return;
+    setState(() {
+      _filter = filter;
+      _page = 1;
+      _reports = null;
+      _error = null;
+      _requestVersion++;
+    });
+    _updatePolling();
+    unawaited(_refresh());
+  }
+
+  void _backToReports() {
+    setState(() {
+      _selectedReport = null;
+      _requestVersion++;
+    });
+    unawaited(_refresh());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,56 +214,95 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
       canPop: _selectedReport == null,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop && _selectedReport != null) {
-          setState(() => _selectedReport = null);
+          _backToReports();
         }
       },
       child: selectedReport != null
           ? ReportStatusContent(
               report: selectedReport,
-              onBack: () => setState(() => _selectedReport = null),
+              onBack: _backToReports,
+              onRefresh: _busy ? null : _refresh,
+              refreshError: _error,
             )
           : SafeArea(
               bottom: false,
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 390),
-                  child: FutureBuilder<_ReportsSnapshot>(
-                    future: _reports,
-                    builder: (context, snapshot) {
-                      final reports = snapshot.data ?? const _ReportsSnapshot();
-                      return Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _ReportsHeader(activeCount: reports.online.length),
-                            const SizedBox(height: 12),
-                            _FilterTabs(
-                              selected: _filter,
-                              onSelected: (filter) =>
-                                  setState(() => _filter = filter),
-                            ),
-                            const SizedBox(height: 12),
-                            Expanded(
-                              child: RefreshIndicator(
-                                onRefresh: _refresh,
-                                child: ListView(
-                                  key: const Key('report_cards_scroll_view'),
-                                  physics:
-                                      const AlwaysScrollableScrollPhysics(),
-                                  padding: const EdgeInsets.only(bottom: 24),
-                                  children:
-                                      snapshot.connectionState !=
-                                          ConnectionState.done
-                                      ? const [_LoadingReports()]
-                                      : _contentForFilter(reports),
-                                ),
-                              ),
-                            ),
-                          ],
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _ReportsHeader(activeCount: _activeCount),
+                        const SizedBox(height: 12),
+                        _FilterTabs(
+                          selected: _filter,
+                          onSelected: _selectFilter,
                         ),
-                      );
-                    },
+                        const SizedBox(height: 12),
+                        Expanded(
+                          child: RefreshIndicator(
+                            onRefresh: _refresh,
+                            child: ListView(
+                              key: const Key('report_cards_scroll_view'),
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.only(bottom: 24),
+                              children: [
+                                if (_error != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: Column(
+                                      children: [
+                                        LocalizedText(
+                                          _error!,
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        TextButton(
+                                          onPressed: _busy ? null : _refresh,
+                                          child: const LocalizedText('Retry'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                if (_busy &&
+                                    _reports == null &&
+                                    _filter != ReportFilter.saved)
+                                  const _LoadingReports()
+                                else if (_filter == ReportFilter.saved ||
+                                    _reports != null)
+                                  ..._contentForFilter(),
+                                if (_filter != ReportFilter.saved &&
+                                    (_reports?.totalPages ?? 0) > 1)
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      IconButton(
+                                        tooltip: context.tr('Previous page'),
+                                        onPressed: _page <= 1 || _busy
+                                            ? null
+                                            : () => _changePage(-1),
+                                        icon: const Icon(Icons.chevron_left),
+                                      ),
+                                      Text('$_page / ${_reports!.totalPages}'),
+                                      IconButton(
+                                        tooltip: context.tr('Next page'),
+                                        onPressed:
+                                            _page >= _reports!.totalPages ||
+                                                _busy
+                                            ? null
+                                            : () => _changePage(1),
+                                        icon: const Icon(Icons.chevron_right),
+                                      ),
+                                    ],
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -91,47 +310,42 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
     );
   }
 
-  Future<_ReportsSnapshot> _loadReports() async {
-    final online = widget.onlineStore.loadAll();
-    final offline = widget.offlineStore.loadAll();
-    return _ReportsSnapshot(online: await online, offline: await offline);
+  void _changePage(int delta) {
+    setState(() {
+      _page += delta;
+      _reports = null;
+      _requestVersion++;
+    });
+    unawaited(_refresh());
   }
 
-  Future<void> _refresh() async {
-    final load = _loadReports();
-    setState(() => _reports = load);
-    await load;
-  }
-
-  List<Widget> _contentForFilter(_ReportsSnapshot reports) {
+  List<Widget> _contentForFilter() {
+    final online = _reports?.items ?? const <SavedOnlineReport>[];
     return switch (_filter) {
-      ReportFilter.active =>
-        reports.online.isEmpty
-            ? const [
+      ReportFilter.active || ReportFilter.resolved =>
+        online.isEmpty
+            ? [
                 _EmptyReports(
-                  title: 'No active reports',
-                  message: 'Reports submitted online will appear here.',
+                  title: _filter == ReportFilter.active
+                      ? 'No active reports'
+                      : 'No completed reports',
+                  message: _filter == ReportFilter.active
+                      ? 'Reports submitted online will appear here.'
+                      : 'Resolved and closed reports will appear here.',
                 ),
               ]
             : [
-                for (var index = 0; index < reports.online.length; index++) ...[
+                for (var index = 0; index < online.length; index++) ...[
                   _ReportCard.online(
                     context: context,
-                    report: reports.online[index],
-                    onTap: () => _openStatus(reports.online[index]),
+                    report: online[index],
+                    onTap: () => _openStatus(online[index]),
                   ),
-                  if (index != reports.online.length - 1)
-                    const SizedBox(height: 12),
+                  if (index != online.length - 1) const SizedBox(height: 12),
                 ],
               ],
-      ReportFilter.resolved => const [
-        _EmptyReports(
-          title: 'No resolved reports',
-          message: 'Completed reports will be moved here.',
-        ),
-      ],
       ReportFilter.saved =>
-        reports.offline.isEmpty
+        _offline.isEmpty
             ? const [
                 _SavedHeader(count: 0),
                 SizedBox(height: 8),
@@ -141,27 +355,26 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
                 ),
               ]
             : [
-                _SavedHeader(count: reports.offline.length),
+                _SavedHeader(count: _offline.length),
                 const SizedBox(height: 8),
-                for (
-                  var index = 0;
-                  index < reports.offline.length;
-                  index++
-                ) ...[
+                for (var index = 0; index < _offline.length; index++) ...[
                   _ReportCard.offline(
                     context: context,
-                    report: reports.offline[index],
-                    onTap: () => _showOfflineReport(reports.offline[index]),
+                    report: _offline[index],
+                    onTap: () => _showOfflineReport(_offline[index]),
                   ),
-                  if (index != reports.offline.length - 1)
-                    const SizedBox(height: 12),
+                  if (index != _offline.length - 1) const SizedBox(height: 12),
                 ],
               ],
     };
   }
 
   void _openStatus(SavedOnlineReport report) {
-    setState(() => _selectedReport = report);
+    setState(() {
+      _selectedReport = report;
+      _requestVersion++;
+    });
+    unawaited(_refresh());
   }
 
   void _showOfflineReport(SavedOfflineReport report) {
@@ -216,13 +429,6 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
   }
 }
 
-class _ReportsSnapshot {
-  const _ReportsSnapshot({this.online = const [], this.offline = const []});
-
-  final List<SavedOnlineReport> online;
-  final List<SavedOfflineReport> offline;
-}
-
 class _ReportsHeader extends StatelessWidget {
   const _ReportsHeader({required this.activeCount});
 
@@ -247,7 +453,7 @@ class _ReportsHeader extends StatelessWidget {
               ),
               SizedBox(height: 2),
               LocalizedText(
-                'Track reports sent from this device',
+                'Track reports from your account',
                 style: TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: 12,
@@ -323,7 +529,7 @@ class _FilterTabs extends StatelessWidget {
                   child: LocalizedText(
                     switch (item) {
                       ReportFilter.active => 'Active',
-                      ReportFilter.resolved => 'Resolved',
+                      ReportFilter.resolved => 'Completed',
                       ReportFilter.saved => 'Saved',
                     },
                     style: TextStyle(
@@ -369,8 +575,16 @@ class _ReportCard extends StatelessWidget {
       meta:
           '${context.tr(report.draft.locationTitle)}  •  ${_dateAndTime(context, report.submittedAt)}',
       status: report.status.label,
-      statusColor: AppColors.warning,
-      statusBackground: AppColors.warningSoft,
+      statusColor: report.status == OnlineReportStatus.resolved
+          ? AppColors.success
+          : report.status == OnlineReportStatus.closed
+          ? AppColors.textSecondary
+          : AppColors.brand,
+      statusBackground: report.status == OnlineReportStatus.resolved
+          ? AppColors.successSoft
+          : report.status == OnlineReportStatus.closed
+          ? AppColors.neutralSoft
+          : AppColors.brandSoft,
       action: 'View report status',
       onTap: onTap,
     );

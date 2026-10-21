@@ -58,6 +58,31 @@ class MobileAccountApi {
     );
   }
 
+  Future<Map<String, dynamic>> readReports({
+    required String token,
+    String? reportId,
+    bool completed = false,
+    int page = 1,
+  }) {
+    final endpoint = ApiConfig.endpoint(
+      '/api/v1/mobile/reports${reportId == null ? '' : '/${Uri.encodeComponent(reportId)}'}',
+      overrideBaseUrl: baseUrl,
+    );
+    return _request(
+      reportId == null
+          ? endpoint.replace(
+              queryParameters: {
+                'category': completed ? 'completed' : 'active',
+                'page': '$page',
+                'page_size': '20',
+              },
+            )
+          : endpoint,
+      method: 'GET',
+      token: token,
+    );
+  }
+
   Future<Map<String, dynamic>> _request(
     Uri uri, {
     required String method,

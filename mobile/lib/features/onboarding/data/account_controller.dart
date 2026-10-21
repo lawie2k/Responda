@@ -9,6 +9,7 @@ import '../../../core/network/responda_api_client.dart';
 import 'identity_otp_service.dart';
 import 'mobile_account_api.dart';
 import '../../reporting/data/mobile_report_api.dart';
+import '../../reporting/data/online_report_store.dart';
 import '../../reporting/domain/models/report_draft.dart';
 
 abstract interface class AccountStore {
@@ -288,6 +289,35 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
     }
     await _discard();
     notifyListeners();
+  }
+
+  Future<MobileReportsPage> fetchReports({
+    bool completed = false,
+    int page = 1,
+  }) async {
+    final token = _token;
+    if (token == null && _profile?.isBetaLocal == true) {
+      return const MobileReportsPage();
+    }
+    if (!hasAccount || token == null) {
+      throw const RespondaApiException(
+        'Sign in to track your reports.',
+        statusCode: 401,
+      );
+    }
+    return MobileReportApi(_api)
+        .list(token: token, completed: completed, page: page);
+  }
+
+  Future<SavedOnlineReport> fetchReport(String reportId) async {
+    final token = _token;
+    if (!hasAccount || token == null) {
+      throw const RespondaApiException(
+        'Sign in to track your reports.',
+        statusCode: 401,
+      );
+    }
+    return MobileReportApi(_api).tracking(token: token, reportId: reportId);
   }
 
   Future<void> _discard() async {

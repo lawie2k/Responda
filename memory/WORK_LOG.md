@@ -2,10 +2,27 @@
 tags:
   - responda/memory
   - responda/work-log
-updated: 2026-10-20
+updated: 2026-10-21
 ---
 
 # Work log
+
+## 2026-10-21 — Connect My Reports to live citizen tracking
+
+- Added private, owner-scoped, paginated backend report list/detail reads with
+  real review/incident status and milestone times. Flutter My Reports now loads
+  account history, polls visible content every five seconds, refreshes on resume,
+  handles failures and completed reports, and preserves its bottom navigation.
+  Removed fabricated verification times and the unsupported on-site stage;
+  added Tagalog/Bisaya copy. Saved offline reports retain their existing behavior.
+- Synchronized the Documents mobile source/tests with the monorepo. The earlier
+  Home/offline My Reports connectivity-badge removal is retained and its old
+  test expectations were updated. Backend lint/typing and all 325 tests passed;
+  Flutter analysis and 87 normal tests passed (one beta-only skip), plus both
+  targeted beta tests. A PostgreSQL lifecycle rehearsal and ownership checks
+  passed inside an outer transaction that was rolled back with no report left.
+- Phone rebuild/installation and an on-device walkthrough remain pending. No
+  migration, Git commit or remote push was performed.
 
 ## 2026-10-20 — Save mobile reporting and web operations checkpoint
 

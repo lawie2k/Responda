@@ -21,6 +21,19 @@ class FakeMobileAccountApi extends MobileAccountApi {
   String phone = '';
   String? verifiedCode;
   @override
+  Future<Map<String, dynamic>> readReports({
+    required String token,
+    String? reportId,
+    bool completed = false,
+    int page = 1,
+  }) async => {
+    'items': [],
+    'total': 0,
+    'page': page,
+    'total_pages': 0,
+    'active_count': 0,
+  };
+  @override
   Future<Map<String, dynamic>> request(
     String path, {
     String method = 'GET',

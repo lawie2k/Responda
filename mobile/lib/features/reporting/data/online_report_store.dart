@@ -10,6 +10,42 @@ enum OnlineReportStatus {
     headline: 'Report received safely',
     description: 'MDRRMO is checking the submitted details.',
     stage: 2,
+  ),
+  needsReview(
+    label: 'NEEDS REVIEW',
+    headline: 'More verification is needed',
+    description: 'MDRRMO could not verify the report yet and may contact you.',
+    stage: 2,
+  ),
+  forDispatch(
+    label: 'FOR DISPATCH',
+    headline: 'Your report has been validated',
+    description: 'MDRRMO is coordinating the response.',
+    stage: 4,
+  ),
+  teamAssigned(
+    label: 'TEAM ASSIGNED',
+    headline: 'A response team is assigned',
+    description: 'MDRRMO has assigned a team to this incident.',
+    stage: 5,
+  ),
+  responding(
+    label: 'RESPONDING',
+    headline: 'The response team is responding',
+    description: 'MDRRMO has confirmed that the team is responding.',
+    stage: 6,
+  ),
+  resolved(
+    label: 'RESOLVED',
+    headline: 'The incident has been resolved',
+    description: 'MDRRMO has marked the response as completed.',
+    stage: 7,
+  ),
+  closed(
+    label: 'CLOSED',
+    headline: 'This report has been closed',
+    description: 'MDRRMO has closed this report or its linked incident.',
+    stage: 2,
   );
 
   const OnlineReportStatus({
@@ -23,6 +59,8 @@ enum OnlineReportStatus {
   final String headline;
   final String description;
   final int stage;
+
+  bool get isComplete => this == resolved || this == closed;
 }
 
 class SavedOnlineReport {
@@ -31,18 +69,26 @@ class SavedOnlineReport {
     required this.submittedAt,
     required this.draft,
     this.status = OnlineReportStatus.forVerification,
+    this.updatedAt,
+    this.milestones = const {},
   });
 
   final String id;
   final DateTime submittedAt;
   final ReportDraft draft;
   final OnlineReportStatus status;
+  final DateTime? updatedAt;
+  final Map<String, DateTime> milestones;
 
   Map<String, Object?> toJson() => {
     'id': id,
     'submittedAt': submittedAt.toIso8601String(),
     'draft': draft.toJson(),
     'status': status.name,
+    'updatedAt': updatedAt?.toIso8601String(),
+    'milestones': milestones.map(
+      (key, value) => MapEntry(key, value.toIso8601String()),
+    ),
   };
 
   factory SavedOnlineReport.fromJson(Map<String, Object?> json) {
@@ -56,6 +102,11 @@ class SavedOnlineReport {
       status: OnlineReportStatus.values.firstWhere(
         (status) => status.name == statusName,
         orElse: () => OnlineReportStatus.forVerification,
+      ),
+      updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? ''),
+      milestones: (json['milestones'] as Map? ?? {}).map(
+        (key, value) =>
+            MapEntry(key as String, DateTime.parse(value as String)),
       ),
     );
   }

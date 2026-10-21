@@ -75,7 +75,7 @@ class HomeScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _Header(isOffline: flowMode.isOffline),
+                const _Header(),
                 const SizedBox(height: 14),
                 _EmergencyHero(
                   reportButtonKey: tutorialReportButtonKey,
@@ -161,9 +161,7 @@ class HomeScreen extends StatelessWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.isOffline});
-
-  final bool isOffline;
+  const _Header();
 
   @override
   Widget build(BuildContext context) {
@@ -193,40 +191,6 @@ class _Header extends StatelessWidget {
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                     height: 15 / 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            height: 28,
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: isOffline ? AppColors.warningSoft : AppColors.successSoft,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              children: [
-                if (isOffline)
-                  const Icon(
-                    Icons.cloud_off_rounded,
-                    color: AppColors.warning,
-                    size: 13,
-                  )
-                else
-                  SvgPicture.asset(
-                    'assets/icons/online_dot.svg',
-                    width: 7,
-                    height: 7,
-                  ),
-                const SizedBox(width: 6),
-                LocalizedText(
-                  isOffline ? 'Offline' : 'Online',
-                  style: TextStyle(
-                    color: isOffline ? AppColors.warning : AppColors.success,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    height: 17 / 12,
                   ),
                 ),
               ],

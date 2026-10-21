@@ -57,3 +57,34 @@ class MobileReportCreateResponse(BaseModel):
     verification_status: Literal["pending"]
     report_status: Literal["new"]
     received_at: datetime
+
+
+TrackingStatus = Literal[
+    "for_verification",
+    "needs_review",
+    "for_dispatch",
+    "team_assigned",
+    "responding",
+    "resolved",
+    "closed",
+]
+
+
+class MobileReportTrackingResponse(BaseModel):
+    report_id: uuid.UUID
+    incident_type_code: str
+    description: str
+    landmark: str | None
+    received_at: datetime
+    updated_at: datetime
+    tracking_status: TrackingStatus
+    milestones: dict[str, datetime]
+
+
+class MobileReportListResponse(BaseModel):
+    items: list[MobileReportTrackingResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    active_count: int

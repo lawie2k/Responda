@@ -61,24 +61,6 @@ class _OfflineReportsScreenState extends State<OfflineReportsScreen> {
                         ],
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.warningSoft,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const LocalizedText(
-                        'OFFLINE',
-                        style: TextStyle(
-                          color: AppColors.warning,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 16),

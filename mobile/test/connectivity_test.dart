@@ -56,7 +56,7 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.text('Offline'), findsOneWidget);
+    expect(find.text('Offline'), findsNothing);
     expect(find.text("You're Offline"), findsOneWidget);
     expect(find.byKey(const Key('offline_notice_sprite')), findsOneWidget);
 
@@ -67,7 +67,7 @@ void main() {
 
     reader.changes.add([ConnectivityResult.wifi]);
     await tester.pump();
-    expect(find.text('Online'), findsOneWidget);
+    expect(find.text('Online'), findsNothing);
     expect(find.text('Offline'), findsNothing);
 
     reader.changes.add([ConnectivityResult.none]);

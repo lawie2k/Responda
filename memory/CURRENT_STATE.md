@@ -2,7 +2,7 @@
 tags:
   - responda/memory
   - responda/status
-updated: 2026-10-20
+updated: 2026-10-21
 ---
 
 # Current state
@@ -96,6 +96,12 @@ updated: 2026-10-20
   account/IP, and uses the client UUID for retry-safe creation. The existing
   dashboard Live Reports API already includes these `app_api` rows; no migration
   was required. Gateway ingestion and reporter notifications remain unimplemented.
+- Authenticated `GET /api/v1/mobile/reports` and report-detail reads now expose
+  only the signed-in citizen's undeleted reports, with capped pagination,
+  Active/Completed filters, active totals, current review/incident status, and
+  recorded milestone times. Other-account, deleted and missing references share
+  a generic 404. Staff notes/identities, unit contacts and raw events stay private.
+  No migration was required.
 - Local report testing can now use `/api/v1/mobile/auth/beta/register` without
   OTP when `RESPONDA_MOBILE_BETA_ACCOUNTS_ENABLED` is explicitly enabled.
   Registration creates a fresh unverified reporter/session; it cannot claim an
@@ -294,11 +300,25 @@ updated: 2026-10-20
   attachments are never silently discarded or uploaded.
 - The application contains onboarding, connectivity handling, reporting flows,
   localization, offline-related behavior, and tests.
-- Report status/history still comes from local records rather than a protected
-  reporter read API; signed SMS gateway ingestion and notification delivery are
-  also not wired end to end.
+- My Reports and its status journey now read the protected reporter APIs rather
+  than device-local online receipts. They refresh every five seconds while
+  visible, on tab return/resume, and manually; requests do not overlap and stale
+  results are marked after failures. Completed includes resolved/closed reports.
+  Real milestone times replace the fabricated verification delay; the journey
+  uses Team responding because staff do not record arrival on site. Saved offline
+  reports remain local. New copy is translated into Tagalog/Bisaya, and Home plus
+  offline My Reports headers no longer display connectivity badges. Both mobile
+  source copies are synchronized; these changes are not yet installed on the phone.
+- Signed SMS gateway ingestion and notification delivery are not wired end to end.
 
 ## Verification history
+
+- Citizen tracking passed backend Ruff, strict mypy and 325 tests, Flutter
+  analysis and 87 normal-mode tests (one beta-only test skipped), plus both
+  targeted beta-mode tests. A rolled-back PostgreSQL rehearsal exercised actual
+  report creation, verification, team assignment/acknowledgment, responding,
+  resolution, completed filtering, ownership rejection and recorded timestamps;
+  no synthetic report persisted. Physical-device testing remains pending.
 
 - The 2026-10-19 save/push checkpoint reran backend Ruff, strict mypy and all
   290 tests, web lint/build, Flutter analysis and all 75 tests, plus memory and

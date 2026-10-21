@@ -44,11 +44,11 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('offline home uses the Figma offline status treatment', (
+  testWidgets('offline home keeps its content without a connection badge', (
     tester,
   ) async {
     await pumpPhoneScreen(tester, const OfflineMainShell());
-    expect(find.text('Offline'), findsOneWidget);
+    expect(find.text('Offline'), findsNothing);
     expect(find.text('Online'), findsNothing);
     expect(find.text('Current GPS Location'), findsOneWidget);
   });

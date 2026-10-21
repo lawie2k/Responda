@@ -492,4 +492,46 @@ const tagalogTranslations = <String, String>{
   '• Move away from traffic if you can do so safely.\n• Warn approaching vehicles and call for emergency help.\n• Do not move an injured person unless there is immediate danger.\n• Share the road name, landmark, and number of injured people.': '• Lumayo sa trapiko kung ligtas itong gawin.\n• Babalaan ang paparating na sasakyan at humingi ng emergency help.\n• Huwag galawin ang nasugatan maliban kung may agarang panganib.\n• Ibigay ang pangalan ng kalsada, palatandaan, at bilang ng nasugatan.',
   '• Move away from steep slopes, cliffs, and river channels.\n• Watch for falling rocks, leaning trees, and new ground cracks.\n• Do not cross an active slide area.\n• Follow evacuation instructions from local authorities.': '• Lumayo sa matarik na dalisdis, bangin, at daluyan ng ilog.\n• Mag-ingat sa bumabagsak na bato, nakatagilid na puno, at bagong bitak sa lupa.\n• Huwag tumawid sa aktibong landslide area.\n• Sundin ang tagubilin sa paglikas ng lokal na awtoridad.',
   '• Bring medicines, IDs, water, food, and essential clothing.\n• Account for children, older adults, and persons with disabilities.\n• Use the route given by barangay or MDRRMO responders.\n• Avoid damaged buildings, fallen wires, and floodwater when returning.': '• Magdala ng gamot, ID, tubig, pagkain, at kailangang damit.\n• Tiyaking kasama ang mga bata, matatanda, at persons with disabilities.\n• Gamitin ang rutang ibinigay ng barangay o MDRRMO responders.\n• Iwasan ang sirang gusali, natumbang kable, at baha sa pagbabalik.',
+  'NEEDS REVIEW': 'KAILANGANG SURIIN',
+  'More verification is needed': 'Kailangan pa ng beripikasyon',
+  'MDRRMO could not verify the report yet and may contact you.':
+      'Hindi pa maberipika ng MDRRMO ang ulat at maaari ka nilang tawagan.',
+  'FOR DISPATCH': 'PARA SA PAGPAPADALA',
+  'Your report has been validated': 'Napatunayan na ang iyong ulat',
+  'MDRRMO is coordinating the response.': 'Inaayos ng MDRRMO ang pagtugon.',
+  'TEAM ASSIGNED': 'MAY NAKATALAGANG PANGKAT',
+  'A response team is assigned': 'May nakatalagang pangkat na tutugon',
+  'MDRRMO has assigned a team to this incident.':
+      'Nagtalaga na ang MDRRMO ng pangkat para sa insidenteng ito.',
+  'RESPONDING': 'TUMUTUGON',
+  'The response team is responding': 'Tumutugon na ang pangkat',
+  'MDRRMO has confirmed that the team is responding.':
+      'Kinumpirma ng MDRRMO na tumutugon na ang pangkat.',
+  'The incident has been resolved': 'Natapos na ang pagtugon sa insidente',
+  'MDRRMO has marked the response as completed.':
+      'Minarkahan ng MDRRMO na tapos na ang pagtugon.',
+  'CLOSED': 'ISINARA',
+  'This report has been closed': 'Isinara na ang ulat na ito',
+  'MDRRMO has closed this report or its linked incident.':
+      'Isinara ng MDRRMO ang ulat na ito o ang kaugnay nitong insidente.',
+  'Report closed': 'Isinara ang ulat',
+  'Team assigned': 'May nakatalagang pangkat',
+  'Team responding': 'Tumutugon ang pangkat',
+  'Time unavailable': 'Walang nakatalang oras',
+  'Refresh report status': 'I-refresh ang katayuan ng ulat',
+  'Track reports from your account': 'Subaybayan ang mga ulat ng iyong account',
+  'Completed': 'Natapos',
+  'No completed reports': 'Walang natapos na ulat',
+  'Resolved and closed reports will appear here.':
+      'Dito lalabas ang mga natapos at isinarang ulat.',
+  'Sign in to track your reports.':
+      'Mag-sign in upang masubaybayan ang iyong mga ulat.',
+  'This report is no longer available.': 'Hindi na magagamit ang ulat na ito.',
+  'Reports could not be loaded. Please try again.':
+      'Hindi makuha ang mga ulat. Pakisubukang muli.',
+  'Could not refresh. Showing the last received update.':
+      'Hindi ma-refresh. Ipinapakita ang huling natanggap na update.',
+  'Retry': 'Subukang muli',
+  'Previous page': 'Nakaraang pahina',
+  'Next page': 'Susunod na pahina',
 };

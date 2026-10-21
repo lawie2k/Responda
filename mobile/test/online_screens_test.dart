@@ -58,7 +58,7 @@ void main() {
   testWidgets('renders the online home screen', (tester) async {
     await pumpPhoneScreen(tester, const MainShell());
     expect(find.text('Need Emergency\nAssistance?'), findsOneWidget);
-    expect(find.text('Online'), findsOneWidget);
+    expect(find.text('Online'), findsNothing);
 
     final navigation = find.byType(RespondaBottomNavigation);
     expect(tester.getSize(navigation).width, 390);
@@ -261,7 +261,7 @@ void main() {
 
     await tester.tap(find.text('My Reports'));
     await tester.pump();
-    expect(find.text('Track reports sent from this device'), findsOneWidget);
+    expect(find.text('Track reports from your account'), findsOneWidget);
     final reportCardsScroll = find.byKey(const Key('report_cards_scroll_view'));
     expect(reportCardsScroll, findsOneWidget);
     expect(

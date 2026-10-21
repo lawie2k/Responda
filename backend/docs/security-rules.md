@@ -57,6 +57,13 @@ VA101 to FastAPI and PostgreSQL; VA101's Next.js code is a reference, not code t
   that do not echo phone numbers or OTPs. Profile fields are optional, bounded,
   and barangay values come from the Pantukan list. Audits contain account IDs and
   action names only, never codes, bearer tokens, or contact/profile values.
+- Mobile report list/detail reads require the existing citizen bearer session
+  and scope every query to that reporter's account. Return the same generic 404
+  for missing, deleted, and other-account report IDs. Cap collection pagination,
+  exclude soft-deleted reports/types/locations/incidents, and use no-store responses.
+  Citizen tracking exposes only their report reference, incident type, description,
+  landmark, current response status, and recorded milestone timestamps. Staff
+  review notes, identities, unit contacts, and raw event metadata remain private.
 - Local beta builds may register without OTP through `/mobile/auth/beta/register`
   only when `RESPONDA_MOBILE_BETA_ACCOUNTS_ENABLED` is explicitly enabled in
   development/testing. Staging/production reject that setting. Registration

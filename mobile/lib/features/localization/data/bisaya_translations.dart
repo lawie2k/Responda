@@ -494,4 +494,46 @@ const bisayaTranslations = <String, String>{
   '• Move away from traffic if you can do so safely.\n• Warn approaching vehicles and call for emergency help.\n• Do not move an injured person unless there is immediate danger.\n• Share the road name, landmark, and number of injured people.': '• Pahilayo sa trapiko kon luwas kini.\n• Pasidaani ang moabot nga mga sakyanan ug pangayo og emergency help.\n• Ayaw ibalhin ang nasamdan gawas kon adunay dayong peligro.\n• Ihatag ang ngalan sa dalan, timailhan, ug gidaghanon sa nasamdan.',
   '• Move away from steep slopes, cliffs, and river channels.\n• Watch for falling rocks, leaning trees, and new ground cracks.\n• Do not cross an active slide area.\n• Follow evacuation instructions from local authorities.': '• Pahilayo sa titip nga bakilid, pangpang, ug agianan sa suba.\n• Bantayi ang mahulog nga bato, nagkiling nga kahoy, ug bag-ong liki sa yuta.\n• Ayaw tabok sa aktibong landslide area.\n• Sunda ang evacuation instruction sa lokal nga awtoridad.',
   '• Bring medicines, IDs, water, food, and essential clothing.\n• Account for children, older adults, and persons with disabilities.\n• Use the route given by barangay or MDRRMO responders.\n• Avoid damaged buildings, fallen wires, and floodwater when returning.': '• Pagdala og tambal, ID, tubig, pagkaon, ug importanteng sinina.\n• Siguroha nga apil ang mga bata, tigulang, ug persons with disabilities.\n• Gamita ang ruta nga gihatag sa barangay o MDRRMO responders.\n• Likayi ang naguba nga building, natagak nga wire, ug baha sa pagbalik.',
+  'NEEDS REVIEW': 'KINAHANGLANG SUSIHON',
+  'More verification is needed': 'Kinahanglan pa og beripikasyon',
+  'MDRRMO could not verify the report yet and may contact you.':
+      'Wala pa maberipika sa MDRRMO ang report ug mahimo ka nilang tawagan.',
+  'FOR DISPATCH': 'ALANG SA PAGPADALA',
+  'Your report has been validated': 'Napamatud-an na ang imong report',
+  'MDRRMO is coordinating the response.': 'Giandam sa MDRRMO ang pagtubag.',
+  'TEAM ASSIGNED': 'ADUNAY NAKATALAGANG GRUPO',
+  'A response team is assigned': 'Adunay nakatalagang grupo nga motubag',
+  'MDRRMO has assigned a team to this incident.':
+      'Nagtalaga na ang MDRRMO og grupo para niining insidente.',
+  'RESPONDING': 'NAGTUBAG',
+  'The response team is responding': 'Nagtubag na ang grupo',
+  'MDRRMO has confirmed that the team is responding.':
+      'Gikumpirma sa MDRRMO nga nagtubag na ang grupo.',
+  'The incident has been resolved': 'Nahuman na ang pagtubag sa insidente',
+  'MDRRMO has marked the response as completed.':
+      'Gimarkahan sa MDRRMO nga nahuman na ang pagtubag.',
+  'CLOSED': 'GISIRA',
+  'This report has been closed': 'Gisira na kini nga report',
+  'MDRRMO has closed this report or its linked incident.':
+      'Gisira sa MDRRMO kini nga report o ang kalambigit nga insidente.',
+  'Report closed': 'Gisira ang report',
+  'Team assigned': 'Adunay nakatalagang grupo',
+  'Team responding': 'Nagtubag ang grupo',
+  'Time unavailable': 'Walay natala nga oras',
+  'Refresh report status': 'I-refresh ang kahimtang sa report',
+  'Track reports from your account': 'Subaya ang mga report sa imong account',
+  'Completed': 'Nahuman',
+  'No completed reports': 'Walay nahuman nga report',
+  'Resolved and closed reports will appear here.':
+      'Dinhi makita ang nahuman ug gisira nga mga report.',
+  'Sign in to track your reports.':
+      'Pag-sign in aron masubay ang imong mga report.',
+  'This report is no longer available.': 'Dili na magamit kini nga report.',
+  'Reports could not be loaded. Please try again.':
+      'Dili makuha ang mga report. Palihog sulayi pag-usab.',
+  'Could not refresh. Showing the last received update.':
+      'Dili ma-refresh. Gipakita ang kataposang nadawat nga update.',
+  'Retry': 'Sulayi pag-usab',
+  'Previous page': 'Miaging panid',
+  'Next page': 'Sunod nga panid',
 };

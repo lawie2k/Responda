@@ -50,11 +50,15 @@ class ReportStatusContent extends StatelessWidget {
   const ReportStatusContent({
     required this.report,
     required this.onBack,
+    this.onRefresh,
+    this.refreshError,
     super.key,
   });
 
   final SavedOnlineReport report;
   final VoidCallback onBack;
+  final Future<void> Function()? onRefresh;
+  final String? refreshError;
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +73,17 @@ class ReportStatusContent extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _StatusHeader(onBack: onBack),
+                _StatusHeader(onBack: onBack, onRefresh: onRefresh),
+                if (refreshError != null) ...[
+                  const SizedBox(height: 12),
+                  LocalizedText(
+                    refreshError!,
+                    style: const TextStyle(
+                      color: AppColors.danger,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 24),
                 _StatusHero(report: report),
                 const SizedBox(height: 12),
@@ -86,9 +100,10 @@ class ReportStatusContent extends StatelessWidget {
 }
 
 class _StatusHeader extends StatelessWidget {
-  const _StatusHeader({required this.onBack});
+  const _StatusHeader({required this.onBack, this.onRefresh});
 
   final VoidCallback onBack;
+  final Future<void> Function()? onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -116,13 +131,20 @@ class _StatusHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          const LocalizedText(
-            'Report Status',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 21,
-              fontWeight: FontWeight.w700,
+          const Expanded(
+            child: LocalizedText(
+              'Report Status',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 21,
+                fontWeight: FontWeight.w700,
+              ),
             ),
+          ),
+          IconButton(
+            tooltip: context.tr('Refresh report status'),
+            onPressed: onRefresh,
+            icon: const Icon(Icons.refresh_rounded, color: AppColors.brand),
           ),
         ],
       ),
@@ -137,6 +159,11 @@ class _StatusHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final statusColor = report.status == OnlineReportStatus.resolved
+        ? AppColors.success
+        : report.status == OnlineReportStatus.closed
+        ? AppColors.textSecondary
+        : AppColors.warning;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
@@ -160,7 +187,11 @@ class _StatusHero extends StatelessWidget {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.warningSoft,
+                        color: report.status == OnlineReportStatus.resolved
+                            ? AppColors.successSoft
+                            : report.status == OnlineReportStatus.closed
+                            ? AppColors.neutralSoft
+                            : AppColors.warningSoft,
                         borderRadius: BorderRadius.circular(15),
                       ),
                       child: Row(
@@ -169,17 +200,17 @@ class _StatusHero extends StatelessWidget {
                           Container(
                             width: 7,
                             height: 7,
-                            decoration: const BoxDecoration(
-                              color: AppColors.warning,
+                            decoration: BoxDecoration(
+                              color: statusColor,
                               shape: BoxShape.circle,
                             ),
                           ),
                           const SizedBox(width: 6),
                           LocalizedText(
                             report.status.label,
-                            style: const TextStyle(
-                              color: AppColors.warning,
-                              fontSize: 9,
+                            style: TextStyle(
+                              color: statusColor,
+                              fontSize: 12,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -231,10 +262,12 @@ class _StatusHero extends StatelessWidget {
               children: [
                 Expanded(
                   child: LocalizedText(
-                    context.tr(
-                      '{stage} OF 7 STAGES',
-                      values: {'stage': report.status.stage},
-                    ),
+                    report.status == OnlineReportStatus.closed
+                        ? context.tr('Report closed')
+                        : context.tr(
+                            '{stage} OF 7 STAGES',
+                            values: {'stage': report.status.stage},
+                          ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -251,7 +284,7 @@ class _StatusHero extends StatelessWidget {
                       'Updated {time}',
                       values: {
                         'time': _clockTime(
-                          report.submittedAt.add(const Duration(minutes: 2)),
+                          report.updatedAt ?? report.submittedAt,
                         ),
                       },
                     ),
@@ -280,16 +313,23 @@ class _ReportJourney extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final verificationTime = report.submittedAt.add(const Duration(minutes: 2));
-    final stages = [
-      ('Report received', _clockTime(report.submittedAt), _StageState.complete),
-      ('For verification', _clockTime(verificationTime), _StageState.current),
-      ('Validated', 'Pending', _StageState.pending),
-      ('For dispatch', 'Pending', _StageState.pending),
-      ('Team dispatched', 'Pending', _StageState.pending),
-      ('On site', 'Pending', _StageState.pending),
-      ('Resolved', 'Pending', _StageState.pending),
-    ];
+    final closed = report.status == OnlineReportStatus.closed;
+    final stages = closed
+        ? [
+            ('Report received', 'received'),
+            ('For verification', 'for_verification'),
+            ('Report closed', 'closed'),
+          ]
+        : [
+            ('Report received', 'received'),
+            ('For verification', 'for_verification'),
+            ('Validated', 'validated'),
+            ('For dispatch', 'for_dispatch'),
+            ('Team assigned', 'team_assigned'),
+            ('Team responding', 'responding'),
+            ('Resolved', 'resolved'),
+          ];
+    final current = closed ? stages.length - 1 : report.status.stage - 1;
 
     return Container(
       width: double.infinity,
@@ -320,9 +360,19 @@ class _ReportJourney extends StatelessWidget {
           for (var index = 0; index < stages.length; index++)
             _JourneyStage(
               title: stages[index].$1,
-              subtitle: stages[index].$2,
-              state: stages[index].$3,
-              showNow: index == 1,
+              subtitle: index > current
+                  ? 'Pending'
+                  : report.milestones[stages[index].$2] != null
+                  ? _clockTime(report.milestones[stages[index].$2]!)
+                  : index == 0
+                  ? _clockTime(report.submittedAt)
+                  : 'Time unavailable',
+              state: index < current || report.status.isComplete
+                  ? _StageState.complete
+                  : index == current
+                  ? _StageState.current
+                  : _StageState.pending,
+              showNow: index == current && !report.status.isComplete,
               showLine: index != stages.length - 1,
             ),
         ],
@@ -407,7 +457,7 @@ class _JourneyStage extends StatelessWidget {
                   subtitle,
                   style: const TextStyle(
                     color: AppColors.textSecondary,
-                    fontSize: 9,
+                    fontSize: 12,
                   ),
                 ),
               ],
@@ -430,7 +480,7 @@ class _JourneyStage extends StatelessWidget {
                     'NOW',
                     style: TextStyle(
                       color: AppColors.brand,
-                      fontSize: 9,
+                      fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
                   ),

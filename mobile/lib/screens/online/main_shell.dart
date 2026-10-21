@@ -84,7 +84,7 @@ class _MainShellState extends State<MainShell> {
               tutorialQuickIncidentKey: _quickIncidentKey,
               tutorialGpsCardKey: _gpsCardKey,
             ),
-      const MyReportsScreen(),
+      MyReportsScreen(isActive: _activeItem == RespondaNavItem.reports),
       const EmergencyInfoScreen(),
       SettingsScreen(
         homeTutorialStore: widget.tutorialStore,
