@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:responda/core/theme/app_colors.dart';
 import 'package:responda/core/navigation/app_routes.dart';
 import 'package:responda/core/widgets/responda_button.dart';
+import 'package:responda/features/onboarding/data/account_controller.dart';
 import 'package:responda/features/onboarding/data/identity_otp_service.dart';
 import 'package:responda/features/onboarding/presentation/account_scope.dart';
 import 'package:responda/core/network/responda_api_client.dart';
@@ -31,19 +34,45 @@ class _IdentityVerificationScreenState
     extends State<IdentityVerificationScreen> {
   final _phoneController = TextEditingController();
   bool _sending = false;
+  Timer? _cooldownTimer;
+
+  AccountController? get _account => widget.otpService is AccountController
+      ? widget.otpService as AccountController
+      : AccountScope.maybeOf(context);
 
   bool get _validPhone =>
       _phoneController.text.length == 10 &&
       _phoneController.text.startsWith('9');
 
+  int get _remaining {
+    final account = _account;
+    if (!_validPhone ||
+        account?.resendPhoneNumber != '+63${_phoneController.text}') {
+      return 0;
+    }
+    return (account?.resendAt?.difference(DateTime.now()).inSeconds ?? 0).clamp(
+      0,
+      60,
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted && _account?.resendAt != null) setState(() {});
+    });
+  }
+
   @override
   void dispose() {
+    _cooldownTimer?.cancel();
     _phoneController.dispose();
     super.dispose();
   }
 
   Future<void> _sendCode() async {
-    if (_sending) return;
+    if (_sending || _remaining > 0) return;
     if (!_validPhone) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -126,13 +155,31 @@ class _IdentityVerificationScreenState
             prefixText: '+63  ',
           ),
         ),
+        if (_remaining > 0)
+          Text(
+            context.tr(
+              'Request another OTP in {time}.',
+              values: {'time': _formatRemaining(_remaining)},
+            ),
+            key: const Key('phone_otp_cooldown_label'),
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+            ),
+          ),
         RespondaButton(
           key: const Key('send_identity_otp_button'),
           label: _sending ? 'Sending…' : 'Send OTP',
-          onPressed: _sending ? null : _sendCode,
+          onPressed: _sending || _remaining > 0 ? null : _sendCode,
         ),
       ],
     );
+  }
+
+  String _formatRemaining(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainder = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainder.toString().padLeft(2, '0')}';
   }
 
   void _goBack() {

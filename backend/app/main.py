@@ -49,6 +49,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         window_seconds=600,
         secret_key=current_settings.secret_key.get_secret_value(),
     )
+    for kind, attempts in (("register", 10), ("ingest", 300), ("report", 10)):
+        setattr(application.state, f"sms_{kind}_limiter", LoginRateLimiter(
+            max_attempts=attempts, window_seconds=600,
+            secret_key=current_settings.secret_key.get_secret_value(),
+        ))
     application.state.database_engine = database_engine
     application.state.database_session_factory = create_session_factory(database_engine)
     application.state.admin_login_rate_limiter = LoginRateLimiter(

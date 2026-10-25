@@ -1,4 +1,15 @@
 const bisayaTranslations = <String, String>{
+  'Offline SMS': 'SMS kon offline',
+  'Set up Offline SMS': 'Iandam ang SMS kon offline',
+  'Refresh SMS setup': 'I-update ang pag-andam sa SMS',
+  'Setting up…': 'Giandam…',
+  'Open SMS draft': 'Ablihi ang SMS draft',
+  'Preparing SMS…': 'Giandam ang SMS…',
+  'NOT CONFIRMED': 'WALA PA MAKUMPIRMA',
+  'Saved on this phone · Delivery not confirmed': 'Na-save niining telepono · Wala pa makumpirma ang pag-abot',
+  'Ready. Send SMS using your verified SIM. Your carrier may charge for multiple messages.': 'Andam na. Gamita ang napamatud-ang SIM. Mahimong adunay bayad ang carrier sa daghang SMS.',
+  'Connect online once to enable signed emergency SMS. A verified phone number is required.': 'Konektar una online aron maandam ang protektadong SMS. Kinahanglan ang napamatud-ang numero.',
+  'A copy will be saved on this phone, then Messages will open with a protected SMS draft for MDRRMO. Send it unchanged using your verified SIM. Carrier charges may apply.': 'I-save ang kopya niining telepono ug ablihan ang protektadong draft sa Messages para sa MDRRMO. Ipadala kini nga walay kausaban gamit ang napamatud-ang SIM. Mahimong adunay bayad ang carrier.',
   'Report an emergency': 'Pag-report og emerhensiya',
   'Tap this button to create a complete emergency report with the incident, location, details, and photo.': 'I-tap kini nga button aron makahimo og kompletong report nga adunay insidente, lokasyon, detalye, ug hulagway.',
   'Use a quick incident type': 'Gamita ang paspas nga matang sa insidente',
@@ -405,12 +416,12 @@ const bisayaTranslations = <String, String>{
   'Verifying…': 'Gi-verify…',
   'Verify OTP': 'I-verify ang OTP',
   'Resend code': 'Ipadala pag-usab ang code',
+  'Request another OTP in {time}.': 'Paghangyo og laing OTP sulod sa {time}.',
   'Optional account details': 'Opsyonal nga detalye sa account',
   'These details can help responders recognize your account, but they are not required.': 'Makatabang kini nga mga detalye aron mailhan sa responders ang imong account, apan dili kini kinahanglan.',
   'You can skip this step': 'Mahimo nimong laktawan kini nga lakang',
   'Leaving these fields empty will not prevent you from using RESPONDA or reporting an emergency.': 'Bisan walay sulod kini nga mga field, magamit gihapon nimo ang RESPONDA ug makareport og emerhensiya.',
-  'Full name (optional)': 'Kompletong ngalan (opsyonal)',
-  'Enter your full name': 'Isulod ang imong kompletong ngalan',
+  'Name (optional)': 'Ngalan (opsyonal)',
   'Barangay (optional)': 'Barangay (opsyonal)',
   'Enter your barangay': 'Isulod ang imong barangay',
   'Select your barangay': 'Pilia ang imong barangay',
@@ -441,8 +452,6 @@ const bisayaTranslations = <String, String>{
   'Verification pending': 'Naghulat sa verification',
   'Phone verified': 'Na-verify ang telepono',
   'Your number {phone} is verified. You can now use RESPONDA and report emergencies.': 'Na-verify na ang numerong {phone}. Mahimo na nimong gamiton ang RESPONDA ug makareport og emerhensiya.',
-  'No valid ID or face photo was collected.':
-      'Walay gikolektang valid ID o litrato sa nawong.',
   'Mobile number verified': 'Na-verify ang mobile number',
   'Account needs attention': 'Kinahanglan og pagtagad ang account',
   'Your phone number is verified and your RESPONDA account is active.':
@@ -463,7 +472,6 @@ const bisayaTranslations = <String, String>{
   'Prototype mode: SMS delivery will be connected with the authentication backend. For testing, use OTP 123456.': 'Prototype mode: Ikonekta ang SMS delivery sa authentication backend. Para sa testing, gamita ang OTP 123456.',
   'Emergency Safety Manual': 'Giya sa Kaluwasan sa Emerhensiya',
   'Offline safety manual': 'Offline nga giya sa kaluwasan',
-  'AVAILABLE OFFLINE': 'MAGAMIT OFFLINE',
   'Simple guidance to read before, during, and after an emergency.':
       'Yano nga giya nga basahon sa dili pa, panahon, ug human sa emerhensiya.',
   'Keep this guide on your phone for offline use.':
@@ -484,7 +492,6 @@ const bisayaTranslations = <String, String>{
   'Confirm the current number with your barangay office.':
       'Kumpirmaha ang kasamtangang numero sa inyong barangay office.',
   'AVAILABLE WITHOUT INTERNET': 'MAGAMIT BISAN WALAY INTERNET',
-  'This manual stays available offline. Phone calls and SMS still require cellular signal.': 'Magamit gihapon offline kini nga giya. Kinahanglan gihapon og cellular signal ang tawag ug SMS.',
   'IMPORTANT': 'IMPORTANTE',
   'Always follow instructions from Pantukan MDRRMO, barangay officials, police, fire services, and medical responders.': 'Kanunay sunda ang instruksyon sa Pantukan MDRRMO, mga opisyal sa barangay, pulis, bombero, ug medical responders.',
   '• Know the nearest evacuation center and safest route.\n• Prepare water, food, medicines, a flashlight, and copies of important IDs.\n• Choose one family contact and agree on a meeting place.\n• Keep your phone charged and save local emergency numbers.': '• Hibaloi ang pinakaduol nga evacuation center ug pinakaluwas nga agianan.\n• Pag-andam og tubig, pagkaon, tambal, flashlight, ug kopya sa importanteng ID.\n• Pagpili og usa ka family contact ug sabot sa tigomanan.\n• Kanunay i-charge ang telepono ug i-save ang lokal nga emergency numbers.',

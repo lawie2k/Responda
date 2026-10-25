@@ -179,6 +179,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Optional account details'), findsOneWidget);
+    expect(find.text('Name (optional)'), findsOneWidget);
+    expect(find.text('Enter your full name'), findsNothing);
     expect(find.text('Upload a valid ID'), findsNothing);
     expect(find.text('Take a face photo'), findsNothing);
     expect(find.text('Skip for now'), findsOneWidget);
@@ -199,10 +201,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Phone verified'), findsOneWidget);
-    expect(
-      find.text('No valid ID or face photo was collected.'),
-      findsOneWidget,
-    );
+    expect(find.text('No valid ID or face photo was collected.'), findsNothing);
     expect(controller.profile?.phoneNumber, '+639171234567');
     expect(controller.profile?.status, AccountVerificationStatus.verified);
     expect(controller.profile?.fullName, 'Juan Dela Cruz');
@@ -234,6 +233,50 @@ void main() {
 
     await tester.enterText(phoneField, '9171234567');
     expect(tester.widget<TextField>(phoneField).controller!.text, '9171234567');
+  });
+
+  testWidgets('returning from OTP shows the remaining one-minute cooldown', (
+    tester,
+  ) async {
+    await setPhoneSize(tester);
+    final controller = AccountController(
+      store: _MemoryAccountStore(),
+      api: FakeMobileAccountApi(),
+      tokenStore: MemoryTokenStore(),
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    await tester.pumpWidget(
+      AccountScope(
+        controller: controller,
+        child: MaterialApp(
+          home: IdentityVerificationScreen(
+            privacyNoticeAcceptedAt: privacyAcceptedAt,
+          ),
+        ),
+      ),
+    );
+    await tester.enterText(
+      find.byKey(const Key('identity_phone_field')),
+      '9171234567',
+    );
+    await tester.tap(find.byKey(const Key('send_identity_otp_button')));
+    await tester.pumpAndSettle();
+    expect(find.text('Enter your OTP'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.chevron_left_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('phone_otp_cooldown_label')), findsOneWidget);
+    expect(find.textContaining('Request another OTP in'), findsOneWidget);
+    final sendButton = tester.widget<FilledButton>(
+      find.descendant(
+        of: find.byKey(const Key('send_identity_otp_button')),
+        matching: find.byType(FilledButton),
+      ),
+    );
+    expect(sendButton.onPressed, isNull);
   });
 
   testWidgets('send OTP stays clickable and explains missing information', (

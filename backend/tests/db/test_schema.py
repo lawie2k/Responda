@@ -20,6 +20,7 @@ EXPECTED_TABLES = {
     "response_assignments",
     "response_units",
     "sms_gateways",
+    "sms_devices",
     "sms_messages",
     "users",
 }

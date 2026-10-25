@@ -114,7 +114,7 @@ class _OptionalProfileScreenState extends State<OptionalProfileScreen> {
           message: 'Leaving these fields empty will not prevent you from using RESPONDA or reporting an emergency.',
         ),
         const LocalizedText(
-          'Full name (optional)',
+          'Name (optional)',
           style: TextStyle(
             color: AppColors.textPrimary,
             fontSize: 13,
@@ -128,7 +128,7 @@ class _OptionalProfileScreenState extends State<OptionalProfileScreen> {
           textCapitalization: TextCapitalization.words,
           textInputAction: TextInputAction.next,
           onChanged: (_) => setState(() {}),
-          decoration: identityInputDecoration(hintText: 'Enter your full name'),
+          decoration: identityInputDecoration(hintText: ''),
         ),
         const LocalizedText(
           'Barangay (optional)',

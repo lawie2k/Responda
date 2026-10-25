@@ -323,6 +323,18 @@ class ReportReview(Base):
     reviewed_at: Mapped[datetime] = created_at_column()
 
 
+class SmsDevice(Base):
+    __tablename__ = "sms_devices"
+
+    device_id: Mapped[uuid.UUID] = uuid_primary_key()
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.user_id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    created_at: Mapped[datetime] = created_at_column()
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class SmsGateway(SoftDeleteMixin, Base):
     __tablename__ = "sms_gateways"
     __table_args__ = (
@@ -368,6 +380,10 @@ class SmsMessage(SoftDeleteMixin, Base):
     provider_message_id: Mapped[str] = mapped_column(String(150), nullable=False)
     sender_number: Mapped[str] = mapped_column(String(30), nullable=False)
     raw_message_body: Mapped[str] = mapped_column(Text, nullable=False)
+    device_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("sms_devices.device_id", ondelete="RESTRICT"), index=True
+    )
+    payload_sha256: Mapped[str | None] = mapped_column(String(64))
     protocol_version: Mapped[str | None] = mapped_column(String(20))
     client_report_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, index=True)
     signature: Mapped[str | None] = mapped_column(Text)

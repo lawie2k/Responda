@@ -102,13 +102,6 @@ class EmergencyInfoScreen extends StatelessWidget {
               _ContactsCard(),
               SizedBox(height: 14),
               _NoticeCard(
-                title: 'AVAILABLE WITHOUT INTERNET',
-                body: 'This manual stays available offline. Phone calls and SMS still require cellular signal.',
-                background: AppColors.successSoft,
-                titleColor: AppColors.success,
-              ),
-              SizedBox(height: 14),
-              _NoticeCard(
                 title: 'IMPORTANT',
                 body: 'Always follow instructions from Pantukan MDRRMO, barangay officials, police, fire services, and medical responders.',
                 background: AppColors.neutralSoft,
@@ -148,23 +141,6 @@ class _EmergencyHeader extends StatelessWidget {
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
               ),
             ],
-          ),
-        ),
-        Container(
-          height: 28,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            color: AppColors.successSoft,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          alignment: Alignment.center,
-          child: const LocalizedText(
-            'AVAILABLE OFFLINE',
-            style: TextStyle(
-              color: AppColors.success,
-              fontSize: 9,
-              fontWeight: FontWeight.w700,
-            ),
           ),
         ),
       ],

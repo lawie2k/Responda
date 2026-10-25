@@ -224,6 +224,27 @@ class MobileReportService:
                 raise self._duplicate_conflict()
             return self._result(existing)
 
+        report = await self.stage_report(reporter=reporter, payload=payload, source="app_api")
+        try:
+            await self._database.commit()
+        except IntegrityError:
+            await self._database.rollback()
+            existing = await self._existing_report(payload.client_report_id)
+            if existing is None:
+                raise
+            if existing.deleted_at is not None or existing.reporter_id != reporter.user_id:
+                raise self._duplicate_conflict() from None
+            return self._result(existing)
+        return self._result(report)
+
+    async def stage_report(
+        self,
+        *,
+        reporter: User,
+        payload: MobileReportCreateRequest,
+        source: Literal["app_api", "app_sms"],
+    ) -> Report:
+        """Stage report/event/audit together; the caller owns the transaction commit."""
         incident_type = await self._database.scalar(
             select(IncidentType).where(
                 IncidentType.code == payload.incident_type_code,
@@ -244,7 +265,7 @@ class MobileReportService:
             client_report_id=payload.client_report_id,
             reporter_id=reporter.user_id,
             incident_type_id=incident_type.incident_type_id,
-            source="app_api",
+            source=source,
             description_original=payload.description,
             people_need_help=payload.people_need_help,
             additional_assistance=payload.additional_assistance,
@@ -255,7 +276,7 @@ class MobileReportService:
             updated_at=now,
         )
         event_data = {
-            "source": "app_api",
+            "source": source,
             "people_need_help": payload.people_need_help,
             "additional_assistance": payload.additional_assistance,
             "immediate_danger": payload.immediate_danger,
@@ -286,24 +307,13 @@ class MobileReportService:
                     action="report.mobile.created",
                     entity_type="report",
                     entity_id=report.report_id,
-                    details=json.dumps({"source": "app_api"}),
+                    details=json.dumps({"source": source}),
                     ip_address=None,
                     created_at=now,
                 ),
             ]
         )
-        try:
-            await self._database.commit()
-        except IntegrityError:
-            await self._database.rollback()
-            existing = await self._existing_report(payload.client_report_id)
-            if existing is None:
-                raise
-            if existing.deleted_at is not None or existing.reporter_id != reporter.user_id:
-                raise self._duplicate_conflict() from None
-            return self._result(existing)
-
-        return self._result(report)
+        return report
 
     async def _existing_report(self, client_report_id: uuid.UUID) -> Report | None:
         return await self._database.scalar(

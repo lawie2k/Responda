@@ -2,12 +2,52 @@
 tags:
   - responda/memory
   - responda/decisions
-updated: 2026-10-21
+updated: 2026-10-25
 ---
 
 # Decisions
 
 ## Active decisions
+
+### 2026-10-25 — Use an Android SIM gateway with registered installation keys
+
+- The user selected a dedicated Android phone with SIM. Its queue forwards only
+  complete RSP1 envelopes using a separate revocable gateway bearer credential.
+  Super Admins provision/rotate/disable gateways through protected backend APIs.
+- Provision each citizen installation online through a phone-verified account;
+  derive a separate HMAC-SHA256 key per random device ID, store keys securely on
+  devices, and expire them after 180 days. Limit to five active installations.
+  Suspension revokes keys; restoration never revives them. No beta SMS bypass.
+- Authenticate exact encoded bytes, match the real sender to the verified phone,
+  bound clock skew to five minutes and queued age to seven days, and deduplicate
+  across gateway delivery IDs and global client report UUIDs. Invalid bodies are
+  discarded; accepted receipts contain fingerprints and tags, not duplicate text.
+- HMAC proves possession of a provisioned key, not an attested official binary.
+  Backend, citizen signing and Android queue code are implemented; physical
+  provisioning, installation and SIM delivery verification are next.
+
+### 2026-10-25 — Keep gateway SMS permissions out of the citizen app
+
+- Add a separate native APK module under mobile/android/gateway rather than SMS
+  receiving permissions on every citizen installation. The Android phone is not
+  connected yet; the user requested builds first.
+- Citizen setup is an explicit online Account Management action. Discover the
+  gateway number from the backend instead of hardcoding a recipient; preserve
+  cached keys on transient refresh failures, clear invalid/revoked setups, and
+  revoke/clear keys on logout. Resends preserve original signed bytes and UUIDs.
+- Gateway credentials and queued bodies use Keystore-backed AES-GCM storage.
+  WorkManager persists delivery attempts, honors network/Retry-After limits, and
+  recovers pending IDs after restarts. SMS permission is explicit; ordinary texts
+  are ignored locally. Only recognized terminal server receipts discard an item.
+  Debug permits local HTTP; release requires HTTPS and operator-managed signing.
+
+### 2026-10-25 — Show OTP cooldown on the phone-entry screen
+
+- Reuse the server-provided resend deadline after returning from OTP entry.
+  Display a live countdown and disable sending again for that same number until
+  it expires, instead of surfacing the generic rate-limit popup.
+- Keep the optional name editable with a fixed label outside the empty input;
+  remove the stale ID/face note from the standard phone-verified completion UI.
 
 ### 2026-10-21 — Track citizen reports from protected server state
 
@@ -442,7 +482,7 @@ tokens, private identity data, or real emergency content.
 
 ## Proposed but not final
 
-- Exact SMS cryptographic signing and device-key provisioning design.
+- Platform attestation if stronger official-app provenance is required for SMS.
 - Remaining incident, dispatch, reopening, and report-status transition rules.
 - Exact ML model, deployment format, and acceptance thresholds.
 - Production hosting and deployment topology.

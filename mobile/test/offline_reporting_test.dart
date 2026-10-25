@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:responda/core/location/device_location_service.dart';
-import 'package:responda/core/localization/app_language.dart';
 import 'package:responda/core/theme/app_colors.dart';
 import 'package:responda/features/reporting/data/offline_report_store.dart';
 import 'package:responda/features/reporting/data/offline_sms_handoff.dart';
@@ -289,43 +288,32 @@ void main() {
       id: 'LOCAL-00001',
       savedAt: DateTime(2026, 9, 19, 12, 30),
       draft: completeDraft,
+      signedMessage: 'RSP1.synthetic.encoded.signature',
+      smsRecipient: '+639000000001',
     );
 
     expect(await handoff.openComposer(report), isTrue);
     expect(openedUri?.scheme, 'sms');
-    expect(openedUri?.path, '09476236516');
+    expect(openedUri?.path, '+639000000001');
     final message = openedUri?.queryParameters['body'];
-    expect(message, contains('RESPONDA EMERGENCY REPORT'));
-    expect(message, contains('Incident: Road Accident'));
-    expect(message, contains('GPS: 7.135421, 125.912300'));
-    expect(message, contains('Details: A person needs help.'));
-    expect(message, contains('Time: 2026-09-19T12:30:00.000'));
+    expect(message, report.signedMessage);
   });
 
-  test('SMS handoff uses the selected Bisaya language', () {
-    final handoff = OfflineSmsHandoff(
-      strings: const AppStrings(AppLanguage.cebuano),
-    );
+  test('legacy unsigned SMS is never sent to the signed gateway', () {
+    final handoff = OfflineSmsHandoff();
     final report = SavedOfflineReport(
       id: 'LOCAL-00001',
       savedAt: DateTime(2026, 9, 19, 12, 30),
       draft: completeDraft,
     );
 
-    final message = handoff.buildMessage(report);
-    expect(message, contains('Insidente: Aksidente sa Dalan'));
-    expect(message, contains('Oras: 2026-09-19T12:30:00.000'));
-    expect(message, contains('Dugang nga tabang: Dili'));
+    expect(() => handoff.buildMessage(report), throwsException);
   });
 
-  test('Tagalog and Bisaya SMS handoffs open a valid Messages URI', () async {
-    for (final testCase in const [
-      (AppLanguage.filipino, 'Insidente: Aksidente sa Kalsada'),
-      (AppLanguage.cebuano, 'Insidente: Aksidente sa Dalan'),
-    ]) {
+  test('SMS URI preserves the signed bytes without localization', () async {
+    for (final body in ['RSP1.a.b.c', 'RSP1.d.e.f']) {
       Uri? openedUri;
       final handoff = OfflineSmsHandoff(
-        strings: AppStrings(testCase.$1),
         launcher: (uri) async {
           openedUri = uri;
           return true;
@@ -335,12 +323,14 @@ void main() {
         id: 'LOCAL-00001',
         savedAt: DateTime(2026, 9, 19, 12, 30),
         draft: completeDraft,
+        signedMessage: body,
+        smsRecipient: '+639000000001',
       );
 
       expect(await handoff.openComposer(report), isTrue);
       expect(openedUri?.scheme, 'sms');
-      expect(openedUri?.path, OfflineSmsHandoff.recipient);
-      expect(openedUri?.queryParameters['body'], contains(testCase.$2));
+      expect(openedUri?.path, '+639000000001');
+      expect(openedUri?.queryParameters['body'], body);
     }
   });
 }

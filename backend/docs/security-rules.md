@@ -152,6 +152,16 @@ VA101 to FastAPI and PostgreSQL; VA101's Next.js code is a reference, not code t
 
 ## Deletion and retention
 
+SMS ingestion uses the [RSP1 contract](sms-gateway.md). Keep gateway bearer secrets
+separate from citizen installation keys. Registration requires a verified consenting
+reporter; gateway creation/rotation/revocation requires a rechecked Super Admin
+session. Recheck gateway, account and installation state on delivery. Suspension
+revokes installation keys atomically with sessions. Never accept a prefix, sender
+number, or beta profile as SMS authentication. Verify the exact HMAC envelope before
+parsing; enforce expiry, sender binding, input bounds and replay constraints. Commit
+accepted reports and receipts together; never retain rejected bodies or log SMS/key
+material. HMAC proves a registered credential, not an attested app binary.
+
 - Mutable operational records use nullable `deleted_at` timestamps. Normal authentication and API
   queries must exclude rows whose `deleted_at` is set unless an explicitly authorized historical
   or restoration workflow requests them.

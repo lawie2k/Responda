@@ -2,7 +2,7 @@
 tags:
   - responda/memory
   - responda/status
-updated: 2026-10-21
+updated: 2026-10-25
 ---
 
 # Current state
@@ -12,8 +12,8 @@ updated: 2026-10-21
 - The FastAPI project structure, configuration, exception handling, CORS, async
   database session setup, and `/api/v1` router separation exist.
 - PostgreSQL is configured locally through a private `.env` file.
-- Six Alembic migrations and 18 SQLAlchemy tables exist. PostgreSQL is at
-  `a19e7215d104`, adding optional citizen barangay and privacy acknowledgement.
+- Seven Alembic migrations and 19 SQLAlchemy tables exist. Local PostgreSQL is at
+  `d5f08c72a931`, adding revocable SMS installation credentials and receipt fingerprints.
 - Mutable operational records use indexed nullable `deleted_at` timestamps:
   users, incident types, incidents, reports, report locations, report
   attachments, SMS gateways/messages, response units/assignments, and
@@ -95,7 +95,8 @@ updated: 2026-10-21
   audit in one transaction. It validates payloads, limits submissions by
   account/IP, and uses the client UUID for retry-safe creation. The existing
   dashboard Live Reports API already includes these `app_api` rows; no migration
-  was required. Gateway ingestion and reporter notifications remain unimplemented.
+  was required. Gateway backend ingestion now exists; client wiring and reporter
+  notifications remain pending.
 - Authenticated `GET /api/v1/mobile/reports` and report-detail reads now expose
   only the signed-in citizen's undeleted reports, with capped pagination,
   Active/Completed filters, active totals, current review/incident status, and
@@ -132,8 +133,17 @@ updated: 2026-10-21
   by opened date in Asia/Manila, cap date ranges at 366 days, exclude deleted
   records, and keep inactive types available. Exports contain daily dates/counts
   and audit staff identity plus day count. No migration was required.
-- The strict app-only SMS acceptance policy is documented and represented in
-  the schema; gateway ingestion and signature verification are not implemented.
+- The Android SIM gateway backend now registers phone-verified citizen SMS
+  installations, provisions/rotates/revokes separate Super Admin-managed gateway
+  credentials, and ingests RSP1 messages. It checks HMAC, sender/account binding,
+  timestamps, expiry/revocation and delivery/report UUID uniqueness before
+  atomically creating pending app_sms reports and receipts. Invalid messages are
+  not retained; duplicate accepted bodies are fingerprinted rather than copied.
+  Account suspension revokes SMS keys. Beta profiles cannot provision them.
+  Protocol/provisioning contract: backend/docs/sms-gateway.md. Registration now
+  returns the oldest active gateway's number. A private interactive CLI at
+  app.cli.configure_sms_gateway provisions or rotates a gateway using Super Admin
+  credentials entered locally, then revokes its temporary staff session.
 
 ## Web dashboard
 
@@ -285,6 +295,14 @@ updated: 2026-10-21
   rechecks the session. Old local profiles without a real token must verify again.
   Retired ID/face screens, media-picker reference, and prototype code were removed
   (recoverable from Git). The optional profile form preserves recovered details.
+  The phone-entry screen now shows the remaining backend-provided OTP cooldown
+  when returning from code entry and disables another request for that number.
+  Optional profile name uses a fixed label without placeholder text, and the
+  successful phone-verification screen omits the obsolete ID/face card. The
+  Emergency Info tab no longer shows offline availability badges/cards. These
+  UI changes are synchronized to the Documents build copy; the signed release
+  was rebuilt with the active wired backend address and installed/launched on
+  the paired iPhone on 2026-10-25.
 - It has a backend health client and environment-aware base URLs, including the
   Android emulator host address. On the current iPhone/Mac pair, Wi-Fi access
   was blocked despite matching subnet/router settings; the app reached the
@@ -294,12 +312,14 @@ updated: 2026-10-21
 - Online report submission now uses the verified mobile bearer session and the
   protected report-creation endpoint. It stores the server report UUID and
   receipt time locally only after success, retains the client idempotency UUID
-  across retries/back-to-review, and leaves the offline/SMS handoff unchanged.
+  across retries/back-to-review. Offline handoff now uses the signed SMS flow below.
   Failed sends do not show success. Photo-attached online reports are blocked
   with an explicit message until secure attachment storage/retention is chosen;
   attachments are never silently discarded or uploaded.
 - The application contains onboarding, connectivity handling, reporting flows,
-  localization, offline-related behavior, and tests.
+  localization, offline-related behavior, and tests. Emergency Info keeps the
+  safety manual and emergency contacts without the redundant offline availability
+  badge or notice card.
 - My Reports and its status journey now read the protected reporter APIs rather
   than device-local online receipts. They refresh every five seconds while
   visible, on tab return/resume, and manually; requests do not overlap and stale
@@ -308,8 +328,27 @@ updated: 2026-10-21
   uses Team responding because staff do not record arrival on site. Saved offline
   reports remain local. New copy is translated into Tagalog/Bisaya, and Home plus
   offline My Reports headers no longer display connectivity badges. Both mobile
-  source copies are synchronized; these changes are not yet installed on the phone.
-- Signed SMS gateway ingestion and notification delivery are not wired end to end.
+  source copies are synchronized. The signed iOS release was rebuilt on
+  2026-10-25 with the active wired backend address, installed, and launched on
+  the paired iPhone. A real report lifecycle walkthrough remains pending.
+- Account Management now offers Offline SMS setup for phone-verified accounts.
+  Device keys are account/backend-bound in secure storage and revoked on sign-out.
+  RSP1 messages use stable report UUIDs and signed bytes; GPS capture time is
+  preserved separately when known. An unavailable setup saves a local draft and
+  explains how to enable SMS. Saved reports offer a guarded SMS resend action;
+  changed signed content, expired/wrong-account setups and photos fail closed.
+- A separate native Android module, mobile/android/gateway, builds package
+  com.responda.gateway. Only that APK receives SMS. It filters complete RSP1
+  envelopes, keeps credentials/queue bodies encrypted with Android Keystore AES-GCM,
+  and uses WorkManager for network-aware retries and boot/process recovery. It
+  preserves stable delivery IDs, honors Retry-After, pauses invalid credentials,
+  retains blocked requests for review and clears bodies only on valid terminal
+  acknowledgements. Native permission checks deny receiving until enabled.
+- Canonical and Documents mobile source copies match. Both Android debug APKs
+  were built from the Documents folder; citizen APK permissions exclude SMS receipt.
+  Setup/test guide: mobile/docs/sms-testing.md. The Android phone was not connected,
+  so neither installation nor real multipart/SIM delivery was performed. The
+  existing iPhone installation still predates SMS signing. Notifications remain pending.
 
 ## Verification history
 
@@ -318,7 +357,9 @@ updated: 2026-10-21
   targeted beta-mode tests. A rolled-back PostgreSQL rehearsal exercised actual
   report creation, verification, team assignment/acknowledgment, responding,
   resolution, completed filtering, ownership rejection and recorded timestamps;
-  no synthetic report persisted. Physical-device testing remains pending.
+  no synthetic report persisted. The latest signed release was installed and
+  launched on the physical iPhone; the real report lifecycle walkthrough remains
+  pending.
 
 - The 2026-10-19 save/push checkpoint reran backend Ruff, strict mypy and all
   290 tests, web lint/build, Flutter analysis and all 75 tests, plus memory and

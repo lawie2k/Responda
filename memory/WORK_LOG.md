@@ -2,10 +2,95 @@
 tags:
   - responda/memory
   - responda/work-log
-updated: 2026-10-21
+updated: 2026-10-25
 ---
 
 # Work log
+
+## 2026-10-25 — Save SMS gateway checkpoint
+
+- Saved the signed SMS backend, citizen setup/resend flow, separate Android
+  gateway utility and pending mobile verification/UI updates together.
+- Backend and Flutter checks, gateway JVM tests and both Android debug builds
+  passed during implementation; Graphify was refreshed for the affected code.
+- User will return when an Android SIM phone is available. No real gateway API
+  key has been generated, and physical installation and SIM delivery are untested.
+  Resume with private gateway provisioning and the SMS testing guide.
+
+## 2026-10-25 — Connect mobile SMS signing and build the Android gateway utility
+
+- Added verified-account SMS setup, secure key storage, account/backend binding,
+  signed RSP1 encoding, immutable resend UUID/body, saved-report SMS actions and
+  local-draft fallback when setup is unavailable. Gateway recipients now come
+  from registered backend state; normal sign-out revokes the installation key.
+  Added optional GPS capture timestamp and a private Super Admin setup CLI.
+- Built a separate native Gateway APK with explicit receiving permission,
+  multipart envelope filtering, encrypted durable queue, WorkManager network and
+  restart recovery, backoff/Retry-After, credential pause and safe terminal
+  acknowledgement handling. Normal citizen APK does not request SMS permissions.
+- Backend lint/type checks and all 358 tests passed. Flutter analysis, the normal
+  suite and both targeted beta tests passed; the shared Dart/Python vector matches.
+  Gateway's three JVM tests passed. Both debug APKs built from the Documents
+  mobile folder; changed source/tests/docs were synchronized to canonical Git.
+- The user said the Android phone is not connected and requested builds first.
+  No physical installation, real SIM message or actual gateway provisioning was
+  performed. iPhone release rebuild/install and real delivery remain next steps.
+  Existing mobile UI and memory changes from the other chat were preserved.
+
+## 2026-10-25 — Build the Android SIM SMS gateway backend foundation
+
+- Added RSP1 HMAC format/reference encoder, verified-account installation key
+  registration/list/revocation, Super Admin gateway provisioning/rotation/disable,
+  and separately authenticated SMS ingestion. New messages create app_sms reports
+  atomically with receipts; duplicates reuse the original report. Bound input,
+  timestamps, sender identity and rates; reject revoked/suspended/unverified
+  senders without retaining SMS text. Account suspension now revokes device keys.
+- Applied migration d5f08c72a931 locally (19 tables). Backend lint, strict typing
+  and all 357 tests passed; Alembic detected no drift. A real PostgreSQL savepoint
+  rehearsal confirmed signed delivery, duplicate acknowledgement and staff queue
+  visibility, then rolled back all synthetic rows. Backend/DB health is OK.
+- Documented protocol and Android queue contract. No app/gateway integration or
+  physical SMS delivery was performed; current unsigned Flutter SMS is rejected.
+  No real gateway secret or installation was provisioned. Existing mobile UI and
+  memory edits from the other chat were preserved. No commit or push requested.
+
+## 2026-10-25 — Install the latest mobile UI on the iPhone
+
+- Rebuilt the signed iOS release from the Documents mobile copy with the current
+  wired backend address, installed bundle `com.artlaurence.responda` on “Iphone
+  ni lawie,” and launched it successfully. This build includes the onboarding
+  cooldown/name/success-screen updates and the Emergency Info availability
+  notice removal. The live report-tracking walkthrough remains pending.
+
+## 2026-10-25 — Remove redundant offline availability notices from Emergency Info
+
+- Removed the Emergency Info header badge and bottom notice card that advertised
+  offline availability; kept the safety manual, emergency contacts, and
+  important-response notice. Removed their unused Tagalog/Bisaya strings.
+- Added a screen regression test. Flutter analysis and the full test suite passed;
+  synchronized source/tests to the Documents build copy and refreshed the mobile
+  Graphify graph. This UI change is not installed on the iPhone yet.
+
+## 2026-10-25 — Improve phone verification cooldown and completion UI
+
+- Returning to phone entry now shows a live one-minute resend countdown for the
+  same number and disables the request button until it expires. The optional
+  Name field has a fixed label and no in-field placeholder. Removed the obsolete
+  ID/face card from standard phone-verification success; beta notice remains.
+- Added the cooldown regression test and updated completion assertions. Flutter
+  analyze and the full test suite passed. Synchronized changed mobile files to
+  the Documents build copy and refreshed the mobile Graphify graph. The latest
+  onboarding changes are not installed on the iPhone yet.
+
+## 2026-10-25 — Install the latest iOS release on the paired iPhone
+
+- Built and code-sign verified `Runner.app` (bundle ID
+  `com.artlaurence.responda`) from the synchronized Documents mobile copy in
+  release mode, configured to reach the healthy local backend over the active
+  wired link. The first Flutter install attempt found the iPhone unavailable;
+  after it became available, installed the build with `devicectl` and confirmed
+  launch. No source files changed. A live report-tracking walkthrough remains
+  pending.
 
 ## 2026-10-21 — Connect My Reports to live citizen tracking
 

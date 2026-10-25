@@ -183,7 +183,6 @@ class _SubmittingReportScreenState extends State<SubmittingReportScreen> {
   }
 
   Future<void> _beginSubmission() async {
-    final appStrings = context.strings;
     _timers.add(
       Timer(const Duration(milliseconds: 650), () {
         if (mounted) {
@@ -196,15 +195,27 @@ class _SubmittingReportScreenState extends State<SubmittingReportScreen> {
     SavedOnlineReport? onlineReport;
     var smsComposerOpened = false;
     if (widget.flowMode.isOffline) {
-      final save = widget.saveOfflineReport ?? const OfflineReportStore().save;
-      savedReport = await save(widget.draft);
       try {
+        final save = widget.saveOfflineReport;
+        final account = AccountScope.maybeOf(context);
+        if (save == null && account == null) {
+          throw const RespondaApiException(
+            'Set up Offline SMS in Account Management online first.',
+          );
+        }
+        final draft = widget.draft.copyWith(clientReportId: _clientReportId);
+        savedReport = save != null
+            ? await save(draft)
+            : await account!.saveSignedOfflineReport(draft);
         final openSms =
-            widget.openSmsComposer ??
-            OfflineSmsHandoff(strings: appStrings).openComposer;
+            widget.openSmsComposer ?? OfflineSmsHandoff().openComposer;
         smsComposerOpened = await openSms(savedReport);
-      } catch (_) {
-        smsComposerOpened = false;
+      } catch (error) {
+        if (!mounted) return;
+        setState(
+          () => _errorMessage = error is RespondaApiException ? error.message : 'Could not prepare this SMS. Your report has not been sent. Return to review and try again.',
+        );
+        return;
       }
     } else {
       try {

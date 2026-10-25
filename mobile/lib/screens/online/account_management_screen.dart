@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:responda/core/theme/app_colors.dart';
+import 'package:responda/core/network/responda_api_client.dart';
 import 'package:responda/features/onboarding/domain/account_profile.dart';
 import 'package:responda/features/onboarding/presentation/account_scope.dart';
 import 'package:responda/features/onboarding/presentation/screens/verification/privacy_notice_screen.dart';
@@ -32,6 +33,8 @@ class AccountManagementScreen extends StatelessWidget {
                     const SizedBox(height: 14),
                     _DetailsCard(profile: profile),
                     const SizedBox(height: 14),
+                    const _OfflineSmsCard(),
+                    const SizedBox(height: 14),
                     if (profile.phoneNumber.isNotEmpty) const _RecoveryCard(),
                     const SizedBox(height: 14),
                     const _SignOutButton(),
@@ -41,6 +44,92 @@ class AccountManagementScreen extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _OfflineSmsCard extends StatefulWidget {
+  const _OfflineSmsCard();
+  @override
+  State<_OfflineSmsCard> createState() => _OfflineSmsCardState();
+}
+
+class _OfflineSmsCardState extends State<_OfflineSmsCard> {
+  bool _busy = false;
+  bool _loaded = false;
+  String? _error;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_loaded) {
+      _loaded = true;
+      AccountScope.maybeOf(context)!.restoreOfflineSms().then((_) {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
+  Future<void> _enable() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await AccountScope.maybeOf(context)!.enableOfflineSms();
+    } catch (error) {
+      if (mounted) {
+        setState(
+          () => _error = error is RespondaApiException ? error.message : 'SMS setup could not be saved. Check your connection and try again.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final account = AccountScope.maybeOf(context)!;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const LocalizedText(
+            'Offline SMS',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          LocalizedText(
+            account.offlineSmsReady
+                ? 'Ready. Send SMS using your verified SIM. Your carrier may charge for multiple messages.'
+                : 'Connect online once to enable signed emergency SMS. A verified phone number is required.',
+          ),
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: LocalizedText(
+                _error!,
+                style: const TextStyle(color: AppColors.warning),
+              ),
+            ),
+          TextButton(
+            onPressed: _busy ? null : _enable,
+            child: LocalizedText(
+              _busy
+                  ? 'Setting up…'
+                  : account.offlineSmsReady
+                  ? 'Refresh SMS setup'
+                  : 'Set up Offline SMS',
+            ),
+          ),
+        ],
       ),
     );
   }

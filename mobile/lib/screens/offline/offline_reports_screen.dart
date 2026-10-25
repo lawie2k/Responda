@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../features/reporting/presentation/sms_retry_button.dart';
+
 import 'package:responda/core/theme/app_colors.dart';
 import 'package:responda/features/reporting/data/offline_report_store.dart';
 
@@ -214,7 +216,7 @@ class _SavedReportCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const LocalizedText(
-                  'NOT SENT',
+                  'NOT CONFIRMED',
                   style: TextStyle(
                     color: AppColors.warning,
                     fontSize: 9,
@@ -242,6 +244,7 @@ class _SavedReportCard extends StatelessWidget {
               height: 17 / 12,
             ),
           ),
+          SmsRetryButton(report: report),
         ],
       ),
     );

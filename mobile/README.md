@@ -2,6 +2,9 @@
 
 Flutter mobile application for the Responda emergency reporting platform.
 
+Offline signing, the separate Android SIM gateway APK and the private setup
+walkthrough are documented in [docs/sms-testing.md](docs/sms-testing.md).
+
 ## Backend connection
 
 The app verifies that both the FastAPI service and PostgreSQL database are healthy before entering

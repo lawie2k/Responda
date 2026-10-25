@@ -251,7 +251,7 @@ class _OfflineSmsHandoffCard extends StatelessWidget {
           ),
           SizedBox(height: 9),
           LocalizedText(
-            'A copy will be saved on this phone, then Messages will open for 09476236516 with your report already filled in.',
+            'A copy will be saved on this phone, then Messages will open with a protected SMS draft for MDRRMO. Send it unchanged using your verified SIM. Carrier charges may apply.',
             style: TextStyle(
               color: AppColors.textPrimary,
               fontSize: 12,

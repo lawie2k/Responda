@@ -4,6 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:responda/core/config/beta_features.dart';
 
+import '../../../core/network/api_config.dart';
+import '../../reporting/data/signed_sms.dart';
+import '../../reporting/data/offline_report_store.dart';
+
 import '../domain/account_profile.dart';
 import '../../../core/network/responda_api_client.dart';
 import 'identity_otp_service.dart';
@@ -60,17 +64,28 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
     AccountStore? store,
     MobileAccountApi? api,
     SessionTokenStore? tokenStore,
+    SmsKeyStore? smsKeyStore,
   }) : _store = store ?? SharedPreferencesAccountStore(),
        _api = api ?? MobileAccountApi(),
-       _tokenStore = tokenStore ?? SecureSessionTokenStore();
+       _tokenStore = tokenStore ?? SecureSessionTokenStore(),
+       _smsStore = smsKeyStore ?? SecureSmsKeyStore();
 
   final AccountStore _store;
   final MobileAccountApi _api;
   final SessionTokenStore _tokenStore;
+  final SmsKeyStore _smsStore;
+  SmsSetup? _sms;
+  Future<void>? _smsProvisioning;
+  String get _smsBackend => _api.baseUrl ?? ApiConfig.baseUrl;
+  bool get offlineSmsReady =>
+      _sms?.ready == true &&
+      _sms?.owner == _profile?.phoneNumber &&
+      _sms?.backend == _smsBackend;
   String? _token;
   String? _challengeId;
   String? developmentCode;
   DateTime? resendAt;
+  String? resendPhoneNumber;
   DateTime? _expiresAt;
 
   AccountProfile? _profile;
@@ -148,6 +163,7 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
     );
     _challengeId = result['challenge_id'] as String;
     developmentCode = result['development_code'] as String?;
+    resendPhoneNumber = phoneNumber;
     resendAt = DateTime.now().add(
       Duration(seconds: result['resend_after_seconds'] as int),
     );
@@ -170,6 +186,8 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
     await _acceptLogin(result);
     _challengeId = null;
     developmentCode = null;
+    resendAt = null;
+    resendPhoneNumber = null;
     return true;
   }
 
@@ -278,9 +296,149 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
         .submit(token: token, clientReportId: clientReportId, draft: draft);
   }
 
+  Future<void> restoreOfflineSms() => _restoreSms();
+
+  Future<void> _restoreSms() async {
+    if (_profile?.status != AccountVerificationStatus.verified) return;
+    try {
+      final stored = await _smsStore.read();
+      if (stored != null) _sms = SmsSetup.decode(stored);
+    } catch (_) {
+      _sms = null;
+    }
+  }
+
+  Future<void> enableOfflineSms() {
+    return _smsProvisioning ??= _enableOfflineSms().whenComplete(
+      () => _smsProvisioning = null,
+    );
+  }
+
+  Future<void> _enableOfflineSms() async {
+    final token = _token;
+    final phone = _profile?.phoneNumber;
+    if (token == null ||
+        _profile?.status != AccountVerificationStatus.verified ||
+        phone == null) {
+      throw const RespondaApiException(
+        'Verify your phone number online before setting up Offline SMS.',
+      );
+    }
+    await _restoreSms();
+    final previous = _sms;
+    final reuse =
+        previous?.owner == phone &&
+        previous?.backend == _smsBackend &&
+        (previous?.expiresAt == null ||
+            previous!.expiresAt!.isAfter(DateTime.now()));
+    _sms = reuse
+        ? previous!
+        : SmsSetup(
+            deviceId: reuse
+                ? previous!.deviceId
+                : MobileReportApi.createClientReportId(),
+            owner: phone,
+            backend: _smsBackend,
+          );
+    await _smsStore.write(_sms!.encode());
+    late final Map<String, dynamic> result;
+    try {
+      result = await _api.smsDevice(_sms!.deviceId, token: token);
+    } on RespondaApiException catch (error) {
+      if ([401, 403, 409].contains(error.statusCode)) {
+        await _smsStore.clear();
+        _sms = null;
+        notifyListeners();
+      }
+      rethrow;
+    }
+    if (_token != token || _profile?.phoneNumber != phone) {
+      throw const RespondaApiException(
+        'Your account changed. Set up Offline SMS again.',
+      );
+    }
+    _sms = SmsSetup(
+      deviceId: result['device_id'] as String,
+      owner: phone,
+      backend: _smsBackend,
+      key: result['signing_key'] as String,
+      gateway: result['gateway_number'] as String?,
+      expiresAt: DateTime.parse(result['expires_at'] as String),
+    );
+    await _smsStore.write(_sms!.encode());
+    notifyListeners();
+    if (!offlineSmsReady) {
+      throw const RespondaApiException(
+        'MDRRMO has not configured an active SMS gateway yet. Try setup again after it is configured.',
+      );
+    }
+  }
+
+  Future<SavedOfflineReport> saveSignedOfflineReport(ReportDraft draft) async {
+    await _restoreSms();
+    if (!offlineSmsReady ||
+        _profile?.status != AccountVerificationStatus.verified) {
+      await const OfflineReportStore().save(draft);
+      throw const RespondaApiException(
+        'A copy is saved on this phone. Connect online and set up Offline SMS in Account Management before sending it.',
+      );
+    }
+    final clientId =
+        draft.clientReportId ?? MobileReportApi.createClientReportId();
+    final createdAt = DateTime.now().toUtc();
+    final body = signSms(
+      setup: _sms!,
+      draft: draft,
+      clientId: clientId,
+      createdAt: createdAt,
+    );
+    return const OfflineReportStore().save(
+      draft.copyWith(clientReportId: clientId),
+      signedMessage: body,
+      smsRecipient: _sms!.gateway,
+      createdAt: createdAt,
+    );
+  }
+
+  Future<SavedOfflineReport> prepareSmsRetry(SavedOfflineReport report) async {
+    if (report.signedMessage == null) {
+      return saveSignedOfflineReport(report.draft);
+    }
+    await _restoreSms();
+    final device = _sms?.deviceId.replaceAll('-', '').toLowerCase();
+    if (!offlineSmsReady ||
+        _profile?.status != AccountVerificationStatus.verified ||
+        !report.signedMessage!.startsWith('RSP1.$device.')) {
+      throw const RespondaApiException(
+        'This SMS belongs to another or expired setup. Sign in to the original account or create a new report.',
+      );
+    }
+    if (DateTime.now().difference(report.savedAt).inSeconds >
+        const Duration(days: 7).inSeconds) {
+      throw const RespondaApiException(
+        'This saved SMS has expired. Create a new report with current emergency details.',
+      );
+    }
+    return report;
+  }
+
   Future<void> clearLocalSession() async {
+    try {
+      await _smsProvisioning;
+    } catch (_) {
+      /* Keep logout usable after setup failure. */
+    }
     final token = _token;
     if (token != null) {
+      if (_sms != null &&
+          _sms!.owner == _profile?.phoneNumber &&
+          _sms!.backend == _smsBackend) {
+        try {
+          await _api.smsDevice(_sms!.deviceId, token: token, revoke: true);
+        } on RespondaApiException catch (error) {
+          if (![401, 403, 404].contains(error.statusCode)) rethrow;
+        }
+      }
       try {
         await _api.request('logout', method: 'POST', token: token);
       } on RespondaApiException catch (error) {
@@ -327,6 +485,13 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
     _challengeId = null;
     developmentCode = null;
     _isLoaded = true;
+    try {
+      await _smsProvisioning;
+    } catch (_) {
+      /* Invalidate an in-flight setup before clearing keys. */
+    }
+    if (_sms != null) await _smsStore.clear();
+    _sms = null;
     await _tokenStore.clear();
     await _store.clear();
   }

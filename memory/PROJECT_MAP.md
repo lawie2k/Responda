@@ -2,7 +2,7 @@
 tags:
   - responda/memory
   - responda/code-map
-updated: 2026-10-20
+updated: 2026-10-25
 ---
 
 # Project map
@@ -74,6 +74,12 @@ Path: `/Users/lawie/develop/responda/mobile`
 - API configuration: `lib/core/network/api_config.dart`.
 - API client: `lib/core/network/responda_api_client.dart`.
 - Features: `lib/features/`.
+- Signed SMS codec/store: `lib/features/reporting/data/signed_sms.dart`.
+- Gateway utility APK: `android/gateway/`, package `com.responda.gateway`.
+- Private setup/device walkthrough: `docs/sms-testing.md`; backend provisioning
+  command: `.venv/bin/python -m app.cli.configure_sms_gateway` from backend/.
+- Android artifacts in the Documents mobile build copy: `build/gateway/outputs/
+  apk/debug/gateway-debug.apk` and `build/app/outputs/flutter-apk/app-debug.apk`.
 
 Common commands:
 

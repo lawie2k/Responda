@@ -7,6 +7,7 @@ import 'package:responda/core/widgets/responda_bottom_navigation.dart';
 import 'package:responda/features/onboarding/presentation/screens/language_selection_screen.dart';
 import 'package:responda/features/reporting/domain/models/incident_type.dart';
 import 'package:responda/features/reporting/domain/models/report_draft.dart';
+import 'package:responda/screens/online/emergency_info_screen.dart';
 import 'package:responda/screens/online/main_shell.dart';
 import 'package:responda/screens/shared/reporting/add_photo_screen.dart';
 import 'package:responda/screens/shared/reporting/incident_location_screen.dart';
@@ -63,6 +64,29 @@ void main() {
     final navigation = find.byType(RespondaBottomNavigation);
     expect(tester.getSize(navigation).width, 390);
     expect(tester.getBottomRight(navigation).dy, 844);
+  });
+
+  testWidgets('Emergency Info omits the offline availability notices', (
+    tester,
+  ) async {
+    await pumpPhoneScreen(tester, const EmergencyInfoScreen());
+
+    final list = find.byType(ListView);
+    await tester.scrollUntilVisible(
+      find.text('IMPORTANT'),
+      400,
+      scrollable: find.descendant(of: list, matching: find.byType(Scrollable)),
+    );
+
+    expect(find.text('AVAILABLE OFFLINE'), findsNothing);
+    expect(find.text('AVAILABLE WITHOUT INTERNET'), findsNothing);
+    expect(
+      find.text(
+        'This manual stays available offline. Phone calls and SMS still require cellular signal.',
+      ),
+      findsNothing,
+    );
+    expect(find.text('IMPORTANT'), findsOneWidget);
   });
 
   testWidgets('renders every screen in the online report flow', (tester) async {

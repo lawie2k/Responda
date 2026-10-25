@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.core.exceptions import ApplicationError
-from app.models import AuditLog, AuthSession, Report, User
+from app.models import AuditLog, AuthSession, Report, SmsDevice, User
 from app.models.enums import ADMINISTRATOR_ROLES
 from app.schemas.admin_mobile_accounts import (
     MobileAccountCounts,
@@ -218,6 +218,14 @@ class AdminMobileAccountService:
             .where(
                 AuthSession.user_id == user.user_id,
                 AuthSession.revoked_at.is_(None),
+            )
+            .values(revoked_at=now)
+        )
+        await self.db.execute(
+            update(SmsDevice)
+            .where(
+                SmsDevice.user_id == user.user_id,
+                SmsDevice.revoked_at.is_(None),
             )
             .values(revoked_at=now)
         )

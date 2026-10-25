@@ -2,6 +2,9 @@
 
 Backend service for the Responda emergency reporting platform.
 
+Signed SMS gateway endpoints and the client wire contract are documented in
+[docs/sms-gateway.md](docs/sms-gateway.md). Apply migrations before using them.
+
 ## Requirements
 
 - Python 3.13

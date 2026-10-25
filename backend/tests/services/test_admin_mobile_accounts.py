@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import ApplicationError
 from app.db.base import Base
-from app.models import AuditLog, AuthSession, IncidentType, Report, User
+from app.models import AuditLog, AuthSession, IncidentType, Report, SmsDevice, User
 from app.schemas.admin_mobile_accounts import MobileAccountStatusUpdate
 from app.services.admin_auth import AuthenticatedAdmin
 from app.services.admin_mobile_accounts import AdminMobileAccountService
@@ -173,15 +173,25 @@ def test_report_counts_exclude_manual_and_deleted_without_join_multiplication(ac
 
 def test_suspend_restore_revoke_sessions_and_minimize_audits(accounts):
     service, db, current, user = accounts
+    device = SmsDevice(
+        device_id=uuid.uuid4(),
+        user_id=user.user_id,
+        expires_at=datetime.now(UTC) + timedelta(days=1),
+    )
+    db.add(device)
+    db.commit()
     asyncio.run(service.update_status(current, user.user_id, payload(user)))
+    db.refresh(device)
     assert not user.is_active
     session = db.scalar(select(AuthSession).where(AuthSession.user_id == user.user_id))
     assert session.revoked_at is not None
+    assert device.revoked_at is not None
     assert listing(service, current, active=True).items == []
     result = listing(service, current, active=False)
     assert result.counts.suspended == result.total == 1
     asyncio.run(service.update_status(current, user.user_id, payload(user, True)))
     assert user.is_active and session.revoked_at is not None
+    assert device.revoked_at is not None
     audits = db.scalars(select(AuditLog)).all()
     assert len(audits) == 2
     assert json.loads(audits[0].details) == {"reason": "suspected_misuse"}

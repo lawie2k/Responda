@@ -9,6 +9,7 @@ import 'package:responda/features/onboarding/presentation/account_scope.dart';
 import 'package:responda/features/reporting/data/mobile_report_api.dart';
 import 'package:responda/features/reporting/data/offline_report_store.dart';
 import 'package:responda/features/reporting/data/online_report_store.dart';
+import 'package:responda/features/reporting/presentation/sms_retry_button.dart';
 
 import 'report_status_screen.dart';
 
@@ -414,13 +415,14 @@ class _MyReportsScreenState extends State<MyReportsScreen>
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: const LocalizedText(
-                  'Saved on this phone · Not yet sent',
+                  'Saved on this phone · Delivery not confirmed',
                   style: TextStyle(
                     color: AppColors.warning,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
+              SmsRetryButton(report: report),
             ],
           ),
         ),
@@ -600,7 +602,7 @@ class _ReportCard extends StatelessWidget {
       title: report.draft.incidentType.label,
       meta:
           '${context.tr(report.draft.locationTitle)}  •  ${_dateAndTime(context, report.savedAt)}',
-      status: 'NOT SENT',
+      status: 'NOT CONFIRMED',
       statusColor: AppColors.warning,
       statusBackground: AppColors.warningSoft,
       action: 'Open saved report',

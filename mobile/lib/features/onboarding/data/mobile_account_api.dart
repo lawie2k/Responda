@@ -58,6 +58,20 @@ class MobileAccountApi {
     );
   }
 
+  Future<Map<String, dynamic>> smsDevice(
+    String deviceId, {
+    required String token,
+    bool revoke = false,
+  }) => _request(
+    ApiConfig.endpoint(
+      '/api/v1/mobile/sms-devices${revoke ? '/$deviceId' : ''}',
+      overrideBaseUrl: baseUrl,
+    ),
+    method: revoke ? 'DELETE' : 'POST',
+    token: token,
+    body: revoke ? null : {'device_id': deviceId},
+  );
+
   Future<Map<String, dynamic>> readReports({
     required String token,
     String? reportId,

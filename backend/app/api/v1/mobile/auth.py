@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.routing import APIRoute
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.dependencies import DatabaseSession, SettingsDependency
 from app.core.exceptions import ApplicationError
@@ -39,6 +40,14 @@ class PrivateRoute(APIRoute):
             except ApplicationError as error:
                 error.headers = {**(error.headers or {}), "Cache-Control": "no-store"}
                 raise
+            except SQLAlchemyError:
+                # SQL exceptions can contain bound phone numbers, tokens or report text.
+                raise ApplicationError(
+                    "The service is temporarily unavailable. Retry later.",
+                    code="storage_unavailable",
+                    status_code=503,
+                    headers={"Cache-Control": "no-store"},
+                ) from None
             response.headers["Cache-Control"] = "no-store"
             return response
 

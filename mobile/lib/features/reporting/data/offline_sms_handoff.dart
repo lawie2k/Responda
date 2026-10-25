@@ -1,80 +1,40 @@
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../core/localization/app_language.dart';
-import '../../../core/localization/app_strings.dart';
+import '../../../core/network/responda_api_client.dart';
 import 'offline_report_store.dart';
 
 typedef SmsUriLauncher = Future<bool> Function(Uri uri);
 
 class OfflineSmsHandoff {
-  OfflineSmsHandoff({SmsUriLauncher? launcher, AppStrings? strings})
-    : _launcher = launcher ?? _launchUri,
-      _strings = strings ?? const AppStrings(AppLanguage.english);
-
-  static const recipient = '09476236516';
-
+  OfflineSmsHandoff({SmsUriLauncher? launcher})
+    : _launcher = launcher ?? _launchUri;
   final SmsUriLauncher _launcher;
-  final AppStrings _strings;
-
-  Future<bool> openComposer(SavedOfflineReport report) {
-    return _launcher(buildUri(report));
-  }
-
+  Future<bool> openComposer(SavedOfflineReport report) =>
+      _launcher(buildUri(report));
   Uri buildUri(SavedOfflineReport report) {
+    final body = buildMessage(report);
     return Uri(
       scheme: 'sms',
-      path: recipient,
-      query: _encodeQueryParameters({'body': buildMessage(report)}),
+      path: report.smsRecipient,
+      query: 'body=${Uri.encodeComponent(body)}',
     );
   }
 
   String buildMessage(SavedOfflineReport report) {
-    final draft = report.draft;
-    final landmark = draft.landmark.trim();
-    final accuracy = draft.locationAccuracy == null
-        ? _strings.text('Accuracy unavailable')
-        : '±${draft.locationAccuracy!.round()} m ${_strings.text('accuracy')}';
-    return [
-      _strings.text('RESPONDA EMERGENCY REPORT'),
-      '${_strings.text('Local ID')}: ${report.id}',
-      '${_strings.text('Incident')}: ${_strings.text(draft.incidentType.label)}',
-      'GPS: ${draft.coordinates}',
-      '${_strings.text('Accuracy')}: $accuracy',
-      if (landmark.isNotEmpty) '${_strings.text('Landmark')}: $landmark',
-      '${_strings.text('Time')}: ${report.savedAt.toIso8601String()}',
-      '${_strings.text('Details')}: ${draft.description}',
-      '${_strings.text('More people need help')}: ${_yesNo(draft.morePeople)}',
-      '${_strings.text('Additional assistance')}: ${_yesNo(draft.additionalAssistance)}',
-      '${_strings.text('Still dangerous')}: ${_yesNo(draft.stillDangerous)}',
-    ].join('\n');
-  }
-
-  String _yesNo(bool? value) => _strings.text(switch (value) {
-    true => 'Yes',
-    false => 'No',
-    null => 'Not answered',
-  });
-
-  static String _encodeQueryParameters(Map<String, String> values) {
-    return values.entries
-        .map(
-          (entry) =>
-              '${Uri.encodeComponent(entry.key)}=${Uri.encodeComponent(entry.value)}',
-        )
-        .join('&');
+    final body = report.signedMessage;
+    if (body == null ||
+        !body.startsWith('RSP1.') ||
+        !RegExp(r'^\+639[0-9]{9}$').hasMatch(report.smsRecipient ?? '')) {
+      throw const RespondaApiException(
+        'This saved report has no signed SMS. Set up Offline SMS online, then create a new report.',
+      );
+    }
+    return body;
   }
 
   static Future<bool> _launchUri(Uri uri) async {
     try {
-      if (await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-        return true;
-      }
-    } catch (_) {
-      // Try the platform default below.
-    }
-
-    try {
-      return await launchUrl(uri);
+      return await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (_) {
       return false;
     }

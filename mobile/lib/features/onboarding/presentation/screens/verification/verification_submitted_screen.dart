@@ -72,27 +72,26 @@ class VerificationSubmittedScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: isBetaLocalSetup
-                          ? AppColors.warningSoft
-                          : AppColors.successSoft,
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: LocalizedText(
-                      isBetaLocalSetup
-                          ? 'Phone verification is paused during beta testing.'
-                          : 'No valid ID or face photo was collected.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 12,
-                        height: 17 / 12,
+                  if (isBetaLocalSetup) ...[
+                    const SizedBox(height: 20),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.warningSoft,
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: const LocalizedText(
+                        'Phone verification is paused during beta testing.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 12,
+                          height: 17 / 12,
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                   const SizedBox(height: 20),
                   RespondaButton(
                     key: const Key('open_responda_after_identity_button'),
