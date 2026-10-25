@@ -233,12 +233,15 @@ updated: 2026-10-25
   the left, and roster totals plus readiness summaries in a stacked right rail.
   Linked active incidents in Live Reports now load their current assignments
   and available response teams, and administrators can assign another available
-  team with optimistic-concurrency protection. Response Teams resolves each
-  active unit assignment and displays its next lifecycle action directly on the
-  left-side operational-unit card, without opening unit details. Administrators
-  can record acknowledgment, responding, and completion there; confirmed
-  cancellation remains in unit details. Successful changes refresh the roster,
-  assignments, and shared report summaries.
+  team with optimistic-concurrency protection. Live Reports now owns assignment
+  progress: acknowledgment, responding, completion, and confirmed cancellation
+  appear at the top of report details, before the map and report information,
+  so administrators can reach them without scrolling. Successful updates refresh
+  assignments, available teams, incident/report details, and shared summaries.
+  Clicking or keyboard-activating a report's mini map opens Incident Map and
+  zooms to that report's coordinates.
+  Response Teams retains roster management and read-only assignment information.
+  The running WebStorm copy matches these sources.
   Incident Map now uses protected PostgreSQL report and assignment data instead
   of seeded markers. It maps verified reports whose incidents are unlinked,
   open, dispatched, or responding when real coordinates exist; reports without
@@ -486,8 +489,8 @@ updated: 2026-10-25
 - Human-written project memory is in `memory/`.
 - Graphify indexes code from backend, web, mobile, and the monorepo root into one
   combined graph.
-- The combined graph currently contains 2,963 code nodes, 6,020 relationships,
-  and 235 detected communities. Generated graph artifacts remain local and
+- The combined graph currently contains 3,419 code nodes, 7,019 relationships,
+  and 259 detected communities. Generated graph artifacts remain local and
   ignored.
 - `AGENTS.md` directs future coding sessions to read memory and query Graphify
   before broad filesystem searches.

@@ -9,6 +9,7 @@ import { Button } from "./components/ui";
 import { pageInfo } from "./config/navigation";
 import { canAccessDashboardPage } from "./config/roles";
 import { toReport } from "./data/reports";
+import type { MapFocus } from "./data/mapData";
 import { useAdminReports } from "./hooks/useAdminReports";
 import { Analytics } from "./pages/Analytics";
 import { MobileAccounts } from "./pages/mobile-accounts/MobileAccounts";
@@ -85,6 +86,7 @@ function Dashboard({
   const [reportRefreshVersion, setReportRefreshVersion] = useState(0);
   const [reportNotice, setReportNotice] = useState("");
   const [validationTarget, setValidationTarget] = useState<string | null>(null);
+  const [mapFocus, setMapFocus] = useState<MapFocus | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([
@@ -442,6 +444,10 @@ function Dashboard({
                 setValidationTarget(reportId);
                 setPage("Report Validation");
               }}
+              openMap={(focus) => {
+                setMapFocus(focus);
+                setPage("Incident Map");
+              }}
             />
           )}
           {page === "Incident Map" && (
@@ -450,6 +456,7 @@ function Dashboard({
               reportStatus={reportQuery.status}
               reportError={reportQuery.error}
               retryReports={reportQuery.refetch}
+              focus={mapFocus}
             />
           )}
           {page === "Report Validation" && (
@@ -461,10 +468,7 @@ function Dashboard({
           )}
           {page === "Mobile Accounts" && <MobileAccounts userRole={session.user.role} />}
           {page === "Response Teams" && (
-            <ResponseTeams
-              role={session.user.role}
-              onAssignmentsChanged={reportQuery.refetch}
-            />
+            <ResponseTeams role={session.user.role} />
           )}
           {page === "Analytics" && <Analytics go={setPage} />}
           {page === "Historical Records" && <HistoricalRecords />}

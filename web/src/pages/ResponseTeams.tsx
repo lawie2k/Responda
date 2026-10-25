@@ -1,10 +1,8 @@
 import { type FormEvent, useEffect, useState } from "react";
 import {
   createAdminResponseUnit,
-  transitionAdminAssignment,
   updateAdminResponseUnit,
   type AdminAssignmentListItem,
-  type AssignmentTransitionStatus,
   type AdminResponseUnitListItem,
   type AdminUser,
   type ResponseUnitStatus,
@@ -70,39 +68,12 @@ function locationLabel(unit: AdminResponseUnitListItem) {
 
 function UnitCard({
   unit,
-  assignment,
-  assignmentError,
-  transitioning,
-  onTransition,
   onSelect,
 }: {
   unit: AdminResponseUnitListItem;
-  assignment?: AdminAssignmentListItem;
-  assignmentError?: string;
-  transitioning: AssignmentTransitionStatus | null;
-  onTransition: (
-    assignment: AdminAssignmentListItem,
-    status: AssignmentTransitionStatus,
-  ) => void;
   onSelect: () => void;
 }) {
   const meta = statusMeta[unit.status];
-  const nextStatus =
-    assignment?.status === "assigned"
-      ? "acknowledged"
-      : assignment?.status === "acknowledged"
-        ? "responding"
-        : assignment?.status === "responding"
-          ? "completed"
-          : null;
-  const actionLabel =
-    nextStatus === "acknowledged"
-      ? "Record acknowledgment"
-      : nextStatus === "responding"
-        ? "Mark responding"
-        : nextStatus === "completed"
-          ? "Complete response"
-          : null;
   return (
     <Card className="flex min-h-[230px] flex-col">
       <div className="flex items-center justify-between gap-3">
@@ -124,21 +95,6 @@ function UnitCard({
         </div>
       </div>
       <div className="mt-auto grid gap-2 pt-4">
-        {assignment && actionLabel && nextStatus && (
-          <>
-            {assignmentError && (
-              <p className="m-0 text-[9px] text-priority-red" role="alert">
-                {assignmentError}
-              </p>
-            )}
-            <Button
-              disabled={transitioning !== null}
-              onClick={() => onTransition(assignment, nextStatus)}
-            >
-              {transitioning === nextStatus ? "Saving…" : actionLabel}
-            </Button>
-          </>
-        )}
         <Button variant="secondary" onClick={onSelect}>
           View unit
         </Button>
@@ -147,13 +103,7 @@ function UnitCard({
   );
 }
 
-export function ResponseTeams({
-  role,
-  onAssignmentsChanged,
-}: {
-  role: AdminUser["role"];
-  onAssignmentsChanged: () => void;
-}) {
+export function ResponseTeams({ role }: { role: AdminUser["role"] }) {
   const canManageRoster = isAdministratorRole(role);
   const [statusFilter, setStatusFilter] = useState<ResponseUnitStatus | "">("");
   const [localSearch, setLocalSearch] = useState("");
@@ -172,14 +122,6 @@ export function ResponseTeams({
   const [editorError, setEditorError] = useState("");
   const [savingUnit, setSavingUnit] = useState(false);
   const [feedback, setFeedback] = useState("");
-  const [transitioning, setTransitioning] =
-    useState<AssignmentTransitionStatus | null>(null);
-  const [assignmentError, setAssignmentError] = useState<{
-    assignmentId: string;
-    message: string;
-  } | null>(null);
-  const [confirmCancellation, setConfirmCancellation] = useState(false);
-
   useEffect(() => {
     const timeout = window.setTimeout(() => {
       setSearch(localSearch.trim());
@@ -226,15 +168,10 @@ export function ResponseTeams({
 
   const openUnit = (unitId: string) => {
     setSelectedUnitId(unitId);
-    setAssignmentError(null);
-    setConfirmCancellation(false);
   };
 
   const closeUnit = () => {
-    if (transitioning) return;
     setSelectedUnitId(null);
-    setAssignmentError(null);
-    setConfirmCancellation(false);
   };
 
   const openCreateEditor = () => {
@@ -301,48 +238,6 @@ export function ResponseTeams({
       );
     } finally {
       setSavingUnit(false);
-    }
-  };
-
-  const transitionAssignment = async (
-    assignment: AdminAssignmentListItem,
-    status: AssignmentTransitionStatus,
-  ) => {
-    if (transitioning) return;
-    setTransitioning(status);
-      setAssignmentError(null);
-    try {
-      const result = await transitionAdminAssignment(
-        assignment.assignment_id,
-        {
-          expected_updated_at: assignment.updated_at,
-          status,
-        },
-      );
-      const action =
-        status === "acknowledged"
-          ? "acknowledged"
-          : status === "responding"
-            ? "marked as responding"
-            : status === "completed"
-              ? "completed"
-              : "cancelled";
-      setFeedback(`${result.assignment.unit.name}'s assignment was ${action}.`);
-      setSelectedUnitId(null);
-      setConfirmCancellation(false);
-      roster.refetch();
-      activeAssignments.refetch();
-      onAssignmentsChanged();
-    } catch (error) {
-      setAssignmentError({
-        assignmentId: assignment.assignment_id,
-        message:
-          error instanceof Error
-            ? error.message
-            : "The assignment status could not be updated.",
-      });
-    } finally {
-      setTransitioning(null);
     }
   };
 
@@ -458,29 +353,13 @@ export function ResponseTeams({
 
           {roster.status === "ready" && roster.data.items.length > 0 && (
             <div className="grid grid-cols-2 gap-3 max-[650px]:grid-cols-1">
-              {roster.data.items.map((unit) => {
-                const assignment = activeAssignments.data?.find(
-                  (item) => item.unit.unit_id === unit.unit_id,
-                );
-                return (
-                  <UnitCard
-                    key={unit.unit_id}
-                    assignment={assignment}
-                    assignmentError={
-                      assignmentError &&
-                      assignmentError.assignmentId === assignment?.assignment_id
-                        ? assignmentError.message
-                        : undefined
-                    }
-                    onTransition={(item, status) =>
-                      void transitionAssignment(item, status)
-                    }
-                    onSelect={() => openUnit(unit.unit_id)}
-                    transitioning={transitioning}
-                    unit={unit}
-                  />
-                );
-              })}
+              {roster.data.items.map((unit) => (
+                <UnitCard
+                  key={unit.unit_id}
+                  onSelect={() => openUnit(unit.unit_id)}
+                  unit={unit}
+                />
+              ))}
             </div>
           )}
 
@@ -794,7 +673,6 @@ export function ResponseTeams({
                 <button
                   aria-label="Close unit details"
                   className="mt-2 grid size-10 shrink-0 place-items-center rounded-xl border-0 bg-soft-gray text-xl text-maroon"
-                  disabled={transitioning !== null}
                   onClick={closeUnit}
                 >
                   ×
@@ -856,56 +734,8 @@ export function ResponseTeams({
                         </Badge>
                       </div>
 
-                      {assignmentError?.assignmentId ===
-                        selectedAssignment.assignment_id && (
-                        <div
-                          className="border border-[#efc7c4] bg-white px-3 py-2.5 text-[9px] text-priority-red"
-                          role="alert"
-                        >
-                          {assignmentError.message}
-                        </div>
-                      )}
-
-                      <div className="flex flex-wrap gap-2">
-                        {!confirmCancellation ? (
-                          <Button
-                            variant="secondary"
-                            disabled={transitioning !== null}
-                            onClick={() => setConfirmCancellation(true)}
-                          >
-                            Cancel assignment
-                          </Button>
-                        ) : (
-                          <div className="flex flex-wrap items-center gap-2 rounded-[9px] border border-[#efc7c4] bg-white p-2">
-                            <span className="text-[9px] text-priority-red">
-                              Release this unit from the incident?
-                            </span>
-                            <Button
-                              disabled={transitioning !== null}
-                              onClick={() =>
-                                void transitionAssignment(
-                                  selectedAssignment,
-                                  "cancelled",
-                                )
-                              }
-                            >
-                              {transitioning === "cancelled"
-                                ? "Cancelling…"
-                                : "Confirm cancellation"}
-                            </Button>
-                            <Button
-                              variant="secondary"
-                              disabled={transitioning !== null}
-                              onClick={() => setConfirmCancellation(false)}
-                            >
-                              Keep assignment
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                      <p className="m-0 text-[8px] leading-4 text-muted">
-                        Record updates received by radio or phone. Responders do not
-                        access this dashboard.
+                      <p className="m-0 text-[9px] text-muted">
+                        Manage this assignment’s progress in Live Reports.
                       </p>
                     </div>
                   ) : null}
@@ -922,7 +752,6 @@ export function ResponseTeams({
                 )}
                 <Button
                   variant="secondary"
-                  disabled={transitioning !== null}
                   onClick={closeUnit}
                 >
                   Close

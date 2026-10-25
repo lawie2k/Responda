@@ -7,6 +7,48 @@ updated: 2026-10-25
 
 # Work log
 
+## 2026-10-25 — Save web report operations checkpoint
+
+- Saved Live Reports ownership of assignment progress, its top-of-details
+  placement, the additional-responder label/help text, and mini-map navigation
+  that opens Incident Map centered on the selected report.
+- Response Teams retains roster management and read-only assignments. The
+  running WebStorm copy matches the four changed web sources.
+- Web lint/build passed after the final source changes; memory validation,
+  Graphify refresh, source comparisons, and diff formatting passed. Existing
+  bundle-size advisory remains. Map navigation has not had a browser walkthrough.
+- No new implementation blocker or priority change; continue the existing
+  device/report walkthrough and Android SIM gateway plan in NEXT_STEPS.
+
+## 2026-10-25 — Open report location in Incident Map
+
+- Made the report-detail mini map keyboard accessible and connected activation
+  to Incident Map navigation with the selected report's coordinates and zoom.
+- Synced App, Live Reports, and Incident Map to the running WebStorm copy.
+- Verification: web lint/build, memory validation, Graphify web refresh, mirror
+  comparisons, and `git diff --check` passed. Existing bundle-size advisory remains.
+
+## 2026-10-25 — Put Live Reports progress controls at the top
+
+- Moved the validation/incident action block directly below the report heading,
+  putting team progress and assignment controls above the map and report data.
+- Synced the change to the running WebStorm web copy.
+- Verification: web lint and production build passed; Graphify web refresh and
+  mirror comparison passed. The existing Vite bundle-size advisory remains.
+
+## 2026-10-25 — Move response progress into Live Reports
+
+- Moved assignment lifecycle controls and confirmed cancellation into the
+  existing Live Reports dispatch panel; removed duplicate writes and obsolete
+  transition state/callbacks from Response Teams and App.
+- Preserved administrator roles, assignment-version checks, safe errors, and
+  refresh of reports, incident details, assignments, and available teams.
+- Synchronized the three changed sources to the running WebStorm web copy.
+- Verification: web lint/build passed. Browser inspection confirmed completion
+  and cancellation controls in Live Reports, cancellation confirmation and
+  dismissal, and no progress actions on response-unit cards. No live assignment
+  was mutated during browser verification.
+
 ## 2026-10-25 — Save SMS gateway checkpoint
 
 - Saved the signed SMS backend, citizen setup/resend flow, separate Android

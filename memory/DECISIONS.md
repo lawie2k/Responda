@@ -9,6 +9,16 @@ updated: 2026-10-25
 
 ## Active decisions
 
+### 2026-10-25 — Manage response progress from Live Reports
+
+- Administrators record acknowledgment, responding, completion, and confirmed
+  cancellation at the top of the relevant report's details in Live Reports,
+  above the map and report information.
+- Response Teams handles roster management and viewing assignments; it has no
+  duplicate assignment-progress controls.
+- Progress still updates incident-based assignments through the existing
+  version-checked backend API, including reports linked to the same incident.
+
 ### 2026-10-25 — Use an Android SIM gateway with registered installation keys
 
 - The user selected a dedicated Android phone with SIM. Its queue forwards only

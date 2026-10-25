@@ -3,6 +3,9 @@ import {
   createAdminAssignment,
   createAdminIncident,
   linkAdminReportToIncident,
+  transitionAdminAssignment,
+  type AdminAssignmentListItem,
+  type AssignmentTransitionStatus,
   type AdminIncidentListItem,
   type AdminReportDetail,
   type AdminReportsQuery,
@@ -13,6 +16,7 @@ import {
 import { Icon } from "../components/Icon";
 import { isAdministratorRole } from "../config/roles";
 import { MiniMap } from "../components/Map";
+import type { MapFocus } from "../data/mapData";
 import { ReportTable } from "../components/ReportTable";
 import {
   Badge,
@@ -270,7 +274,43 @@ function IncidentDispatch({
       ["assigned", "acknowledged", "responding"].includes(assignment.status),
     ) ?? [];
 
+  const [cancellationId, setCancellationId] = useState<string | null>(null);
+
+  const updateProgress = async (
+    assignment: AdminAssignmentListItem,
+    status: AssignmentTransitionStatus,
+  ) => {
+    if (submitting) return;
+    setSubmitting(true);
+    setError("");
+    try {
+      const result = await transitionAdminAssignment(assignment.assignment_id, {
+        expected_updated_at: assignment.updated_at,
+        status,
+      });
+      setIncidentUpdatedAtOverride(result.incident_updated_at);
+      setCancellationId(null);
+      assignments.refetch();
+      units.refetch();
+      onComplete(
+        `${result.assignment.unit.name}: ${result.assignment.status.replaceAll("_", " ")}.`,
+      );
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "The assignment progress could not be updated.",
+      );
+      assignments.refetch();
+      retryIncident();
+      setIncidentUpdatedAtOverride("");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const assignUnit = async () => {
+    if (submitting) return;
     if (!incident || !unitId) {
       setError("Select an available response team first.");
       return;
@@ -304,9 +344,9 @@ function IncidentDispatch({
   return (
     <div className="grid gap-3 rounded-[13px] border border-[#dfd8d5] bg-white p-3">
       <div>
-        <b className="block text-[10px] text-maroon">DISPATCH RESPONSE TEAM</b>
+        <b className="block text-[10px] text-maroon">RESPONSE TEAMS & PROGRESS</b>
         <span className="text-[9px] leading-[1.45] text-muted">
-          Assign an available unit. Status updates are recorded from Response Teams.
+          Assign teams and record progress updates received by radio or phone.
         </span>
       </div>
 
@@ -334,17 +374,52 @@ function IncidentDispatch({
         <>
           {activeAssignments.length > 0 && (
             <div className="grid gap-1.5 rounded-[10px] bg-soft-gray p-2.5">
-              {activeAssignments.map((assignment) => (
-                <div
-                  className="flex items-center justify-between gap-2 text-[9px]"
-                  key={assignment.assignment_id}
-                >
-                  <b className="truncate">{assignment.unit.name}</b>
-                  <Badge tone={assignment.status === "responding" ? "maroon" : "blue"}>
-                    {assignment.status.toUpperCase()}
-                  </Badge>
-                </div>
-              ))}
+              {activeAssignments.map((assignment) => {
+                const nextStatus = assignment.status === "assigned"
+                  ? "acknowledged"
+                  : assignment.status === "acknowledged"
+                    ? "responding"
+                    : "completed";
+                const label = nextStatus === "acknowledged"
+                  ? "Record acknowledgment"
+                  : nextStatus === "responding"
+                    ? "Mark responding"
+                    : "Complete response";
+                return (
+                  <div
+                    className="grid gap-2 border-b border-border pb-3 text-[9px] last:border-0 last:pb-0"
+                    key={assignment.assignment_id}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <b className="truncate">{assignment.unit.name}</b>
+                      <Badge tone={assignment.status === "responding" ? "maroon" : "blue"}>
+                        {assignment.status.toUpperCase()}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button disabled={submitting} onClick={() => void updateProgress(assignment, nextStatus)}>
+                        {submitting ? "Saving…" : label}
+                      </Button>
+                      <Button variant="secondary" disabled={submitting} onClick={() => setCancellationId(assignment.assignment_id)}>
+                        Cancel assignment
+                      </Button>
+                    </div>
+                    {cancellationId === assignment.assignment_id && (
+                      <div className="grid gap-2 rounded-[9px] border border-[#efc7c4] bg-white p-2">
+                        <span className="text-priority-red">Release this team from the incident?</span>
+                        <div className="flex flex-wrap gap-2">
+                          <Button disabled={submitting} onClick={() => void updateProgress(assignment, "cancelled")}>
+                            Confirm cancellation
+                          </Button>
+                          <Button variant="secondary" disabled={submitting} onClick={() => setCancellationId(null)}>
+                            Keep assignment
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -362,7 +437,7 @@ function IncidentDispatch({
                   units.status === "loading"
                     ? "Loading available teams…"
                     : units.data.items.length
-                      ? "Select available response team"
+                      ? "Select another responder"
                       : "No response teams are available"
                 }
                 value={unitId}
@@ -377,6 +452,9 @@ function IncidentDispatch({
                   setError("");
                 }}
               />
+              <span className="text-[9px] leading-[1.45] text-muted">
+                Choose an available response team to add to this incident.
+              </span>
               <Button
                 icon="truck"
                 disabled={submitting || !unitId || units.status !== "ready"}
@@ -412,6 +490,7 @@ function ReportDetail({
   incidentError,
   retryIncidents,
   onOpenValidation,
+  onOpenMap,
   onIncidentChanged,
 }: {
   report: Report;
@@ -424,6 +503,7 @@ function ReportDetail({
   incidentError: string | null;
   retryIncidents: () => void;
   onOpenValidation: () => void;
+  onOpenMap: (focus: MapFocus) => void;
   onIncidentChanged: (message: string, tone?: "success" | "error") => void;
 }) {
   const canVerify = report.verificationStatus === "pending";
@@ -457,6 +537,63 @@ function ReportDetail({
   return (
     <Card className="max-h-[calc(100vh-300px)] min-h-0 overflow-y-auto flex flex-col gap-[9px] max-[1180px]:grid max-[1180px]:grid-cols-2 max-[650px]:flex max-[1180px]:[&>.section-head]:col-span-full max-[1180px]:[&>.button]:col-span-full [&_.map-canvas]:h-[120px] [&_.map-canvas]:min-h-[120px] [&_.map-canvas]:shrink-0 max-[1180px]:[&_.map-canvas]:col-span-2">
       <SectionHead title="Report details" subtitle={report.reference} />
+      {canVerify ? (
+        <Button icon="verify" onClick={onOpenValidation}>
+          Open in Report Validation
+        </Button>
+      ) : detail?.incident ? (
+        <div className="grid gap-2.5">
+          <div className="flex min-h-[62px] items-center gap-[10px] rounded-xl bg-green-soft px-[11px] py-[9px] text-status-green [&>.icon]:size-[30px] [&>.icon]:rounded-[10px] [&>.icon]:bg-white [&>.icon]:p-1.5 [&_div]:grid [&_div]:gap-0.5 [&_b]:text-[10px] [&_span]:text-[9px] [&_span]:text-muted">
+            <Icon name="check" />
+            <div>
+              <b>Linked to INC-{detail.incident.incident_id.slice(0, 8).toUpperCase()}</b>
+              <span>{detail.incident.summary}</span>
+            </div>
+          </div>
+          {canManageIncidents &&
+            ["open", "dispatched", "responding"].includes(
+              detail.incident.status,
+            ) && (
+              <IncidentDispatch
+                key={detail.incident.incident_id}
+                incident={
+                  incidents.find(
+                    (incident) =>
+                      incident.incident_id === detail.incident?.incident_id,
+                  ) ?? null
+                }
+                incidentStatus={incidentStatus}
+                incidentError={incidentError}
+                retryIncident={retryIncidents}
+                onComplete={onIncidentChanged}
+              />
+            )}
+        </div>
+      ) : isReadyForIncident && canManageIncidents && detail ? (
+        <InitialIncidentDispatch
+          key={report.id}
+          report={report}
+          detail={detail}
+          incidents={incidents}
+          incidentStatus={incidentStatus}
+          incidentError={incidentError}
+          retryIncidents={retryIncidents}
+          onComplete={onIncidentChanged}
+        />
+      ) : isReadyForIncident ? (
+        <div className="rounded-xl bg-amber-soft px-[11px] py-[10px] text-[9px] text-priority-amber">
+          This report is verified. An authorized administrator must assign a
+          response team or link it to an existing incident.
+        </div>
+      ) : (
+        <div className="flex min-h-[52px] items-center gap-[10px] rounded-xl bg-green-soft px-[11px] py-[9px] text-status-green [&>.icon]:size-[30px] [&>.icon]:rounded-[10px] [&>.icon]:bg-white [&>.icon]:p-1.5 [&_div]:grid [&_div]:gap-0.5 [&_b]:text-[10px] [&_span]:text-[9px] [&_span]:text-muted">
+          <Icon name="check" />
+          <div>
+            <b>{report.status.replaceAll("_", " ")}</b>
+            <span>Status from the live report record.</span>
+          </div>
+        </div>
+      )}
       <div className="rounded-[13px] bg-red-soft p-[10px] [&>div]:flex [&>div]:items-center [&>div]:justify-between [&>div]:text-[9px] [&>div]:text-priority-red [&_h3]:my-[7px] [&_h3]:mb-[3px] [&_h3]:text-base [&_p]:m-0 [&_p]:text-[10px] [&_p]:text-muted">
         <div>
           <Badge tone={tone(report.priority)}>{report.priority}</Badge>
@@ -471,14 +608,43 @@ function ReportDetail({
       <p className="m-0 rounded-xl bg-soft-gray px-[10px] py-2 text-[9px] leading-[1.55] text-[#3d3d42]">
         {report.description}
       </p>
-      <MiniMap
-        points={mapPoint ? [mapPoint] : []}
-        focus={
-          mapPoint
-            ? { label: mapPoint.location, position: mapPoint.position, zoom: 14 }
-            : null
-        }
-      />
+      {mapPoint ? (
+        <div
+          role="link"
+          tabIndex={0}
+          aria-label={`Open Incident Map centered on ${mapPoint.location}`}
+          title="Open this location in Incident Map"
+          className="cursor-pointer rounded-[14px] outline-none focus-visible:ring-2 focus-visible:ring-maroon focus-visible:ring-offset-2"
+          onClick={() =>
+            onOpenMap({
+              label: mapPoint.id,
+              position: mapPoint.position,
+              zoom: 15,
+            })
+          }
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              onOpenMap({
+                label: mapPoint.id,
+                position: mapPoint.position,
+                zoom: 15,
+              });
+            }
+          }}
+        >
+          <MiniMap
+            points={[mapPoint]}
+            focus={{
+              label: mapPoint.location,
+              position: mapPoint.position,
+              zoom: 14,
+            }}
+          />
+        </div>
+      ) : (
+        <MiniMap points={[]} />
+      )}
       {detailStatus === "error" ? (
         <div className="rounded-xl bg-red-soft px-[10px] py-3 text-[9px] text-priority-red">
           {detailError}
@@ -543,63 +709,6 @@ function ReportDetail({
           System suggestions are decision support and require MDRRMO review.
         </small>
       </div>
-      {canVerify ? (
-        <Button icon="verify" onClick={onOpenValidation}>
-          Open in Report Validation
-        </Button>
-      ) : detail?.incident ? (
-        <div className="grid gap-2.5">
-          <div className="flex min-h-[62px] items-center gap-[10px] rounded-xl bg-green-soft px-[11px] py-[9px] text-status-green [&>.icon]:size-[30px] [&>.icon]:rounded-[10px] [&>.icon]:bg-white [&>.icon]:p-1.5 [&_div]:grid [&_div]:gap-0.5 [&_b]:text-[10px] [&_span]:text-[9px] [&_span]:text-muted">
-            <Icon name="check" />
-            <div>
-              <b>Linked to INC-{detail.incident.incident_id.slice(0, 8).toUpperCase()}</b>
-              <span>{detail.incident.summary}</span>
-            </div>
-          </div>
-          {canManageIncidents &&
-            ["open", "dispatched", "responding"].includes(
-              detail.incident.status,
-            ) && (
-              <IncidentDispatch
-                key={detail.incident.incident_id}
-                incident={
-                  incidents.find(
-                    (incident) =>
-                      incident.incident_id === detail.incident?.incident_id,
-                  ) ?? null
-                }
-                incidentStatus={incidentStatus}
-                incidentError={incidentError}
-                retryIncident={retryIncidents}
-                onComplete={onIncidentChanged}
-              />
-            )}
-        </div>
-      ) : isReadyForIncident && canManageIncidents && detail ? (
-        <InitialIncidentDispatch
-          key={report.id}
-          report={report}
-          detail={detail}
-          incidents={incidents}
-          incidentStatus={incidentStatus}
-          incidentError={incidentError}
-          retryIncidents={retryIncidents}
-          onComplete={onIncidentChanged}
-        />
-      ) : isReadyForIncident ? (
-        <div className="rounded-xl bg-amber-soft px-[11px] py-[10px] text-[9px] text-priority-amber">
-          This report is verified. An authorized administrator must assign a
-          response team or link it to an existing incident.
-        </div>
-      ) : (
-        <div className="flex min-h-[52px] items-center gap-[10px] rounded-xl bg-green-soft px-[11px] py-[9px] text-status-green [&>.icon]:size-[30px] [&>.icon]:rounded-[10px] [&>.icon]:bg-white [&>.icon]:p-1.5 [&_div]:grid [&_div]:gap-0.5 [&_b]:text-[10px] [&_span]:text-[9px] [&_span]:text-muted">
-          <Icon name="check" />
-          <div>
-            <b>{report.status.replaceAll("_", " ")}</b>
-            <span>Status from the live report record.</span>
-          </div>
-        </div>
-      )}
     </Card>
   );
 }
@@ -609,6 +718,7 @@ export function LiveReports({
   summaryReports,
   openModal,
   openValidation,
+  openMap,
   userRole,
   onReportsChanged,
 }: {
@@ -616,6 +726,7 @@ export function LiveReports({
   summaryReports: Report[];
   openModal: () => void;
   openValidation: (reportId: string) => void;
+  openMap: (focus: MapFocus) => void;
   userRole: AdminUser["role"];
   onReportsChanged: () => void;
 }) {
@@ -977,6 +1088,7 @@ export function LiveReports({
             incidentError={incidentQuery.error}
             retryIncidents={incidentQuery.refetch}
             onOpenValidation={() => openValidation(selected.id)}
+            onOpenMap={openMap}
             onIncidentChanged={(message, tone = "success") => {
               setFeedbackTone(tone);
               setFeedback(message);

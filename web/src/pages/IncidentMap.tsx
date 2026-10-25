@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "../components/Icon";
 import { MiniMap } from "../components/Map";
-import type { MapPoint } from "../data/mapData";
+import type { MapFocus, MapPoint } from "../data/mapData";
 import { isMappableActiveReport, type Report } from "../data/reports";
 import { useActiveAdminAssignments } from "../hooks/useAdminAssignments";
 import {
@@ -66,11 +66,13 @@ export function IncidentMap({
   reportStatus,
   reportError,
   retryReports,
+  focus,
 }: {
   reports: Report[];
   reportStatus: "loading" | "ready" | "error";
   reportError: string | null;
   retryReports: () => void;
+  focus: MapFocus | null;
 }) {
   const assignments = useActiveAdminAssignments();
   const [layers, setLayers] = useState([true, true, false, false, false]);
@@ -379,7 +381,7 @@ export function IncidentMap({
             action="Full screen"
             onAction={() => setFullScreen(true)}
           />
-          <MiniMap large layers={layers} points={filteredIncidents} />
+          <MiniMap large layers={layers} points={filteredIncidents} focus={focus} />
         </Card>
         <div className="side-stack flex flex-col gap-3 max-[1180px]:grid max-[1180px]:grid-cols-2 max-[650px]:grid-cols-1">
           <Card>
@@ -477,7 +479,7 @@ export function IncidentMap({
                 ×
               </button>
             </div>
-            <MiniMap large layers={layers} points={filteredIncidents} />
+            <MiniMap large layers={layers} points={filteredIncidents} focus={focus} />
           </div>
         </div>
       )}
