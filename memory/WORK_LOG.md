@@ -2,10 +2,65 @@
 tags:
   - responda/memory
   - responda/work-log
-updated: 2026-10-25
+updated: 2026-10-26
 ---
 
 # Work log
+
+## 2026-10-26 — Save dashboard and administrator account checkpoint
+
+- Saved backend password changes plus web Settings tabs, the Administrator
+  overview, live roster summaries, expanded Registered Accounts search, and
+  full-height validation panels. Incident Map now polls while open and defaults
+  to all active reports, matching Overview's age filtering.
+- Prior checks passed: backend Ruff/strict mypy and 378 tests; web lint/build;
+  Graphify refresh and memory validation. The existing web bundle-size advisory
+  remains. The user's specific Responding marker still needs browser confirmation.
+- Next action: confirm that report appears after reload, then continue the
+  operational walkthrough. Separate Flutter onboarding edits remain local.
+
+## 2026-10-26 — Add self-service administrator password changes
+
+- Added a protected, rate-limited password-change endpoint with current-password
+  verification, bounded matching new passwords, safe validation, row locking,
+  token rotation, other-session revocation and a minimal atomic audit.
+- Added Settings password fields and guarded submit for both roles. Super Admin
+  staff management remains separate and normal Administrators never request it.
+- Synced five changed web sources to the running WebStorm copy. No migration.
+- Verification: backend Ruff/strict mypy and all 378 tests passed, plus web
+  lint/build. A rolled-back PostgreSQL rehearsal for both roles confirmed old
+  passwords/tokens fail, new credentials and rotated sessions work, original
+  expiry remains, and zero temporary accounts persist. Browser inspection
+  confirmed the form and disabled empty submit; no real password was changed.
+- Refreshed Graphify and validated memory, mirror files, and diff formatting.
+  Existing web bundle-size advisory remains. Password recovery remains pending.
+
+## 2026-10-26 — Fill Report Validation cards to the viewport bottom
+
+- Made the Report Validation content area fill the available viewport height
+  and kept 24px of bottom padding. Both empty-state cards stretch with it.
+- Synced App and Report Validation to the running WebStorm copy.
+- Verification: web lint/build, Graphify web refresh, memory validation, mirror
+  comparisons, and `git diff --check` passed. Existing bundle-size advisory remains.
+
+## 2026-10-26 — Make Registered Accounts expansion easy to find
+
+- Moved the expand control to the top-right of the Registered Accounts panel
+  and removed the ambiguous summary-card link.
+- Made the account dialog nearly full-screen with a fixed-height results area;
+  verified it remains full size with an empty search result.
+- Synced the Mobile Accounts page to the running WebStorm copy. Web lint/build,
+  memory validation, Graphify refresh, mirror comparison, and `git diff --check`
+  passed. Existing bundle-size advisory remains.
+
+## 2026-10-26 — Expand and search registered mobile accounts
+
+- Made the Registered Accounts summary open a large dialog with backend search,
+  status filtering, account rows, and pagination. Search supports names,
+  barangays, exact phone numbers, and account IDs through the existing API.
+- Synced the Mobile Accounts page to the running WebStorm copy.
+- Verification: web lint/build, Graphify web refresh, memory validation, mirror
+  comparison, and `git diff --check` passed. Existing bundle-size advisory remains.
 
 ## 2026-10-25 — Save web report operations checkpoint
 
@@ -1054,5 +1109,40 @@ conversation.
   inputs are empty, with a visible disabled state; it enables for entered
   search, filter, date, or sort values.
 - Synced the edited page to the WebStorm mirror.
+- Verification: web lint and production build passed; Graphify web refresh and
+  `git diff --check` passed. The existing Vite bundle-size advisory remains.
+
+## 2026-10-26 — Consolidate admin Settings tabs
+
+- Added Change password beside Users & roles and System rules for Super Admins;
+  normal Administrators see only Change password. Removed the Staff
+  administration heading and its description, leaving Settings as the page
+  label. Synced the change to the WebStorm mirror.
+- Verification: web lint and production build passed; `git diff --check` and
+  Graphify web refresh passed. The existing Vite bundle-size advisory remains.
+
+## 2026-10-26 — Add an Administrator operations dashboard
+
+- Added a role-specific operations landing heading and report-triage guidance
+  for normal Administrators, kept the Super Admin overview, and wired response
+  unit totals and roster rows to live API data. Validation shortcuts now open
+  Report Validation. Synced the changed web files to the WebStorm mirror.
+- Verification: web lint and production build passed; Graphify web refresh and
+  `git diff --check` passed. The existing Vite bundle-size advisory remains.
+
+## 2026-10-26 — Keep Incident Map reports current
+
+- Enabled the existing five-second report refresh while the Incident Map is
+  open, so active markers stay synced as incident status changes. Synced the
+  App change to the WebStorm mirror.
+- Verification: web lint and production build passed; Graphify web refresh and
+  `git diff --check` passed. The existing Vite bundle-size advisory remains.
+
+## 2026-10-26 — Show older active reports on Incident Map
+
+- Changed Incident Map's default time filter to All active reports, matching
+  Overview's active-report visibility. Kept 24-hour, 7-day, and 30-day filters
+  available and made Reset return to All active reports. Synced the page to the
+  WebStorm mirror.
 - Verification: web lint and production build passed; Graphify web refresh and
   `git diff --check` passed. The existing Vite bundle-size advisory remains.

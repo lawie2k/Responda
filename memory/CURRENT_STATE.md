@@ -2,7 +2,7 @@
 tags:
   - responda/memory
   - responda/status
-updated: 2026-10-25
+updated: 2026-10-26
 ---
 
 # Current state
@@ -26,6 +26,12 @@ updated: 2026-10-25
   an 8-character minimum, revocable hashed opaque sessions in `HttpOnly`
   cookies, login throttling, origin checks, active-account and staff-role
   checks, session limits, and audit records.
+- Both administrator roles can now change their own password through
+  `/api/v1/admin/auth/change-password`. The endpoint requires the current password
+  and matching 8–1024-character new passwords, limits attempts by IP/account,
+  locks and rechecks account/session state, rotates the current session token
+  without extending expiry, revokes other sessions, and audits atomically.
+  Authentication validation errors never echo submitted fields. No migration needed.
 - One active staff account with the `admin` role exists in PostgreSQL. Its
   identity and credentials are not stored in project memory.
 - The administrator role model is implemented end to end. The existing `admin`
@@ -161,6 +167,15 @@ updated: 2026-10-25
   action plus outside-click and Escape-key dismissal.
 - The dashboard also calls the backend health endpoint and displays
   `Backend connected` when FastAPI and PostgreSQL are available.
+- Normal Administrators get a role-specific operations landing view focused on
+  report triage and response coordination; the Super Admin overview remains
+  unchanged. The overview now uses the live response-unit roster instead of
+  placeholder team names and deployment counts, and its review action opens
+  Report Validation.
+- The Incident Map now refreshes report data every five seconds while open, so
+  status changes such as Responding are reflected without leaving the map. Its
+  default time filter shows all active reports; narrower time ranges remain
+  available as optional filters.
 - All nine authenticated dashboard tabs now share a restrained civic operations
   design system: warm neutral flat surfaces, one maroon brand accent, semantic
   colors only for operational states, stronger content hierarchy, flat
@@ -171,9 +186,12 @@ updated: 2026-10-25
   dashboard and queue data. Its phone input fixes `+63 9` as the beginning,
   accepts digits only, and limits the local number to 10 digits. Written manual
   locations remain visible even when no coordinates were provided.
-- Normal Administrators receive the operational workspace but cannot navigate
-  to or discover the system Settings page; that configuration surface remains
-  Super Admin-only.
+- Both administrator roles can open Settings to change their own password.
+  Staff administration and system rules remain visible only to Super Admins;
+  normal Administrators do not call staff-management APIs.
+- Super Admin Settings organizes Change password, Users & roles, and System
+  rules into one tab set; normal Administrators see only Change password. The
+  former Staff administration heading and explanatory line were removed.
 - Settings now reads real staff accounts and provides Administrator creation,
   identity/activation edits, confirmed deactivation and session sign-out,
   search/status filters, pagination, loading/error states, and guarded writes.
@@ -189,6 +207,9 @@ updated: 2026-10-25
   buttons now explicitly default to button type, with form submits marked, so
   Refresh/Reset cannot submit a search or account edit unexpectedly. WebStorm's
   mirror has the updated sources and no longer has the old mock data module.
+  The Registered Accounts list has a top-right expand icon. It opens a
+  near-full-screen searchable and paginated account list with status filtering
+  and a fixed-height results area, including when search returns no accounts.
   On desktop, the account roster and detail panels fill the remaining viewport
   height with pagination at the roster's bottom and a 20px bottom gutter.
   Stacked layouts retain natural height; the WebStorm mirror matches.
@@ -218,7 +239,8 @@ updated: 2026-10-25
   optional, respects reviewer roles, and handles validation and concurrency
   failures. Zero-count
   validation alerts, summary cards, and queue badges are hidden while the clear
-  queue empty state remains visible. In Live Reports, Super Admin and
+  queue empty state remains visible. Its cards now fill to the viewport bottom
+  with 24px of lower page padding. In Live Reports, Super Admin and
   Administrator accounts select an available response team directly from an
   unlinked verified report. The dashboard automatically creates the incident
   and then assigns that team, using the new incident's returned concurrency
@@ -489,8 +511,8 @@ updated: 2026-10-25
 - Human-written project memory is in `memory/`.
 - Graphify indexes code from backend, web, mobile, and the monorepo root into one
   combined graph.
-- The combined graph currently contains 3,419 code nodes, 7,019 relationships,
-  and 259 detected communities. Generated graph artifacts remain local and
+- The combined graph currently contains 3,447 code nodes, 7,145 relationships,
+  and 272 detected communities. Generated graph artifacts remain local and
   ignored.
 - `AGENTS.md` directs future coding sessions to read memory and query Graphify
   before broad filesystem searches.

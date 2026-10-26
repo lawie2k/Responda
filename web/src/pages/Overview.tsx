@@ -1,9 +1,11 @@
 import type { Page } from "../types";
+import type { AdminUser } from "../api/respondaApi";
 import { isMappableActiveReport, tone, type Report } from "../data/reports";
 import type { MapPoint } from "../data/mapData";
 import { Icon } from "../components/Icon";
 import { MiniMap } from "../components/Map";
 import { ReportTable } from "../components/ReportTable";
+import { useAdminResponseUnits } from "../hooks/useAdminResponseUnits";
 import {
   Badge,
   Button,
@@ -22,12 +24,15 @@ const colorClasses: Record<string, string> = {
 
 export function Overview({
   go,
+  role,
+  firstName,
   reports,
   reportStatus,
   reportError,
   retryReports,
 }: {
   go: (p: Page) => void;
+  role: AdminUser["role"];
   firstName: string;
   reports: Report[];
   reportStatus: "loading" | "ready" | "error";
@@ -77,19 +82,28 @@ export function Overview({
         new Date(right.receivedAt).getTime() - new Date(left.receivedAt).getTime(),
     )
     .slice(0, 3);
+  const responseUnits = useAdminResponseUnits({ page: 1, pageSize: 3 });
+  const unitCounts = responseUnits.data?.counts ?? {
+    total: 0,
+    available: 0,
+    assigned: 0,
+    responding: 0,
+    offline: 0,
+  };
+  const isSuperAdmin = role === "admin";
 
   return (
     <>
       <div className="min-h-[98px] border-b border-[#dcd7d4] pb-5">
         <div>
           <span className="mb-2 block text-[8px] font-bold tracking-[.16em] text-maroon">
-            MUNICIPAL EMERGENCY OPERATIONS
+            {isSuperAdmin ? "MUNICIPAL EMERGENCY OPERATIONS" : "ADMINISTRATOR WORKSPACE"}
           </span>
           <h2 className="m-0 text-[28px] font-semibold tracking-[-.035em] max-[650px]:text-[23px]">
-            Pantukan operations overview
+            {isSuperAdmin ? "Pantukan operations overview" : `Welcome back, ${firstName}`}
           </h2>
           <p className="mb-0 mt-2 text-[10px] text-muted">
-            {currentDate} · Live MDRRMO incident coordination
+            {currentDate} · {isSuperAdmin ? "Live MDRRMO incident coordination" : "Review reports, validate incidents, and coordinate response teams."}
           </p>
         </div>
       </div>
@@ -115,8 +129,8 @@ export function Overview({
               before dispatch decisions.
             </p>
           </div>
-          <Button variant="secondary" onClick={() => go("Live Reports")}>
-            Review queue
+          <Button variant="secondary" onClick={() => go("Report Validation")}>
+            Review reports
           </Button>
         </div>
       )}
@@ -166,9 +180,11 @@ export function Overview({
                     detail: "Completed incident records",
                   },
               {
-                label: "TEAMS DEPLOYED",
-                value: 4,
-                detail: "2 teams remain available",
+                label: "RESPONSE UNITS",
+                value: responseUnits.status === "ready" ? unitCounts.total : "—",
+                detail: responseUnits.status === "ready"
+                  ? `${unitCounts.assigned + unitCounts.responding} assigned · ${unitCounts.available} available`
+                  : responseUnits.status === "error" ? "Roster unavailable" : "Loading roster…",
               },
             ].map((item, index) => (
               <div
@@ -287,43 +303,23 @@ export function Overview({
         <Card>
           <SectionHead
             title="Response overview"
-            subtitle="Current team availability"
+            subtitle="Live roster status"
+            action="View response teams"
+            onAction={() => go("Response Teams")}
           />
-          <div
-            className={
-              "mb-[9px] flex min-h-[72px] items-center justify-between border border-border border-l-[3px] border-l-maroon bg-[#fbfaf9] px-4 py-3 [&_b]:block [&_b]:text-[18px] [&_div_span]:mt-1 [&_div_span]:block [&_div_span]:text-[9px] [&_div_span]:text-muted [&>span]:grid [&>span]:size-[38px] [&>span]:place-items-center [&>span]:text-[#81787a]"
-            }
-          >
-            <div>
-              <b>6 response teams</b>
-              <span>4 deployed • 2 available</span>
-            </div>
-            <span>
-              <Icon name="users" />
-            </span>
+          <div className="mb-3 grid grid-cols-3 gap-2 border-b border-border pb-3 text-center">
+            {[["In service", unitCounts.assigned + unitCounts.responding], ["Available", unitCounts.available], ["Offline", unitCounts.offline]].map(([label, count]) => <div key={label}>
+              <b className="block text-[14px]">{responseUnits.status === "ready" ? count : "—"}</b>
+              <span className="text-[8px] text-muted">{label}</span>
+            </div>)}
           </div>
-          {[
-            ["Rescue Alpha", "On route", 82],
-            ["Medical 1", "Available", 48],
-            ["Flood Unit", "On site", 68],
-          ].map((t) => (
-            <div
-              className={
-                "grid h-8 grid-cols-[90px_1fr_62px] items-center gap-2 text-[9px] [&>span]:text-right [&>span]:text-muted"
-              }
-              key={t[0]}
-            >
-              <b>{t[0]}</b>
-              <div
-                className={
-                  "h-[7px] overflow-hidden rounded-[10px] bg-soft-gray [&_i]:block [&_i]:h-full [&_i]:rounded-[10px]"
-                }
-              >
-                <i className="bg-maroon" style={{ width: `${t[2]}%` }} />
-              </div>
-              <span>{t[1]}</span>
-            </div>
-          ))}
+          {responseUnits.status === "loading" && <p role="status" className="text-[9px] text-muted">Loading response roster…</p>}
+          {responseUnits.status === "error" && <div role="alert" className="flex items-center justify-between gap-2 text-[9px] text-priority-red">{responseUnits.error}<Button variant="secondary" onClick={responseUnits.refetch}>Retry</Button></div>}
+          {responseUnits.status === "ready" && responseUnits.data.items.map((unit) => <div key={unit.unit_id} className="flex min-h-9 items-center justify-between gap-3 border-b border-border text-[9px] last:border-0">
+            <b className="truncate">{unit.name}</b>
+            <span className="shrink-0 capitalize text-muted">{unit.status}</span>
+          </div>)}
+          {responseUnits.status === "ready" && unitCounts.total === 0 && <p className="py-3 text-center text-[9px] text-muted">No response units are registered.</p>}
         </Card>
       </div>
     </>

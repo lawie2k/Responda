@@ -76,7 +76,7 @@ export function IncidentMap({
 }) {
   const assignments = useActiveAdminAssignments();
   const [layers, setLayers] = useState([true, true, false, false, false]);
-  const [timeRange, setTimeRange] = useState("24");
+  const [timeRange, setTimeRange] = useState("all");
   const [priority, setPriority] = useState("");
   const [incidentType, setIncidentType] = useState("");
   const [incidentStatus, setIncidentStatus] = useState("");
@@ -142,7 +142,7 @@ export function IncidentMap({
     () =>
       mapPoints.filter(
         (point) =>
-          point.hoursAgo <= Number(timeRange) &&
+          (timeRange === "all" || point.hoursAgo <= Number(timeRange)) &&
           (!priority || point.priority === priority) &&
           (!incidentType || point.name === incidentType) &&
           (!incidentStatus || point.status === incidentStatus),
@@ -161,7 +161,7 @@ export function IncidentMap({
     (report) => !report.position,
   ).length;
   const resetFilters = () => {
-    setTimeRange("24");
+    setTimeRange("all");
     setPriority("");
     setIncidentType("");
     setIncidentStatus("");
@@ -228,6 +228,7 @@ export function IncidentMap({
           label="Time range"
           value={timeRange}
           options={[
+            { label: "All active reports", value: "all" },
             { label: "Last 24 hours", value: "24" },
             { label: "Last 7 days", value: "168" },
             { label: "Last 30 days", value: "720" },

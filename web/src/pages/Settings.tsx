@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { getStaffPolicy, revokeStaffSessions, saveStaff, type Staff, type StaffPolicy } from "../api/adminStaff";
+import { changeAdminPassword, type AdminUser } from "../api/respondaApi";
 import { administratorRoleLabel } from "../config/roles";
 import { Badge, Button, Card, PageTitle, SectionHead, SelectField } from "../components/ui";
 import { useAdminStaff } from "../hooks/useAdminStaff";
@@ -9,8 +10,86 @@ const stamp = (value: string) => new Intl.DateTimeFormat("en-PH", {
   timeZone: "Asia/Manila", dateStyle: "medium", timeStyle: "short",
 }).format(new Date(value));
 
-export function Settings() {
-  const [tab, setTab] = useState<"staff" | "rules">("staff");
+export function Settings({ userRole }: { userRole: AdminUser["role"] }) {
+  const [tab, setTab] = useState<"password" | "staff" | "rules">(userRole === "admin" ? "staff" : "password");
+  const tabs: { key: typeof tab; label: string }[] = [
+    { key: "password", label: "Change password" },
+    ...(userRole === "admin" ? ([
+      { key: "staff", label: "Users & roles" },
+      { key: "rules", label: "System rules" },
+    ] satisfies { key: typeof tab; label: string }[]) : []),
+  ];
+
+  return <>
+    <PageTitle title="Settings" subtitle="Manage account access and system preferences." />
+    {userRole === "admin" && <div role="tablist" aria-label="Settings" className="flex gap-2 border-b border-border">
+      {tabs.map(({ key, label }) => <button
+        key={key} role="tab" aria-selected={tab === key}
+        className={`border-0 border-b-2 bg-transparent px-4 py-3 text-[11px] font-semibold ${tab === key ? "border-maroon text-maroon" : "border-transparent text-muted"}`}
+        onClick={() => setTab(key)}
+      >{label}</button>)}
+    </div>}
+    <div hidden={tab !== "password"}><ChangePassword /></div>
+    {userRole === "admin" && <div hidden={tab === "password"}><StaffSettings tab={tab === "rules" ? "rules" : "staff"} /></div>}
+  </>;
+}
+
+function ChangePassword() {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const mutation = useRef<AbortController | null>(null);
+  useEffect(() => () => mutation.current?.abort(), []);
+
+  const mismatch = confirmation.length > 0 && newPassword !== confirmation;
+  const unchanged = newPassword.length > 0 && newPassword === currentPassword;
+  const valid = Boolean(currentPassword && newPassword.length >= 8 && confirmation && !mismatch && !unchanged);
+  const submit = async () => {
+    if (!valid || mutation.current) return;
+    const controller = new AbortController();
+    mutation.current = controller;
+    setBusy(true); setError(""); setNotice("");
+    try {
+      await changeAdminPassword(currentPassword, newPassword, confirmation, controller.signal);
+      if (!controller.signal.aborted) {
+        setCurrentPassword(""); setNewPassword(""); setConfirmation("");
+        setNotice("Password changed. Your other sessions have been signed out.");
+      }
+    } catch (caught) {
+      if (!controller.signal.aborted) setError(caught instanceof Error ? caught.message : "The password could not be changed.");
+    } finally {
+      if (!controller.signal.aborted) { mutation.current = null; setBusy(false); }
+    }
+  };
+
+  return <Card>
+    <SectionHead title="Change password" subtitle="Use your current password to set a new password for your own account." />
+    <form onSubmit={(event) => { event.preventDefault(); void submit(); }}>
+      <fieldset disabled={busy} className="m-0 grid max-w-[1000px] grid-cols-3 gap-4 border-0 p-0 max-[850px]:grid-cols-1">
+        <label className="grid gap-2 text-[10px] text-muted">Current password
+          <input autoComplete="current-password" className={inputClass} maxLength={1024} required type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} />
+        </label>
+        <label className="grid gap-2 text-[10px] text-muted">New password
+          <input autoComplete="new-password" className={inputClass} maxLength={1024} minLength={8} required type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} aria-describedby="password-requirements" />
+        </label>
+        <label className="grid gap-2 text-[10px] text-muted">Confirm new password
+          <input autoComplete="new-password" className={inputClass} maxLength={1024} minLength={8} required type="password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} aria-invalid={mismatch} aria-describedby={mismatch ? "password-mismatch" : undefined} />
+        </label>
+      </fieldset>
+      <p id="password-requirements" className="text-[10px] leading-relaxed text-muted">Use at least 8 characters and choose a different password. Your other sessions will be signed out; this browser will stay signed in.</p>
+      {mismatch && <p id="password-mismatch" className="text-[10px] text-priority-red">New passwords do not match.</p>}
+      {unchanged && <p className="text-[10px] text-priority-red">Choose a password different from your current password.</p>}
+      {error && <p role="alert" className="text-[11px] text-priority-red">{error}</p>}
+      {notice && <p role="status" className="text-[11px] text-status-green">{notice}</p>}
+      <Button type="submit" disabled={!valid || busy}>{busy ? "Changing password…" : "Change password"}</Button>
+    </form>
+  </Card>;
+}
+
+function StaffSettings({ tab }: { tab: "staff" | "rules" }) {
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState({ page: 1, search: "", active: "" });
   const roster = useAdminStaff(query);
@@ -78,15 +157,9 @@ export function Settings() {
     : Boolean(name.trim() && email.trim() && password && confirmation));
 
   return <>
-    <PageTitle title="Settings" subtitle="Manage staff access and review current system rules."
-      action="Create Administrator" onAction={() => { setTab("staff"); openEditor(null); }} actionDisabled={busy} />
-    <div role="tablist" aria-label="Settings sections" className="flex gap-2 border-b border-border">
-      {([ ["staff", "Users & roles"], ["rules", "System rules"] ] as const).map(([key, label]) => <button
-        key={key} role="tab" aria-selected={tab === key} disabled={busy}
-        className={`border-0 border-b-2 bg-transparent px-4 py-3 text-[11px] font-semibold ${tab === key ? "border-maroon text-maroon" : "border-transparent text-muted"}`}
-        onClick={() => { setTab(key); closeEditor(); setPending(null); setError(""); }}
-      >{label}</button>)}
-    </div>
+    {tab === "staff" && <div className="flex justify-end">
+      <Button disabled={busy} onClick={() => openEditor(null)}>Create Administrator</Button>
+    </div>}
     {error && <Card><p role="alert" className="m-0 text-[11px] text-priority-red">{error}</p></Card>}
     {notice && <Card><p role="status" className="m-0 text-[11px] text-status-green">{notice}</p></Card>}
     {pending && <Card>

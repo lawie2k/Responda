@@ -417,6 +417,27 @@ export async function logoutAdmin(): Promise<void> {
   }
 }
 
+export async function changeAdminPassword(
+  currentPassword: string,
+  newPassword: string,
+  confirmation: string,
+  signal: AbortSignal,
+): Promise<void> {
+  const response = await fetch(`${apiBaseUrl}/api/v1/admin/auth/change-password`, {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+    signal,
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({
+      current_password: currentPassword,
+      new_password: newPassword,
+      confirmation,
+    }),
+  });
+  await parseAdminSessionResponse(response);
+}
+
 export async function getAdminReports(
   query: AdminReportsQuery = {},
   signal?: AbortSignal,

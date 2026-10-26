@@ -32,6 +32,14 @@ VA101 to FastAPI and PostgreSQL; VA101's Next.js code is a reference, not code t
   Staff lists are capped, searchable, no-store, and exclude deleted and citizen accounts.
 - Settings exposes only non-secret current session/login limits. Operational rules are read-only
   in this release; browser-only switches are not operational configuration.
+- Both administrator roles may change only their own password through
+  `/api/v1/admin/auth/change-password`. Require the current password, a different new password
+  of 8–1024 characters, matching confirmation, trusted origin, and a separate per-IP/account
+  attempt limit. Validation responses never echo submitted authentication fields.
+- Password changes lock and recheck the active administrator and current session, hash with
+  Argon2id, rotate the current token without extending its expiry, revoke every other session,
+  advance the account version, and audit the outcome without credentials. These writes commit
+  together. Settings exposes this form to both roles; staff management remains Super Admin-only.
 
 ## API and data handling
 

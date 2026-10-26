@@ -2,12 +2,31 @@
 tags:
   - responda/memory
   - responda/decisions
-updated: 2026-10-25
+updated: 2026-10-26
 ---
 
 # Decisions
 
 ## Active decisions
+
+### 2026-10-26 — Give operational Administrators a focused dashboard
+
+- Normal Administrators land on a report-triage and response-coordination
+  overview, while Super Admins retain the municipal operations overview.
+- Dashboard response-unit totals and visible unit statuses come from the live
+  roster API; do not show fixed or fictional roster values.
+
+### 2026-10-26 — Allow administrators to change their own passwords
+
+- Settings exposes a self-service password form to Super Admins and normal
+  Administrators; staff management remains Super Admin-only.
+- Super Admins see password, staff, and system-rule settings together in one
+  tab set; normal Administrators see only their password settings.
+- Require the current password, a different new password of 8–1024 characters,
+  matching confirmation, trusted origin and a separate IP/account attempt limit.
+- Lock and recheck the user and current session, rotate its opaque token while
+  preserving expiry, revoke all other sessions, and audit the change atomically.
+  Passwords and tokens never enter response bodies, validation errors, audits, or memory.
 
 ### 2026-10-25 — Manage response progress from Live Reports
 

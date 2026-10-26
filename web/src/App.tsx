@@ -111,13 +111,15 @@ function Dashboard({
   const notificationsRef = useRef<HTMLDivElement>(null);
   const reportQuery = useAdminReports(
     { pageSize: 100 },
-    page === "Live Reports" ? 5000 : 0,
+    page === "Live Reports" || page === "Incident Map" ? 5000 : 0,
   );
   const dashboardReports = useMemo(
     () => reportQuery.data?.items.map(toReport) ?? [],
     [reportQuery.data],
   );
-  const info = pageInfo[page];
+  const info = page === "Overview" && session.user.role === "operations_admin"
+    ? ["Administrator Dashboard", "Daily report triage and response coordination"] as const
+    : pageInfo[page];
   const normalizedQuery = query.trim().toLowerCase();
   const matchingReports = useMemo(
     () =>
@@ -136,8 +138,8 @@ function Dashboard({
     () =>
       normalizedQuery
         ? (Object.keys(pageInfo) as Page[])
-            .filter((name) =>
-              canAccessDashboardPage(session.user.role, name),
+            .filter(() =>
+              canAccessDashboardPage(session.user.role),
             )
             .filter((name) =>
               `${name} ${pageInfo[name][1]}`
@@ -410,7 +412,9 @@ function Dashboard({
           className={
             page === "Mobile Accounts"
               ? "mx-auto flex min-h-[calc(100vh-72px)] max-w-[1600px] flex-col gap-5 px-7 pt-7 pb-5 max-[1100px]:px-4 max-[1100px]:pt-5 max-[650px]:px-3 max-[650px]:pt-4 max-[1000px]:min-h-0"
-              : "mx-auto flex max-w-[1600px] flex-col gap-5 px-7 py-7 pb-10 max-[1100px]:px-4 max-[1100px]:py-5 max-[650px]:px-3 max-[650px]:py-4"
+              : page === "Report Validation"
+                ? "mx-auto flex min-h-[calc(100vh-72px)] max-w-[1600px] flex-col gap-5 px-7 pt-7 pb-6 max-[1100px]:px-4 max-[1100px]:pt-5 max-[650px]:px-3 max-[650px]:pt-4"
+                : "mx-auto flex max-w-[1600px] flex-col gap-5 px-7 py-7 pb-10 max-[1100px]:px-4 max-[1100px]:py-5 max-[650px]:px-3 max-[650px]:py-4"
           }
         >
           {reportNotice && (
@@ -425,6 +429,7 @@ function Dashboard({
           {page === "Overview" && (
             <Overview
               go={setPage}
+              role={session.user.role}
               firstName={session.user.full_name.split(/\s+/)[0] || "Staff"}
               reports={dashboardReports}
               reportStatus={reportQuery.status}
@@ -472,7 +477,7 @@ function Dashboard({
           )}
           {page === "Analytics" && <Analytics go={setPage} />}
           {page === "Historical Records" && <HistoricalRecords />}
-          {page === "Settings" && <Settings />}
+          {page === "Settings" && <Settings userRole={session.user.role} />}
         </div>
       </main>
       {reportModalOpen && (

@@ -8,9 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Environment, Settings
 from app.core.exceptions import ApplicationError
-from app.core.security import hash_password, hash_session_token
+from app.core.security import hash_password, hash_session_token, verify_password
 from app.models import AuditLog, AuthSession, User
-from app.services.admin_auth import AdminAuthService
+from app.services.admin_auth import AdminAuthService, AuthenticatedAdmin
 
 
 def database_mock(*execute_results: MagicMock) -> MagicMock:
@@ -151,3 +151,155 @@ def test_service_uses_a_generic_error_for_unknown_email() -> None:
     assert isinstance(added_audit, AuditLog)
     assert added_audit.actor_user_id is None
     database.commit.assert_awaited_once()
+
+
+def password_context(role: str = "admin") -> AuthenticatedAdmin:
+    user = User(
+        user_id=uuid.uuid4(),
+        full_name="Test Admin",
+        email="admin@example.com",
+        password_hash=hash_password("current-test-password"),
+        role=role,
+        is_active=True,
+    )
+    session = AuthSession(
+        session_id=uuid.uuid4(),
+        user_id=user.user_id,
+        refresh_token_hash=hash_session_token("old-test-token"),
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
+    )
+    return AuthenticatedAdmin(user=user, session=session)
+
+
+@mark.parametrize("role", ["admin", "operations_admin"])
+def test_password_change_rotates_current_token_and_revokes_other_sessions(role: str) -> None:
+    context = password_context(role)
+    other = AuthSession(session_id=uuid.uuid4(), user_id=context.user.user_id)
+    database = database_mock(
+        scalar_result(context.user),
+        scalar_result(context.session),
+        active_sessions_result([other]),
+    )
+    service = AdminAuthService(database, Settings(_env_file=None))
+    expires_at = context.session.expires_at
+
+    result = asyncio.run(
+        service.change_password(
+            context,
+            current_password="current-test-password",
+            new_password="new-test-password",
+            ip_address="127.0.0.1",
+        )
+    )
+
+    assert verify_password("new-test-password", context.user.password_hash)
+    assert not verify_password("current-test-password", context.user.password_hash)
+    assert context.session.refresh_token_hash == hash_session_token(result.token)
+    assert context.session.refresh_token_hash != hash_session_token("old-test-token")
+    assert context.session.revoked_at is None
+    assert context.session.expires_at == expires_at
+    assert other.revoked_at is not None
+    statements = [call.args[0] for call in database.execute.await_args_list]
+    assert all("FOR UPDATE" in str(statement) for statement in statements)
+    assert statements[1].compile().params["refresh_token_hash_1"] == hash_session_token(
+        "old-test-token",
+    )
+    assert "auth_sessions.user_id" in str(statements[2])
+    assert "auth_sessions.session_id !=" in str(statements[2])
+    audit = database.add.call_args.args[0]
+    assert isinstance(audit, AuditLog)
+    assert audit.action == "auth.password_change.succeeded"
+    assert audit.actor_user_id == context.user.user_id
+    assert audit.details == '{"result": "success"}'
+    database.commit.assert_awaited_once()
+
+
+def test_incorrect_current_password_is_rejected_without_mutation() -> None:
+    context = password_context()
+    old_hash = context.user.password_hash
+    token_hash = context.session.refresh_token_hash
+    database = database_mock(scalar_result(context.user), scalar_result(context.session))
+    service = AdminAuthService(database, Settings(_env_file=None))
+
+    with raises(ApplicationError) as caught:
+        asyncio.run(
+            service.change_password(
+                context,
+                current_password="incorrect-test-password",
+                new_password="new-test-password",
+                ip_address="127.0.0.1",
+            )
+        )
+
+    assert caught.value.code == "current_password_invalid"
+    assert caught.value.status_code == 400
+    assert context.user.password_hash == old_hash
+    assert context.session.refresh_token_hash == token_hash
+    assert database.execute.await_count == 2
+    assert database.add.call_args.args[0].action == "auth.password_change.failed"
+
+
+def test_password_change_rejects_reusing_the_current_password() -> None:
+    context = password_context()
+    database = database_mock(scalar_result(context.user), scalar_result(context.session))
+    service = AdminAuthService(database, Settings(_env_file=None))
+    with raises(ApplicationError) as caught:
+        asyncio.run(
+            service.change_password(
+                context,
+                current_password="current-test-password",
+                new_password="current-test-password",
+                ip_address="127.0.0.1",
+            )
+        )
+    assert caught.value.code == "password_unchanged"
+    database.commit.assert_not_awaited()
+
+
+@mark.parametrize("state", ["missing", "inactive", "deleted", "role"])
+def test_password_change_rechecks_the_account_under_lock(state: str) -> None:
+    context = password_context()
+    if state == "inactive":
+        context.user.is_active = False
+    elif state == "deleted":
+        context.user.deleted_at = datetime.now(UTC)
+    elif state == "role":
+        context.user.role = "reporter"
+    database = database_mock(scalar_result(None if state == "missing" else context.user))
+    service = AdminAuthService(database, Settings(_env_file=None))
+    with raises(ApplicationError) as caught:
+        asyncio.run(
+            service.change_password(
+                context,
+                current_password="current-test-password",
+                new_password="new-test-password",
+                ip_address="127.0.0.1",
+            )
+        )
+    assert caught.value.code == "invalid_session"
+    database.commit.assert_not_awaited()
+
+
+@mark.parametrize("state", ["missing_or_rotated", "revoked", "expired"])
+def test_password_change_rechecks_current_session_before_password_verification(state: str) -> None:
+    context = password_context()
+    if state == "revoked":
+        context.session.revoked_at = datetime.now(UTC)
+    elif state == "expired":
+        context.session.expires_at = datetime.now(UTC) - timedelta(seconds=1)
+    database = database_mock(
+        scalar_result(context.user),
+        scalar_result(None if state == "missing_or_rotated" else context.session),
+    )
+    service = AdminAuthService(database, Settings(_env_file=None))
+    with raises(ApplicationError) as caught:
+        asyncio.run(
+            service.change_password(
+                context,
+                current_password="current-test-password",
+                new_password="new-test-password",
+                ip_address="127.0.0.1",
+            )
+        )
+    assert caught.value.code == "invalid_session"
+    database.commit.assert_not_awaited()

@@ -1,9 +1,17 @@
+from collections.abc import Callable, Coroutine
+from datetime import UTC, datetime
+from typing import Any
+
 from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi.routing import APIRoute
 
 from app.api.dependencies import (
     AdminAuthServiceDependency,
     CurrentAdmin,
     LoginRateLimiterDependency,
+    PasswordRateLimiterDependency,
     SettingsDependency,
     require_trusted_origin,
 )
@@ -11,11 +19,38 @@ from app.core.exceptions import ApplicationError
 from app.core.security import normalize_email
 from app.schemas.admin_auth import (
     AdminLoginRequest,
+    AdminPasswordChangeRequest,
     AdminSessionResponse,
     AdminUserResponse,
 )
 
-router = APIRouter(prefix="/auth")
+
+class AuthRoute(APIRoute):
+    def get_route_handler(self) -> Callable[[Request], Coroutine[Any, Any, Response]]:
+        handler = super().get_route_handler()
+
+        async def safe_handler(request: Request) -> Response:
+            try:
+                return await handler(request)
+            except ApplicationError as error:
+                error.headers = {**(error.headers or {}), "Cache-Control": "no-store, max-age=0"}
+                raise
+            except RequestValidationError:
+                return JSONResponse(
+                    status_code=422,
+                    content={
+                        "error": {
+                            "code": "invalid_auth_request",
+                            "message": "Check the account fields and password requirements.",
+                        }
+                    },
+                    headers={"Cache-Control": "no-store, max-age=0"},
+                )
+
+        return safe_handler
+
+
+router = APIRouter(prefix="/auth", route_class=AuthRoute)
 
 
 def _prevent_response_caching(response: Response) -> None:
@@ -100,6 +135,55 @@ async def get_current_session(
     return AdminSessionResponse(
         user=AdminUserResponse.model_validate(current.user),
         expires_at=current.session.expires_at,
+    )
+
+
+@router.post(
+    "/change-password",
+    response_model=AdminSessionResponse,
+    dependencies=[Depends(require_trusted_origin)],
+    summary="Change the signed-in administrator's password",
+)
+async def change_password(
+    payload: AdminPasswordChangeRequest,
+    request: Request,
+    response: Response,
+    current: CurrentAdmin,
+    service: AdminAuthServiceDependency,
+    settings: SettingsDependency,
+    rate_limiter: PasswordRateLimiterDependency,
+) -> AdminSessionResponse:
+    _prevent_response_caching(response)
+    ip_address = _client_ip(request, trust_proxy_headers=settings.trust_proxy_headers)
+    retry_after = await rate_limiter.consume(
+        ip_address=ip_address,
+        identity=str(current.user.user_id),
+    )
+    if retry_after is not None:
+        raise ApplicationError(
+            "Too many password change attempts. Try again later.",
+            code="password_change_rate_limited",
+            status_code=429,
+            headers={"Retry-After": str(retry_after)},
+        )
+    result = await service.change_password(
+        current,
+        current_password=payload.current_password.get_secret_value(),
+        new_password=payload.new_password.get_secret_value(),
+        ip_address=ip_address,
+    )
+    response.set_cookie(
+        key=settings.admin_session_cookie_name,
+        value=result.token,
+        max_age=max(0, int((result.session.expires_at - datetime.now(UTC)).total_seconds())),
+        httponly=True,
+        secure=settings.admin_session_cookie_secure,
+        samesite="lax",
+        path="/api/v1/admin",
+    )
+    return AdminSessionResponse(
+        user=AdminUserResponse.model_validate(result.user),
+        expires_at=result.session.expires_at,
     )
 
 

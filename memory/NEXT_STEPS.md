@@ -2,7 +2,7 @@
 tags:
   - responda/memory
   - responda/planning
-updated: 2026-10-25
+updated: 2026-10-26
 ---
 
 # Next steps
@@ -15,6 +15,12 @@ no-sender beta build now obtains an unverified beta session automatically for
 online report testing when the backend beta flag is enabled. Select/configure a
 real OTP provider before production. My Reports/status now uses protected
 reporter reads; a physical-device walkthrough of tracking remains pending.
+
+Web dashboard checkpoint: password changes, role-specific overview, expanded
+account search, and all-active Incident Map filtering are implemented. Confirm
+the user's older Responding report now appears on Incident Map after reload;
+the filter correction passed lint/build but that specific record has not been
+verified in the browser.
 
 1. On the updated iPhone build, test a real report through staff validation,
    assignment, response and resolution while My Reports is open. Use the active
@@ -31,7 +37,7 @@ reporter reads; a physical-device walkthrough of tracking remains pending.
    multipart delivery, internet loss/restarts, duplicate retry, token revocation
    and dashboard receipt. No real gateway credential or SIM delivery is configured
    yet. Reporter notifications and the approved advisory ML service remain pending.
-4. Confirm any additional web Settings scope: staff password recovery/change,
+4. Confirm any additional web Settings scope: staff password recovery,
    editable organization details, notification delivery, and retention controls.
 
 Before later phases, confirm attachment retention, the Android forwarding app

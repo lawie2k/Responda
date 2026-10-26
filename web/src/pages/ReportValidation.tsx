@@ -248,7 +248,7 @@ export function ReportValidation({
         </div>
       )}
 
-      <div className="grid grid-cols-[400px_minmax(0,1fr)] gap-4 max-[1180px]:grid-cols-[340px_1fr] max-[850px]:grid-cols-1">
+      <div className="grid min-h-[420px] flex-1 grid-cols-[400px_minmax(0,1fr)] items-stretch gap-4 max-[1180px]:grid-cols-[340px_1fr] max-[850px]:grid-cols-1">
         <Card>
           <SectionHead
             title="Needs validation"

@@ -11,6 +11,182 @@ const stamp = (value: string | null) => value ? new Intl.DateTimeFormat("en-PH",
 const name = (account: MobileAccount) => account.full_name || "Name not provided";
 const reasons = { suspected_misuse: "Suspected misuse", account_security: "Account security", review_completed: "Review completed" };
 
+function RegisteredAccountsDialog({ close }: { close: () => void }) {
+  const [query, setQuery] = useState({ page: 1, search: "", active: "" });
+  const [search, setSearch] = useState("");
+  const roster = useAdminMobileAccounts(query);
+
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [close]);
+
+  const updateQuery = (next: typeof query) => setQuery(next);
+
+  return (
+    <div
+      className="fixed inset-0 z-[120] grid place-items-center bg-[#23090f7a] p-3 backdrop-blur"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) close();
+      }}
+    >
+      <section
+        aria-labelledby="registered-accounts-dialog-title"
+        aria-modal="true"
+        className="flex h-[calc(100dvh-24px)] w-[calc(100vw-24px)] flex-col gap-4 overflow-hidden rounded-[18px] bg-white p-5 shadow-[0_24px_80px_#28060e3d] max-[650px]:p-4"
+        role="dialog"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 id="registered-accounts-dialog-title" className="m-0 text-lg">
+              Registered accounts
+            </h2>
+            <p className="mb-0 mt-1 text-[10px] text-muted">
+              Search citizen accounts by name, barangay, exact phone number, or account ID.
+            </p>
+          </div>
+          <button
+            aria-label="Close registered accounts"
+            className="grid size-9 shrink-0 place-items-center rounded-lg border-0 bg-soft-gray text-lg text-maroon"
+            onClick={close}
+            type="button"
+          >
+            ×
+          </button>
+        </div>
+
+        <form
+          className="flex flex-wrap items-end gap-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            updateQuery({ ...query, page: 1, search: search.trim() });
+          }}
+        >
+          <label className="grid min-w-[220px] flex-1 gap-1 text-[10px] font-semibold">
+            Search accounts
+            <input
+              aria-label="Search registered accounts"
+              className={inputClass}
+              maxLength={100}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Name, barangay, exact phone number, or account ID"
+              value={search}
+            />
+          </label>
+          <label className="grid gap-1 text-[10px] font-semibold">
+            Status
+            <select
+              aria-label="Registered account status filter"
+              className={inputClass}
+              onChange={(event) =>
+                updateQuery({ ...query, page: 1, active: event.target.value })
+              }
+              value={query.active}
+            >
+              <option value="">All accounts</option>
+              <option value="true">Active</option>
+              <option value="false">Suspended</option>
+            </select>
+          </label>
+          <Button type="submit" disabled={roster.status === "loading"}>
+            Search
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              setSearch("");
+              updateQuery({ page: 1, search: "", active: "" });
+              roster.refetch();
+            }}
+          >
+            Reset
+          </Button>
+        </form>
+
+        {roster.status === "loading" && (
+          <p className="m-0 grid min-h-0 flex-1 place-items-center text-center text-[11px] text-muted" role="status">
+            Loading registered accounts…
+          </p>
+        )}
+        {roster.status === "error" && (
+          <div className="grid min-h-0 flex-1 content-center justify-items-center gap-2 text-center">
+            <p className="m-0 text-[11px] text-status-red" role="alert">
+              {roster.error}
+            </p>
+            <Button variant="secondary" onClick={roster.refetch}>
+              Retry
+            </Button>
+          </div>
+        )}
+        {roster.data && (
+          <>
+            <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border">
+              {roster.data.items.length ? (
+                <div className="divide-y divide-border">
+                  {roster.data.items.map((account) => (
+                    <div
+                      className="grid grid-cols-[minmax(0,1.5fr)_minmax(120px,1fr)_auto] items-center gap-3 px-4 py-3 max-[650px]:grid-cols-[minmax(0,1fr)_auto]"
+                      key={account.user_id}
+                    >
+                      <div className="min-w-0">
+                        <b className="block truncate text-[11px]">{name(account)}</b>
+                        <span className="block text-[10px] text-muted">
+                          {account.masked_phone}
+                        </span>
+                      </div>
+                      <span className="truncate text-[10px] text-muted max-[650px]:hidden">
+                        {account.barangay || "Barangay not provided"}
+                      </span>
+                      <div className="grid justify-items-end gap-1">
+                        <Badge tone={account.is_active ? "green" : "red"}>
+                          {account.is_active ? "ACTIVE" : "SUSPENDED"}
+                        </Badge>
+                        <span className="text-[9px] text-muted">
+                          {account.reports_submitted} reports
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="m-0 grid h-full min-h-[220px] place-items-center px-4 text-center text-[11px] text-muted">
+                  No registered accounts match this search.
+                </p>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
+              <span className="text-[10px] text-muted">
+                Page {roster.data.page} of {Math.max(roster.data.total_pages, 1)} · {roster.data.total} accounts
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  disabled={query.page <= 1}
+                  onClick={() => updateQuery({ ...query, page: query.page - 1 })}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="secondary"
+                  disabled={query.page >= roster.data.total_pages}
+                  onClick={() => updateQuery({ ...query, page: query.page + 1 })}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </section>
+    </div>
+  );
+}
+
 export function MobileAccounts({ userRole }: { userRole: AdminUser["role"] }) {
   const [query, setQuery] = useState({ page: 1, search: "", active: "" });
   const [search, setSearch] = useState("");
@@ -22,6 +198,7 @@ export function MobileAccounts({ userRole }: { userRole: AdminUser["role"] }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [accountsOpen, setAccountsOpen] = useState(false);
   const mutation = useRef<AbortController | null>(null);
   const canManage = userRole === "admin";
   useEffect(() => () => mutation.current?.abort(), []);
@@ -48,12 +225,13 @@ export function MobileAccounts({ userRole }: { userRole: AdminUser["role"] }) {
 
   return <>
     <PageTitle title="Mobile Accounts" subtitle="Monitor citizens registered through phone OTP verification." />
-    <div className="border border-border border-l-[3px] border-l-maroon bg-white px-4 py-3 text-[11px] leading-relaxed text-muted">
-      Phone OTP activates accounts. Name and barangay are optional. Phone numbers stay masked in this workspace.
-    </div>
 
     {roster.data && <div className="grid grid-cols-3 gap-3 max-[650px]:grid-cols-1">
-      {[["Registered accounts", roster.data.counts.total], ["Active", roster.data.counts.active], ["Suspended", roster.data.counts.suspended]].map(([label, value]) => <Card key={label} className="py-3">
+      <Card className="py-3">
+        <span className="block text-[10px] text-muted">Registered accounts</span>
+        <b className="mt-1 block text-[23px]">{roster.data.counts.total}</b>
+      </Card>
+      {[["Active", roster.data.counts.active], ["Suspended", roster.data.counts.suspended]].map(([label, value]) => <Card key={label} className="py-3">
         <span className="text-[10px] text-muted">{label}</span><b className="mt-1 block text-[23px]">{value}</b>
       </Card>)}
     </div>}
@@ -81,7 +259,20 @@ export function MobileAccounts({ userRole }: { userRole: AdminUser["role"] }) {
     {roster.status === "error" && <Card><p role="alert" className="text-[12px] text-status-red">{roster.error}</p><Button variant="secondary" onClick={roster.refetch}>Retry</Button></Card>}
     {roster.data && <div className="grid flex-1 grid-cols-[minmax(300px,.85fr)_minmax(420px,1.3fr)] items-stretch gap-4 max-[1000px]:flex-none max-[1000px]:grid-cols-1">
       <Card className="flex flex-col gap-3">
-        <SectionHead title="Registered accounts" subtitle={`${roster.data.total} accounts match the current view`} />
+        <div className="flex items-start justify-between gap-3">
+          <SectionHead title="Registered accounts" subtitle={`${roster.data.total} accounts match the current view`} />
+          <button
+            aria-label="Expand registered accounts"
+            className="grid size-9 shrink-0 place-items-center rounded-lg border border-border bg-white text-maroon transition hover:border-maroon hover:bg-blush focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon"
+            onClick={() => setAccountsOpen(true)}
+            title="Expand registered accounts"
+            type="button"
+          >
+            <svg aria-hidden="true" className="size-[18px]" fill="none" viewBox="0 0 20 20">
+              <path d="M7 3H3v4M13 3h4v4M17 13v4h-4M7 17H3v-4M3 7l5-5M17 7l-5-5M17 13l-5 5M3 13l5 5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" />
+            </svg>
+          </button>
+        </div>
         <div className="grid gap-2">
           {roster.data.items.map(account => <button key={account.user_id} disabled={busy} onClick={() => select(account)}
             aria-pressed={selected?.user_id === account.user_id}
@@ -139,5 +330,6 @@ export function MobileAccounts({ userRole }: { userRole: AdminUser["role"] }) {
         </> : <p className="py-12 text-center text-[12px] text-muted">Select a registered account to view its details.</p>}
       </Card>
     </div>}
+    {accountsOpen && <RegisteredAccountsDialog close={() => setAccountsOpen(false)} />}
   </>;
 }

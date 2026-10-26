@@ -2,9 +2,9 @@ import uuid
 from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, StringConstraints, model_validator
 
-from app.core.security import PASSWORD_MAX_LENGTH
+from app.core.security import PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH
 
 EmailInput = Annotated[
     str,
@@ -20,6 +20,20 @@ EmailInput = Annotated[
 class AdminLoginRequest(BaseModel):
     email: EmailInput
     password: SecretStr = Field(min_length=1, max_length=PASSWORD_MAX_LENGTH)
+
+
+class AdminPasswordChangeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    current_password: SecretStr = Field(min_length=1, max_length=PASSWORD_MAX_LENGTH)
+    new_password: SecretStr = Field(min_length=PASSWORD_MIN_LENGTH, max_length=PASSWORD_MAX_LENGTH)
+    confirmation: SecretStr = Field(min_length=PASSWORD_MIN_LENGTH, max_length=PASSWORD_MAX_LENGTH)
+
+    @model_validator(mode="after")
+    def matching_passwords(self) -> "AdminPasswordChangeRequest":
+        if self.new_password.get_secret_value() != self.confirmation.get_secret_value():
+            raise ValueError("New passwords must match")
+        return self
 
 
 class AdminUserResponse(BaseModel):

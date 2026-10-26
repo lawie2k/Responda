@@ -40,8 +40,8 @@ export function Sidebar({
   const visibleGroups = groups
     .map((group) => ({
       ...group,
-      items: group.items.filter(([itemPage]) =>
-        canAccessDashboardPage(user.role, itemPage),
+      items: group.items.filter(() =>
+        canAccessDashboardPage(user.role),
       ),
     }))
     .filter((group) => group.items.length > 0);

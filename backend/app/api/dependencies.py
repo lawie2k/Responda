@@ -36,6 +36,10 @@ def get_admin_login_rate_limiter(request: Request) -> LoginRateLimiter:
     return cast(LoginRateLimiter, request.app.state.admin_login_rate_limiter)
 
 
+def get_admin_password_rate_limiter(request: Request) -> LoginRateLimiter:
+    return cast(LoginRateLimiter, request.app.state.admin_password_rate_limiter)
+
+
 def get_admin_auth_service(
     database: DatabaseSession,
     settings: Annotated[Settings, Depends(get_settings_from_request)],
@@ -109,4 +113,7 @@ MobileReportServiceDependency = Annotated[MobileReportService, Depends(get_mobil
 CurrentAdmin = Annotated[AuthenticatedAdmin, Depends(get_current_admin)]
 SettingsDependency = Annotated[Settings, Depends(get_settings_from_request)]
 LoginRateLimiterDependency = Annotated[LoginRateLimiter, Depends(get_admin_login_rate_limiter)]
+PasswordRateLimiterDependency = Annotated[
+    LoginRateLimiter, Depends(get_admin_password_rate_limiter)
+]
 TrustedOrigin = Annotated[None, Depends(require_trusted_origin)]

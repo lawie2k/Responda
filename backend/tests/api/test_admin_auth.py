@@ -2,9 +2,11 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
+from pytest import mark
 
 from app.api.dependencies import get_admin_auth_service
 from app.core.config import Environment, Settings
+from app.core.exceptions import ApplicationError
 from app.main import create_app
 from app.models import AuthSession, User
 from app.services.admin_auth import AdminLoginResult, AuthenticatedAdmin
@@ -29,6 +31,7 @@ class FakeAdminAuthService:
         self.token = "opaque-test-session-token"
         self.login_calls = 0
         self.logout_calls = 0
+        self.password_calls = 0
 
     async def login(
         self,
@@ -43,8 +46,27 @@ class FakeAdminAuthService:
         return AdminLoginResult(user=self.user, session=self.session, token=self.token)
 
     async def authenticate(self, token: str | None) -> AuthenticatedAdmin:
-        assert token == self.token
+        if token != self.token:
+            raise ApplicationError(
+                "A valid staff session is required.", code="invalid_session", status_code=401
+            )
         return AuthenticatedAdmin(user=self.user, session=self.session)
+
+    async def change_password(
+        self,
+        context: AuthenticatedAdmin,
+        *,
+        current_password: str,
+        new_password: str,
+        ip_address: str,
+    ) -> AdminLoginResult:
+        assert context.user.user_id == self.user.user_id
+        assert current_password == "current-test-password"
+        assert new_password == "new-test-password"
+        assert ip_address
+        self.password_calls += 1
+        self.token = "rotated-test-session-token"
+        return AdminLoginResult(user=self.user, session=self.session, token=self.token)
 
     async def logout(self, context: AuthenticatedAdmin, *, ip_address: str) -> None:
         del context, ip_address
@@ -170,3 +192,104 @@ def test_invalid_login_payload_is_rejected() -> None:
 
     assert response.status_code == 422
     assert service.login_calls == 0
+
+
+@mark.parametrize("role", ["admin", "operations_admin"])
+def test_password_change_returns_a_rotated_private_cookie_for_both_admin_roles(role: str) -> None:
+    service = FakeAdminAuthService()
+    service.user.role = role
+    with build_test_client(service) as client:
+        client.cookies.set("responda_admin_session", service.token, path="/api/v1/admin")
+        response = client.post(
+            "/api/v1/admin/auth/change-password",
+            json={
+                "current_password": "current-test-password",
+                "new_password": "new-test-password",
+                "confirmation": "new-test-password",
+            },
+            headers={"Origin": "http://localhost:5173"},
+        )
+    assert response.status_code == 200
+    assert service.password_calls == 1
+    assert response.json()["user"]["role"] == role
+    assert "rotated-test-session-token" in response.headers["set-cookie"]
+    assert "HttpOnly" in response.headers["set-cookie"]
+    assert "SameSite=lax" in response.headers["set-cookie"]
+    assert "Path=/api/v1/admin" in response.headers["set-cookie"]
+    assert "password" not in response.text and "token" not in response.text
+    assert response.headers["cache-control"] == "no-store, max-age=0"
+
+
+@mark.parametrize(
+    "invalid",
+    [
+        {"new_password": "short"},
+        {"confirmation": "different-test-password"},
+        {"current_password": ""},
+        {"new_password": "a" * 1025},
+        {"target_user_id": "unrequested-account"},
+    ],
+)
+def test_invalid_password_payload_never_echoes_credentials(invalid: dict[str, str]) -> None:
+    service = FakeAdminAuthService()
+    with build_test_client(service) as client:
+        client.cookies.set("responda_admin_session", service.token, path="/api/v1/admin")
+        response = client.post(
+            "/api/v1/admin/auth/change-password",
+            json={
+                "current_password": "current-test-password",
+                "new_password": "new-test-password",
+                "confirmation": "new-test-password",
+                **invalid,
+            },
+        )
+    assert response.status_code == 422
+    assert "current-test-password" not in response.text
+    assert "new-test-password" not in response.text
+    assert service.password_calls == 0
+    assert response.headers["cache-control"] == "no-store, max-age=0"
+
+
+def test_password_change_requires_a_session_and_trusted_origin() -> None:
+    service = FakeAdminAuthService()
+    payload = {
+        "current_password": "current-test-password",
+        "new_password": "new-test-password",
+        "confirmation": "new-test-password",
+    }
+    with build_test_client(service) as client:
+        unauthenticated = client.post("/api/v1/admin/auth/change-password", json=payload)
+        assert unauthenticated.status_code == 401
+        client.cookies.set("responda_admin_session", service.token, path="/api/v1/admin")
+        untrusted = client.post(
+            "/api/v1/admin/auth/change-password",
+            json=payload,
+            headers={"Origin": "https://attacker.example"},
+        )
+    assert untrusted.status_code == 403
+    assert service.password_calls == 0
+
+
+def test_password_change_has_a_separate_attempt_limit() -> None:
+    service = FakeAdminAuthService()
+    payload = {
+        "current_password": "current-test-password",
+        "new_password": "new-test-password",
+        "confirmation": "new-test-password",
+    }
+    with build_test_client(service, rate_limit_attempts=2) as client:
+        client.post(
+            "/api/v1/admin/auth/login",
+            json={
+                "email": "operations@example.com",
+                "password": "current-test-password",
+            },
+        )
+        for _ in range(2):
+            assert (
+                client.post("/api/v1/admin/auth/change-password", json=payload).status_code == 200
+            )
+        response = client.post("/api/v1/admin/auth/change-password", json=payload)
+    assert response.status_code == 429
+    assert response.headers["retry-after"] == "60"
+    assert service.password_calls == 2

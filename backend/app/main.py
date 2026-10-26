@@ -61,6 +61,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         window_seconds=current_settings.admin_login_rate_limit_window_seconds,
         secret_key=current_settings.secret_key.get_secret_value(),
     )
+    application.state.admin_password_rate_limiter = LoginRateLimiter(
+        max_attempts=current_settings.admin_login_rate_limit_attempts,
+        window_seconds=current_settings.admin_login_rate_limit_window_seconds,
+        secret_key=current_settings.secret_key.get_secret_value(),
+    )
     application.add_middleware(
         CORSMiddleware,
         allow_origins=current_settings.allowed_origins,

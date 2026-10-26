@@ -161,6 +161,96 @@ class AdminAuthService:
             )
             await self._database.commit()
 
+    async def change_password(
+        self,
+        context: AuthenticatedAdmin,
+        *,
+        current_password: str,
+        new_password: str,
+        ip_address: str,
+    ) -> AdminLoginResult:
+        expected_token_hash = context.session.refresh_token_hash
+        # Login and staff management lock the user first, before session rows.
+        user = (
+            await self._database.execute(
+                select(User)
+                .where(User.user_id == context.user.user_id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+        ).scalar_one_or_none()
+        if (
+            user is None
+            or user.deleted_at is not None
+            or not user.is_active
+            or user.role not in ADMINISTRATOR_ROLES
+        ):
+            raise self._invalid_session_error()
+        session = (
+            await self._database.execute(
+                select(AuthSession)
+                .where(
+                    AuthSession.session_id == context.session.session_id,
+                    AuthSession.user_id == user.user_id,
+                    AuthSession.refresh_token_hash == expected_token_hash,
+                )
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+        ).scalar_one_or_none()
+        now = datetime.now(UTC)
+        if session is None or session.revoked_at is not None or session.expires_at <= now:
+            raise self._invalid_session_error()
+        if not await run_in_threadpool(verify_password, current_password, user.password_hash):
+            await self._record_audit(
+                action="auth.password_change.failed",
+                actor_user_id=user.user_id,
+                entity_id=user.user_id,
+                result="invalid_current_password",
+                ip_address=ip_address,
+            )
+            raise ApplicationError(
+                "The current password is incorrect.",
+                code="current_password_invalid",
+                status_code=400,
+            )
+        if new_password == current_password:
+            raise ApplicationError(
+                "Choose a new password different from your current password.",
+                code="password_unchanged",
+                status_code=400,
+            )
+        new_hash = await run_in_threadpool(hash_password, new_password)
+        other_sessions = (
+            await self._database.execute(
+                select(AuthSession)
+                .where(
+                    AuthSession.user_id == user.user_id,
+                    AuthSession.session_id != session.session_id,
+                    AuthSession.revoked_at.is_(None),
+                )
+                .with_for_update()
+            )
+        ).scalars()
+        for other in other_sessions:
+            other.revoked_at = now
+        token = generate_session_token()
+        user.password_hash = new_hash
+        user.updated_at = now
+        session.refresh_token_hash = hash_session_token(token)
+        self._database.add(
+            AuditLog(
+                actor_user_id=user.user_id,
+                action="auth.password_change.succeeded",
+                entity_type="user",
+                entity_id=user.user_id,
+                details=json.dumps({"result": "success"}),
+                ip_address=ip_address,
+            )
+        )
+        await self._database.commit()
+        return AdminLoginResult(user=user, session=session, token=token)
+
     async def _find_user_by_email(self, email: str) -> User | None:
         statement = (
             select(User)
