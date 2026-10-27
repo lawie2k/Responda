@@ -124,6 +124,8 @@ void main() {
         controller.completePhoneVerification(
           phoneNumber: '+639000000001',
           privacyNoticeAcceptedAt: DateTime.now(),
+          fullName: 'Synthetic',
+          barangay: 'Kingking',
         ),
         throwsA(isA<RespondaApiException>()),
       );

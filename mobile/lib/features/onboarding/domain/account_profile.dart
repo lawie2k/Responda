@@ -27,6 +27,7 @@ class AccountProfile {
     this.barangay = '',
     this.sessionExpiresAt,
     this.isBetaLocal = false,
+    this.isSuspended = false,
   });
 
   final String phoneNumber;
@@ -37,6 +38,7 @@ class AccountProfile {
   final String barangay;
   final DateTime? sessionExpiresAt;
   final bool isBetaLocal;
+  final bool isSuspended;
 
   Map<String, Object?> toJson() => {
     'phoneNumber': phoneNumber,
@@ -47,6 +49,7 @@ class AccountProfile {
     'barangay': barangay,
     'sessionExpiresAt': sessionExpiresAt?.toIso8601String(),
     'isBetaLocal': isBetaLocal,
+    'isSuspended': isSuspended,
   };
 
   factory AccountProfile.fromJson(Map<String, Object?> json) {
@@ -75,6 +78,7 @@ class AccountProfile {
         json['sessionExpiresAt'] as String? ?? '',
       ),
       isBetaLocal: json['isBetaLocal'] as bool? ?? false,
+      isSuspended: json['isSuspended'] as bool? ?? false,
     );
   }
 }

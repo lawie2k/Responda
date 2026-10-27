@@ -124,6 +124,8 @@ void main() {
       addTearDown(controller.dispose);
       await controller.completeBetaProfile(
         privacyNoticeAcceptedAt: DateTime.now(),
+        fullName: 'Synthetic tester',
+        barangay: 'Kingking',
       );
       await expectLater(
         controller.submitReport(draft, clientReportId: clientId),

@@ -2,12 +2,41 @@
 tags:
   - responda/memory
   - responda/decisions
-updated: 2026-10-26
+updated: 2026-10-27
 ---
 
 # Decisions
 
 ## Active decisions
+
+### 2026-10-27 — Restore the local Android gateway USB route automatically
+
+- Use a macOS user LaunchAgent with a ten-second interval and login startup to
+  maintain only the selected authorized USB handset's backend port 8000 mapping.
+  The standard-library helper is scripts/gateway-usb-forwarding.py; installation
+  stores the machine's device selection locally outside Git and project memory.
+- Skip disconnected/unauthorized devices and preserve unrelated mappings. The
+  helper neither starts the backend nor reads messages or credentials. Local
+  USB testing still requires an awake logged-in Mac and running backend.
+
+### 2026-10-27 — Use backend reachability for mobile online mode
+
+- A configured backend health request is authoritative even if iOS reports no
+  internet path; local USB connectivity can still reach the development server.
+  Recheck every 15 foreground seconds and on resume/network changes, retaining
+  the generation guard against stale asynchronous results.
+- Build the paired iPhone against the Mac's Bonjour `.local` hostname rather
+  than its changing USB interface IP. This hostname was reached directly from
+  the physical iPhone; production still needs a deployed HTTPS backend.
+
+### 2026-10-27 — Show an explicit suspended-account state on mobile
+
+- Disclose suspension only after verified OTP or with a known unexpired token
+  for an undeleted reporter. Return a categorical 403 without private reasons
+  or account data; revoked sessions never regain authorization on restoration.
+- Replace all mobile routes with a localized restriction screen, retain phone
+  contact, clear SMS keys, and cache the restriction for offline use. Refresh on
+  resume and every 15 foreground seconds; restoration requires signing in again.
 
 ### 2026-10-26 — Give operational Administrators a focused dashboard
 
@@ -27,6 +56,13 @@ updated: 2026-10-26
 - Lock and recheck the user and current session, rotate its opaque token while
   preserving expiry, revoke all other sessions, and audit the change atomically.
   Passwords and tokens never enter response bodies, validation errors, audits, or memory.
+
+### 2026-10-26 — Require name and barangay during mobile account setup
+
+- Normal OTP and local beta onboarding require a non-empty name and one of the
+  Pantukan barangays before continuing. The mobile form and account controller
+  both reject missing values; existing accounts and backend profile-edit
+  capabilities are unchanged.
 
 ### 2026-10-25 — Manage response progress from Live Reports
 
@@ -75,8 +111,8 @@ updated: 2026-10-26
 - Reuse the server-provided resend deadline after returning from OTP entry.
   Display a live countdown and disable sending again for that same number until
   it expires, instead of surfacing the generic rate-limit popup.
-- Keep the optional name editable with a fixed label outside the empty input;
-  remove the stale ID/face note from the standard phone-verified completion UI.
+- Keep the name editable with a fixed label outside the empty input; remove the
+  stale ID/face note from the standard phone-verified completion UI.
 
 ### 2026-10-21 — Track citizen reports from protected server state
 
@@ -106,7 +142,7 @@ updated: 2026-10-26
 - Only the OTP screen offers “Continue with test code,” and only when the
   development backend returns its test OTP. The app submits that server-issued
   code through the ordinary OTP verification endpoint, then continues to
-  optional profile setup. Phone-number entry still requires requesting a code;
+  required account-details setup. Phone-number entry still requires requesting a code;
   there is no client-created verified identity or account.
 - Production has no development code, so the shortcut is not displayed and
   users must enter the OTP they receive. Online/Offline shell selection depends
@@ -115,7 +151,7 @@ updated: 2026-10-26
 ### 2026-10-20 — Offer an opt-in local beta profile without an OTP sender
 
 - A beta build may bypass the phone-number step using
-  `RESPONDA_BETA_SKIP_MOBILE_VERIFICATION=true`, then save optional name and
+  `RESPONDA_BETA_SKIP_MOBILE_VERIFICATION=true`, then save required name and
   barangay locally and enter the app. With backend
   `RESPONDA_MOBILE_BETA_ACCOUNTS_ENABLED=true`, its first report may register a
   fresh beta reporter and session without OTP. This account remains phone-
@@ -183,7 +219,7 @@ updated: 2026-10-26
   secure storage for tokens, and cached unexpired profile data for offline UI.
   Legacy preference-only profiles are not authenticated. Server logout must
   succeed, or confirm the session already invalid, before local state is cleared.
-  Recheck account/session on resume; optional name/barangay persist in PostgreSQL.
+  Recheck account/session on resume; name/barangay persist in PostgreSQL.
   ID/face capture has been removed from the source flow.
 
 ### 2026-10-19 — Use Ponytail guidance by default across Codex chats
@@ -489,8 +525,9 @@ dashboard emergencies. Sender number alone is not accepted as proof of origin.
 
 - A citizen account is established by verifying a phone number with a one-time
   password.
-- Name and barangay are optional profile fields. Government-ID submission, face
-  capture, and staff identity approval are not part of registration.
+- The mobile onboarding flow requires a name and barangay. Government-ID
+  submission, face capture, and staff identity approval are not part of
+  registration.
 - The verified account/session becomes the reporter-identity boundary for
   online reports. Phone numbers remain protected personal data and should be
   masked in ordinary administrative lists.

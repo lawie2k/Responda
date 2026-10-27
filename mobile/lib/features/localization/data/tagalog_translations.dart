@@ -6,7 +6,8 @@ const tagalogTranslations = <String, String>{
   'Open SMS draft': 'Buksan ang draft ng SMS',
   'Preparing SMS…': 'Inihahanda ang SMS…',
   'NOT CONFIRMED': 'HINDI PA KUMPIRMADO',
-  'Saved on this phone · Delivery not confirmed': 'Naka-save sa teleponong ito · Hindi pa kumpirmado ang pagdating',
+  'Saved on this phone · Delivery not confirmed':
+      'Naka-save sa teleponong ito · Hindi pa kumpirmado ang pagdating',
   'Ready. Send SMS using your verified SIM. Your carrier may charge for multiple messages.': 'Handa na. Gamitin ang beripikadong SIM. Maaaring may singil ang carrier para sa maraming SMS.',
   'Connect online once to enable signed emergency SMS. A verified phone number is required.': 'Kumonekta muna online para ihanda ang protektadong SMS. Kailangan ang beripikadong numero.',
   'A copy will be saved on this phone, then Messages will open with a protected SMS draft for MDRRMO. Send it unchanged using your verified SIM. Carrier charges may apply.': 'May kopyang ise-save sa teleponong ito bago buksan ang protektadong draft sa Messages para sa MDRRMO. Ipadala nang walang pagbabago gamit ang beripikadong SIM. Maaaring may singil ang carrier.',
@@ -359,8 +360,9 @@ const tagalogTranslations = <String, String>{
   'Only your phone number is required':
       'Numero ng telepono lamang ang kailangan',
   'Your number is used for OTP account access and emergency follow-up. RESPONDA does not require a valid ID or face photo.': 'Ginagamit ang numero mo para sa OTP account access at emergency follow-up. Hindi nangangailangan ang RESPONDA ng balidong ID o larawan ng mukha.',
-  'Basic details are optional': 'Opsyonal ang pangunahing detalye',
-  'You may add your name and barangay, but you can skip them and still report an emergency.': 'Maaari mong ilagay ang pangalan at barangay mo, pero maaari mo ring laktawan ang mga ito at mag-ulat pa rin ng emerhensiya.',
+  'Basic details are required': 'Kailangan ang pangunahing mga detalye',
+  'Name and barangay are required': 'Kailangan ang pangalan at barangay',
+  'Your name and barangay help responders recognize your account and reports.': 'Makakatulong ang pangalan at barangay mo para makilala ng mga rumesponde ang account at mga ulat mo.',
   'Information included in reports': 'Impormasyong kasama sa mga ulat',
   'Reports can include incident details, GPS coordinates, timestamps, and photos you choose to attach.': 'Maaaring kasama sa ulat ang detalye ng insidente, GPS coordinates, oras, at mga larawang pinili mong ilakip.',
   'I have read and understand this privacy notice.':
@@ -415,12 +417,16 @@ const tagalogTranslations = <String, String>{
   'Verify OTP': 'Beripikahin ang OTP',
   'Resend code': 'Ipadala muli ang code',
   'Request another OTP in {time}.': 'Humiling muli ng OTP sa loob ng {time}.',
-  'Optional account details': 'Opsyonal na detalye ng account',
-  'These details can help responders recognize your account, but they are not required.': 'Makakatulong ang mga detalyeng ito para makilala ng responders ang account mo, pero hindi sila kinakailangan.',
-  'You can skip this step': 'Maaari mong laktawan ang hakbang na ito',
-  'Leaving these fields empty will not prevent you from using RESPONDA or reporting an emergency.': 'Kahit walang laman ang mga field na ito, magagamit mo pa rin ang RESPONDA at makapag-uulat ng emerhensiya.',
-  'Name (optional)': 'Pangalan (opsyonal)',
-  'Barangay (optional)': 'Barangay (opsyonal)',
+  'Account details': 'Mga detalye ng account',
+  'Add your name and barangay so responders can recognize your account.': 'Ilagay ang pangalan at barangay mo para makilala ng mga rumesponde ang account mo.',
+  'Both details are required': 'Kailangan ang dalawang detalye',
+  'Enter your name and choose your barangay to finish setting up your account.': 'Ilagay ang pangalan at piliin ang barangay mo para matapos ang pag-set up ng account.',
+  'Name': 'Pangalan',
+  'Barangay': 'Barangay',
+  'Enter your full name.': 'Ilagay ang buong pangalan mo.',
+  'Select your barangay.': 'Piliin ang barangay mo.',
+  'Enter your name and choose your barangay.':
+      'Ilagay ang pangalan at piliin ang barangay mo.',
   'Enter your barangay': 'Ilagay ang barangay mo',
   'Select your barangay': 'Piliin ang iyong barangay',
   'Finish Setup': 'Tapusin ang Setup',
@@ -459,7 +465,6 @@ const tagalogTranslations = <String, String>{
       'Suriin ang phone verification bago ibalik ang account na ito.',
   'Full name': 'Buong pangalan',
   'Not provided': 'Hindi ibinigay',
-  'Barangay': 'Barangay',
   'Phone number and account details':
       'Numero ng telepono at detalye ng account',
   'Clear account setup, language, and GPS choice':
@@ -541,4 +546,16 @@ const tagalogTranslations = <String, String>{
   'Retry': 'Subukang muli',
   'Previous page': 'Nakaraang pahina',
   'Next page': 'Susunod na pahina',
+
+  "Account suspended": "Nasuspinde ang account",
+  "MDRRMO has suspended access to this account. You cannot submit reports while it is suspended.": "Sinuspinde ng MDRRMO ang paggamit ng account na ito. Hindi ka makakapagsumite ng ulat habang nasuspinde ito.",
+  "Need help with your account?": "Kailangan ng tulong sa account mo?",
+  "Contact MDRRMO to ask about your account. After it is restored, sign in again using your phone number and OTP.": "Makipag-ugnayan sa MDRRMO tungkol sa account mo. Kapag naibalik na ito, mag-sign in muli gamit ang numero ng telepono at OTP mo.",
+  "Check account status": "Suriin ang status ng account",
+  "Checking…": "Sinusuri…",
+  "Your account is still suspended. Contact MDRRMO for assistance.": "Nasuspinde pa rin ang account mo. Makipag-ugnayan sa MDRRMO para sa tulong.",
+  "Could not check your account. Connect to the internet and try again.":
+      "Hindi masuri ang account mo. Kumonekta sa internet at subukang muli.",
+  "Calls do not share your GPS location. Tell MDRRMO where you are.": "Hindi naipapadala ng tawag ang GPS location mo. Sabihin sa MDRRMO kung nasaan ka.",
+  "Return to sign in": "Bumalik sa pag-sign in",
 };

@@ -51,28 +51,25 @@ class ConnectivityController extends ChangeNotifier {
   }
 
   Future<void> refresh() async {
+    List<ConnectivityResult> results;
     try {
-      await _applyResults(await _reader.checkConnectivity());
+      results = await _reader.checkConnectivity();
     } catch (_) {
-      if (_isOnline == null) {
-        _setOnline(false);
-      }
+      results = [ConnectivityResult.none];
     }
+    await _applyResults(results);
   }
 
   Future<void> _applyResults(List<ConnectivityResult> results) async {
     final generation = ++_checkGeneration;
-    if (!results.hasConnectivity) {
-      _setOnline(false);
-      return;
-    }
-
     final backendCheck = backendAvailabilityCheck;
     if (backendCheck == null) {
-      _setOnline(true);
+      _setOnline(results.hasConnectivity);
       return;
     }
 
+    // iOS may report no internet path while the local USB backend is reachable.
+    // The actual health request is authoritative when a backend is configured.
     try {
       final backendAvailable = await backendCheck();
       if (generation == _checkGeneration) {
@@ -90,6 +87,7 @@ class ConnectivityController extends ChangeNotifier {
       return;
     }
     _isOnline = value;
+    debugPrint('RESPONDA connection mode: ${value ? 'online' : 'offline'}');
     notifyListeners();
   }
 

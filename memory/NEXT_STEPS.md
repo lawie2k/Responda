@@ -2,13 +2,14 @@
 tags:
   - responda/memory
   - responda/planning
-updated: 2026-10-26
+updated: 2026-10-27
 ---
 
 # Next steps
 
-SMS gateway work is checkpointed while the user obtains an Android SIM phone.
-Resume provisioning and real delivery testing with step 3 when it is available.
+The gateway SIM phone and citizen SMS installation are configured. The first
+real SMS reached the backend and Live Reports after enabling the Android USB
+reverse tunnel. Continue untethered and failure/retry testing in step 3.
 
 Mobile OTP and authenticated online report creation are connected locally. The
 no-sender beta build now obtains an unverified beta session automatically for
@@ -22,21 +23,25 @@ the user's older Responding report now appears on Incident Map after reload;
 the filter correction passed lint/build but that specific record has not been
 verified in the browser.
 
-1. On the updated iPhone build, test a real report through staff validation,
-   assignment, response and resolution while My Reports is open. Use the active
-   wired backend address; it may change after reconnecting. Keep the backend
+1. On the updated iPhone release, test a real report through staff validation,
+   assignment, response and resolution while My Reports is open. Use the Mac's
+   reachable Bonjour `.local` backend origin for the local iPhone build. Keep the backend
    beta flag enabled for the current no-OTP report test and confirm Live Reports
    receives the submission. Synchronize app source changes back to the monorepo
    before Git commits.
 2. Try a newly registered mobile account in Mobile Accounts; Super Admins
    can suspend/restore real citizens and both administrator tiers can monitor.
-3. Install/configure the built Responda Gateway APK when the dedicated Android
-   SIM phone is connected. Use the private Super Admin provisioning CLI and
-   mobile/docs/sms-testing.md, rebuild the citizen phone for a reachable API,
-   verify its sending SIM and enable Offline SMS in Account Management. Test
-   multipart delivery, internet loss/restarts, duplicate retry, token revocation
-   and dashboard receipt. No real gateway credential or SIM delivery is configured
-   yet. Reporter notifications and the approved advisory ML service remain pending.
+   Confirm the updated iPhone shows the suspension screen within 15 seconds
+   online or on resume, keeps the restriction after an offline restart, and
+   requires a fresh OTP sign-in after restoration.
+3. The installed Mac LaunchAgent automatically restores the Android gateway's
+   localhost USB route every ten seconds. Verify a physical unplug/reconnect
+   during the next device walkthrough; simulated mapping loss already recovered.
+   An untethered gateway still needs a reachable LAN/deployed origin and
+   controlled reconfiguration with no pending queue. The first real SMS was accepted and appears as
+   new/pending in Live Reports. Continue multipart, internet loss/restart,
+   duplicate retry and token-revocation tests using mobile/docs/sms-testing.md.
+   Reporter notifications and the approved advisory ML service remain pending.
 4. Confirm any additional web Settings scope: staff password recovery,
    editable organization details, notification delivery, and retention controls.
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -19,6 +21,7 @@ import 'features/onboarding/presentation/screens/language_selection_screen.dart'
 import 'features/onboarding/data/account_controller.dart';
 import 'features/onboarding/presentation/account_scope.dart';
 import 'features/onboarding/presentation/screens/verification/privacy_notice_screen.dart';
+import 'features/onboarding/presentation/screens/account_suspended_screen.dart';
 import 'features/splash/presentation/screens/splash_screen.dart';
 import 'features/testing/data/testing_mode_controller.dart';
 import 'features/testing/presentation/testing_mode_scope.dart';
@@ -61,6 +64,8 @@ class _RespondaAppState extends State<RespondaApp> with WidgetsBindingObserver {
   late final bool _ownsSettingsController;
   late final bool _ownsTestingModeController;
   final _navigatorKey = GlobalKey<NavigatorState>();
+  Timer? _accountTimer;
+  bool _refreshingAccount = false;
 
   @override
   void initState() {
@@ -95,6 +100,12 @@ class _RespondaAppState extends State<RespondaApp> with WidgetsBindingObserver {
       _settingsController.load(),
       _testingModeController.load(),
     ]);
+    _accountTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
+        unawaited(_connectivityController.refresh());
+        _refreshAccount();
+      }
+    });
   }
 
   @override
@@ -106,9 +117,18 @@ class _RespondaAppState extends State<RespondaApp> with WidgetsBindingObserver {
   }
 
   Future<void> _refreshAccount() async {
+    if (_refreshingAccount) return;
+    _refreshingAccount = true;
     final hadAccount = _accountController.profile != null;
-    await _accountController.refreshSession();
-    if (mounted && hadAccount && !_accountController.hasAccount) {
+    try {
+      await _accountController.refreshSession();
+    } finally {
+      _refreshingAccount = false;
+    }
+    if (mounted &&
+        hadAccount &&
+        !_accountController.hasAccount &&
+        !_accountController.isSuspended) {
       _navigatorKey.currentState?.pushAndRemoveUntil(
         MaterialPageRoute<void>(builder: (_) => const PrivacyNoticeScreen()),
         (_) => false,
@@ -118,6 +138,7 @@ class _RespondaAppState extends State<RespondaApp> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _accountTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     if (_ownsLanguageController) {
       _languageController.dispose();
@@ -166,8 +187,13 @@ class _RespondaAppState extends State<RespondaApp> with WidgetsBindingObserver {
                     supportedLocales: const [Locale('en'), Locale('fil')],
                     debugShowCheckedModeBanner: false,
                     theme: AppTheme.light,
-                    builder: (context, child) => KeyboardDismissOnTap(
-                      child: child ?? const SizedBox.shrink(),
+                    builder: (context, child) => AnimatedBuilder(
+                      animation: _accountController,
+                      builder: (context, _) => KeyboardDismissOnTap(
+                        child: _accountController.isSuspended
+                            ? const AccountSuspendedScreen()
+                            : child ?? const SizedBox.shrink(),
+                      ),
                     ),
                     home: FutureBuilder<void>(
                       future: _preferencesLoad,

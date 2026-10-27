@@ -115,4 +115,77 @@ void main() {
     await controller.refresh();
     expect(controller.isOnline, isTrue);
   });
+
+  test(
+    'reachable wired backend works even when iOS reports no internet path',
+    () async {
+      final reader = _FakeConnectivityReader([ConnectivityResult.none]);
+      var available = true;
+      var healthChecks = 0;
+      final controller = ConnectivityController(
+        reader: reader,
+        backendAvailabilityCheck: () async {
+          healthChecks++;
+          return available;
+        },
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await reader.changes.close();
+      });
+      await controller.initialize();
+      expect(healthChecks, 1);
+      expect(controller.isOnline, isTrue);
+      available = false;
+      await controller.refresh();
+      expect(controller.isOffline, isTrue);
+    },
+  );
+
+  test('older health result cannot override a newer failed check', () async {
+    final reader = _FakeConnectivityReader([ConnectivityResult.wifi]);
+    final oldCheck = Completer<bool>();
+    var checks = 0;
+    final controller = ConnectivityController(
+      reader: reader,
+      backendAvailabilityCheck: () =>
+          ++checks == 1 ? oldCheck.future : Future.value(false),
+    );
+    addTearDown(() async {
+      controller.dispose();
+      await reader.changes.close();
+    });
+    final first = controller.initialize();
+    await Future<void>.delayed(Duration.zero);
+    reader.current = [ConnectivityResult.none];
+    await controller.refresh();
+    oldCheck.complete(true);
+    await first;
+    expect(controller.isOffline, isTrue);
+  });
+
+  testWidgets(
+    'foreground retry discovers backend recovery without a network change',
+    (tester) async {
+      final reader = _FakeConnectivityReader([ConnectivityResult.wifi]);
+      var available = false;
+      final controller = ConnectivityController(
+        reader: reader,
+        backendAvailabilityCheck: () async => available,
+      );
+      addTearDown(() async {
+        controller.dispose();
+        await reader.changes.close();
+      });
+      await tester.pumpWidget(RespondaApp(connectivityController: controller));
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      expect(controller.isOffline, isTrue);
+      available = true;
+      await tester.pump(const Duration(seconds: 15));
+      await tester.pump();
+      expect(controller.isOnline, isTrue);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 }

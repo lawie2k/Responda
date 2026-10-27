@@ -78,6 +78,7 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
   Future<void>? _smsProvisioning;
   String get _smsBackend => _api.baseUrl ?? ApiConfig.baseUrl;
   bool get offlineSmsReady =>
+      !isSuspended &&
       _sms?.ready == true &&
       _sms?.owner == _profile?.phoneNumber &&
       _sms?.backend == _smsBackend;
@@ -90,32 +91,40 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
 
   AccountProfile? _profile;
   bool _isLoaded = false;
+  bool _suspended = false;
+
+  bool get isSuspended => _suspended || (_profile?.isSuspended ?? false);
 
   AccountProfile? get profile => _profile;
   bool get hasAccount =>
-      _profile?.isBetaLocal == true ||
-      (_profile != null &&
-          _token != null &&
-          (_expiresAt?.isAfter(DateTime.now()) ?? false));
+      !isSuspended &&
+      (_profile?.isBetaLocal == true ||
+          (_profile != null &&
+              _token != null &&
+              (_expiresAt?.isAfter(DateTime.now()) ?? false)));
   bool get isLoaded => _isLoaded;
 
-  Future<void> refreshSession() async {
-    if (_token == null) return;
+  Future<bool> refreshSession() async {
+    if (_token == null) return false;
     if (!(_expiresAt?.isAfter(DateTime.now()) ?? false)) {
       await _discard();
       notifyListeners();
-      return;
+      return true;
     }
     try {
-      await _accept(await _api.request('me', token: _token));
+      await _accept(await _request('me', token: _token));
+      return true;
     } on RespondaApiException catch (error) {
+      if (error.code == 'account_suspended') return true;
       if (error.statusCode == 401 || error.statusCode == 403) {
         await _discard();
         notifyListeners();
+        return true;
       }
     } catch (_) {
       // Network loss must not erase a valid cached account used by offline screens.
     }
+    return false;
   }
 
   Future<void> load() async {
@@ -125,12 +134,15 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
     try {
       _token = await _tokenStore.read();
       final cached = await _store.read();
+      _profile = cached;
       _expiresAt = cached?.sessionExpiresAt;
       if (_token != null) {
         try {
-          await _accept(await _api.request('me', token: _token));
+          await _accept(await _request('me', token: _token));
         } on RespondaApiException catch (error) {
-          if (error.statusCode == 401 || error.statusCode == 403) {
+          if (error.code == 'account_suspended') {
+            // The request handler cached suspension and cleared SMS credentials.
+          } else if (error.statusCode == 401 || error.statusCode == 403) {
             await _discard();
           } else {
             _profile = cached;
@@ -143,6 +155,7 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
         if (cached?.isBetaLocal == true) {
           _profile = cached;
         } else {
+          _profile = null;
           await _store.clear();
         }
       }
@@ -154,9 +167,41 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
     }
   }
 
+  Future<Map<String, dynamic>> _request(
+    String path, {
+    String method = 'GET',
+    String? token,
+    Map<String, Object?>? body,
+  }) => _withAccountStatus(
+    () => _api.request(path, method: method, token: token, body: body),
+  );
+
+  Future<T> _withAccountStatus<T>(Future<T> Function() operation) async {
+    final requestToken = _token;
+    try {
+      return await operation();
+    } on RespondaApiException catch (error) {
+      if (error.code == 'account_suspended' && requestToken == _token) {
+        _suspended = true;
+        final profile = _profile;
+        if (profile != null) {
+          _profile = AccountProfile.fromJson({
+            ...profile.toJson(),
+            'isSuspended': true,
+          });
+          await _store.write(_profile!);
+        }
+        _sms = null;
+        await _smsStore.clear();
+        notifyListeners();
+      }
+      rethrow;
+    }
+  }
+
   @override
   Future<void> sendCode(String phoneNumber) async {
-    final result = await _api.request(
+    final result = await _request(
       'otp/request',
       method: 'POST',
       body: {'phone_number': phoneNumber},
@@ -173,7 +218,7 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
   @override
   Future<bool> verifyCode(String phoneNumber, String code) async {
     if (_challengeId == null) return false;
-    final result = await _api.request(
+    final result = await _request(
       'otp/verify',
       method: 'POST',
       body: {
@@ -192,6 +237,7 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
   }
 
   Future<void> _accept(Map<String, dynamic> result) async {
+    _suspended = false;
     final user = result['user'] as Map;
     final verifiedAt = user['phone_verified_at'] as String?;
     _expiresAt = DateTime.parse(result['expires_at'] as String);
@@ -225,14 +271,19 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
   Future<void> completePhoneVerification({
     required String phoneNumber,
     required DateTime privacyNoticeAcceptedAt,
-    String fullName = '',
-    String barangay = '',
+    required String fullName,
+    required String barangay,
   }) async {
+    if (fullName.trim().isEmpty || barangay.trim().isEmpty) {
+      throw const RespondaApiException(
+        'Enter your name and choose your barangay.',
+      );
+    }
     if (_token == null || _profile?.phoneNumber != phoneNumber) {
       throw const RespondaApiException('Verify your phone number first.');
     }
     await _accept(
-      await _api.request(
+      await _request(
         'profile',
         method: 'PATCH',
         token: _token,
@@ -245,9 +296,14 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
 
   Future<void> completeBetaProfile({
     required DateTime privacyNoticeAcceptedAt,
-    String fullName = '',
-    String barangay = '',
+    required String fullName,
+    required String barangay,
   }) async {
+    if (fullName.trim().isEmpty || barangay.trim().isEmpty) {
+      throw const RespondaApiException(
+        'Enter your name and choose your barangay.',
+      );
+    }
     final profile = AccountProfile(
       phoneNumber: '',
       status: AccountVerificationStatus.pending,
@@ -277,7 +333,7 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
         profile?.isBetaLocal == true &&
         _token == null) {
       await _acceptLogin(
-        await _api.request(
+        await _request(
           'beta/register',
           method: 'POST',
           body: {
@@ -292,14 +348,18 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
     if (!hasAccount || token == null) {
       throw const RespondaApiException('Sign in with your phone number first.');
     }
-    return MobileReportApi(_api)
-        .submit(token: token, clientReportId: clientReportId, draft: draft);
+    return _withAccountStatus(
+      () => MobileReportApi(_api)
+          .submit(token: token, clientReportId: clientReportId, draft: draft),
+    );
   }
 
   Future<void> restoreOfflineSms() => _restoreSms();
 
   Future<void> _restoreSms() async {
-    if (_profile?.status != AccountVerificationStatus.verified) return;
+    if (isSuspended || _profile?.status != AccountVerificationStatus.verified) {
+      return;
+    }
     try {
       final stored = await _smsStore.read();
       if (stored != null) _sms = SmsSetup.decode(stored);
@@ -317,7 +377,8 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
   Future<void> _enableOfflineSms() async {
     final token = _token;
     final phone = _profile?.phoneNumber;
-    if (token == null ||
+    if (isSuspended ||
+        token == null ||
         _profile?.status != AccountVerificationStatus.verified ||
         phone == null) {
       throw const RespondaApiException(
@@ -343,7 +404,9 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
     await _smsStore.write(_sms!.encode());
     late final Map<String, dynamic> result;
     try {
-      result = await _api.smsDevice(_sms!.deviceId, token: token);
+      result = await _withAccountStatus(
+        () => _api.smsDevice(_sms!.deviceId, token: token),
+      );
     } on RespondaApiException catch (error) {
       if ([401, 403, 409].contains(error.statusCode)) {
         await _smsStore.clear();
@@ -352,7 +415,7 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
       }
       rethrow;
     }
-    if (_token != token || _profile?.phoneNumber != phone) {
+    if (isSuspended || _token != token || _profile?.phoneNumber != phone) {
       throw const RespondaApiException(
         'Your account changed. Set up Offline SMS again.',
       );
@@ -423,6 +486,11 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
   }
 
   Future<void> clearLocalSession() async {
+    if (isSuspended) {
+      await _discard();
+      notifyListeners();
+      return;
+    }
     try {
       await _smsProvisioning;
     } catch (_) {
@@ -440,9 +508,11 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
         }
       }
       try {
-        await _api.request('logout', method: 'POST', token: token);
+        await _request('logout', method: 'POST', token: token);
       } on RespondaApiException catch (error) {
-        if (error.statusCode != 401) rethrow;
+        if (error.statusCode != 401 && error.code != 'account_suspended') {
+          rethrow;
+        }
       }
     }
     await _discard();
@@ -463,8 +533,11 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
         statusCode: 401,
       );
     }
-    return MobileReportApi(_api)
-        .list(token: token, completed: completed, page: page);
+    return _withAccountStatus(
+      () =>
+          MobileReportApi(_api)
+              .list(token: token, completed: completed, page: page),
+    );
   }
 
   Future<SavedOnlineReport> fetchReport(String reportId) async {
@@ -475,10 +548,13 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
         statusCode: 401,
       );
     }
-    return MobileReportApi(_api).tracking(token: token, reportId: reportId);
+    return _withAccountStatus(
+      () => MobileReportApi(_api).tracking(token: token, reportId: reportId),
+    );
   }
 
   Future<void> _discard() async {
+    _suspended = false;
     _profile = null;
     _token = null;
     _expiresAt = null;

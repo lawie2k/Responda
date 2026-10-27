@@ -320,6 +320,8 @@ void main() {
     await accountController.completePhoneVerification(
       phoneNumber: '+639171234567',
       privacyNoticeAcceptedAt: DateTime(2026, 10, 8),
+      fullName: 'Language Tester',
+      barangay: 'Kingking',
     );
 
     await tester.pumpWidget(

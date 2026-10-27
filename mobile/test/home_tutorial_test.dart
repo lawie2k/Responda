@@ -22,6 +22,8 @@ void main() {
     await controller.completePhoneVerification(
       phoneNumber: '+639171234567',
       privacyNoticeAcceptedAt: DateTime(2026, 10, 8),
+      fullName: 'Tutorial Tester',
+      barangay: 'Kingking',
     );
     return controller;
   }

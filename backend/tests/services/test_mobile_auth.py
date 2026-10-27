@@ -306,6 +306,39 @@ def test_session_rechecks_account_and_session(mobile_database, state):
     asyncio.run(exercise())
 
 
+def test_suspended_revoked_token_only_discloses_restriction_and_never_revives(mobile_database):
+    service, db = mobile_database
+
+    async def exercise():
+        result = await login(service)
+        user = db.scalar(select(User))
+        session = db.scalar(select(AuthSession))
+        user.is_active = False
+        session.revoked_at = datetime.now(UTC)
+        db.commit()
+        with pytest.raises(ApplicationError) as caught:
+            await service.profile(result.access_token)
+        assert caught.value.code == "account_suspended"
+        assert caught.value.status_code == 403
+        assert caught.value.details is None
+
+        user.is_active = True
+        db.commit()
+        with pytest.raises(ApplicationError) as caught:
+            await service.profile(result.access_token)
+        assert caught.value.code == "mobile_session_invalid"
+        assert caught.value.status_code == 401
+
+        user.is_active = False
+        session.expires_at = datetime.now(UTC) - timedelta(seconds=1)
+        db.commit()
+        with pytest.raises(ApplicationError) as caught:
+            await service.profile(result.access_token)
+        assert caught.value.status_code == 401
+
+    asyncio.run(exercise())
+
+
 def test_disabled_delivery_and_missing_consent(mobile_database):
     service, db = mobile_database
     service.settings.mobile_dev_otp_enabled = False

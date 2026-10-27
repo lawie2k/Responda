@@ -66,6 +66,33 @@ Only a recognized accepted/duplicate/rejected server acknowledgement removes an
 item; malformed successful responses do not discard reports. Counters contain no
 sender numbers, report text or credentials.
 
+For a local USB test, an Android gateway configured with `http://127.0.0.1:8000`
+needs `adb reverse tcp:8000 tcp:8000` on the development laptop. Without that
+tunnel, localhost points at the Android phone and reports remain queued.
+
+Automatic restoration is installed on the current Mac. To install it again from
+the monorepo root, replace `GATEWAY_ADB_SERIAL` with the gateway shown by
+`adb devices -l`:
+
+```sh
+python3 scripts/gateway-usb-forwarding.py install --device GATEWAY_ADB_SERIAL
+```
+
+The macOS user LaunchAgent `com.responda.gateway-usb` starts at login and checks
+every ten seconds. It restores only port 8000 for the selected authorized USB
+device, skips disconnected phones, and leaves other ports/devices alone. It
+does not start the backend. Connection-only logs are in `~/Library/Logs/Responda/`.
+To stop it persistently:
+
+```sh
+launchctl disable "gui/$(id -u)/com.responda.gateway-usb"
+launchctl bootout "gui/$(id -u)/com.responda.gateway-usb"
+```
+
+This setup requires the cable, an awake logged-in Mac, ADB authorization and the
+running backend. An untethered gateway must use a reachable LAN or deployed
+origin. Do not clear a pending queue to change its backend.
+
 ## Prepare the citizen app
 
 1. Install/rebuild the updated Flutter app on the reporting phone. Verify the

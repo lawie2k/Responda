@@ -2,10 +2,89 @@
 tags:
   - responda/memory
   - responda/work-log
-updated: 2026-10-26
+updated: 2026-10-28
 ---
 
 # Work log
+
+## 2026-10-28 — Save mobile account and SMS gateway checkpoint
+
+- Saved required name/barangay onboarding, localized suspended-account handling,
+  backend suspension responses, authoritative connectivity checks with foreground
+  retry, the stable local iPhone backend origin, successful real SMS ingestion,
+  and the installed automatic Mac USB forwarding helper plus operating instructions.
+- Prior feature verification: backend Ruff/mypy and 379 tests, Flutter analysis
+  and 101 tests with one beta-only skip, signed iOS build/install, accepted gateway
+  receipts and USB mapping recovery. At save, all 20 changed mobile source/test/docs
+  files match the Documents copy; memory and diff checks passed. Component graphs
+  were already refreshed after their source changes. Physical reconnect, account
+  suspension/restoration and complete tracking walkthroughs remain pending.
+
+## 2026-10-27 — Automate gateway USB forwarding on the Mac
+
+- Added the standard-library USB route helper and installed its macOS user
+  LaunchAgent with login startup and a ten-second interval. It targets only the
+  selected authorized USB phone and port 8000; device selection remains local.
+- Verified Python compilation, an absent-device no-op, and actual recovery of a
+  deliberately removed mapping after 9.5 seconds. Android then reached healthy
+  backend/database status, and the LaunchAgent exited successfully without errors.
+  Physical cable reconnection testing remains pending. Documented installation,
+  disabling, logs and the requirement for an awake Mac and running backend.
+
+## 2026-10-27 — Recover another gateway report after USB reconnect
+
+- A follow-up SMS was queued successfully, but the Android USB transport had
+  reconnected and its reverse port mapping was gone. Restored the mapping and
+  retried the existing gateway job. Backend and device counters confirm three
+  accepted SMS reports total and an empty queue; no SMS was resent by the agent.
+- The app is active and background execution is allowed. Receipt was not blocked
+  by the screen state; the observed failure was the lost USB backend route.
+  Untethered LAN/deployed gateway connectivity remains the next reliability step.
+
+## 2026-10-27 — Deliver the first gateway SMS to Live Reports
+
+- Found the enabled Android gateway had SMS permission and one queued message,
+  but its localhost origin lacked USB forwarding. Added the ADB reverse mapping
+  for backend port 8000 and retried its existing WorkManager job without
+  resending or changing the signed message, token, backend origin or queue.
+- Verified the backend from Android, one accepted gateway receipt, one new/pending
+  report through the Live Reports listing service, an Accepted counter of one,
+  and an empty gateway queue. Documented that this local setup requires USB and
+  the reverse mapping after reconnection; untethered testing remains pending.
+
+## 2026-10-27 — Fix iPhone offline detection and changing USB address
+
+- Rebuilt/installed against the Mac's stable Bonjour hostname after the previous
+  USB IP changed. Direct iPhone Safari access verified the local route; the user
+  subsequently confirmed the app is online. Backend health now takes precedence
+  over iOS internet-path flags and refreshes every 15 foreground seconds.
+- Flutter analysis and 101 tests passed with one beta-only skip. Added regression
+  checks for wired reachability, stale responses and automatic recovery, synced
+  the Documents build copy, and refreshed Graphify mobile. Project memory updated.
+
+## 2026-10-27 — Diagnose iPhone Messages handoff
+
+- Opened native Messages and RESPONDA successfully on the connected iPhone;
+  the earlier developer-trust launch error is resolved. No messages were sent.
+- Read-only backend checks found one active gateway, no recorded gateway
+  connection and zero active citizen SMS installations. The reporting flow
+  requires signed-SMS setup before calling Messages, so incomplete setup is the
+  likely cause of the report-not-sent screen. No source changes were needed.
+
+## 2026-10-27 — Add mobile suspended-account UI and install iPhone release
+
+- Added a localized suspension screen across all mobile routes, status recheck,
+  phone contact and sign-in recovery. Restriction persists offline, disables
+  report/SMS actions and clears SMS keys. Foreground checks run every 15 seconds
+  and on resume. Backend distinguishes suspension without authorizing revoked
+  sessions or exposing account details; restoration requires new OTP.
+- Synced mobile source/tests to the Documents build copy. Flutter analysis and
+  98 tests passed with one beta-only skip; backend lint, mypy and 379 tests passed.
+  Backend/mobile Graphify graphs were refreshed. Signed iOS release built and
+  installed successfully on the paired phone using the reachable wired backend.
+- Launch remains blocked by iOS signing/trust security. Local signature check
+  passed; profile includes the device and is unexpired. Manual developer-app
+  trust/verification and a real suspension/restore walkthrough remain pending.
 
 ## 2026-10-26 — Save dashboard and administrator account checkpoint
 
@@ -1111,6 +1190,15 @@ conversation.
 - Synced the edited page to the WebStorm mirror.
 - Verification: web lint and production build passed; Graphify web refresh and
   `git diff --check` passed. The existing Vite bundle-size advisory remains.
+
+## 2026-10-26 — Require account name and barangay in mobile onboarding
+
+- Changed standard OTP and beta onboarding to require a non-empty name and a
+  selected Pantukan barangay. Added matching validation in the account
+  controller, updated privacy/onboarding copy and Tagalog/Bisaya translations,
+  and recorded the requirement in Obsidian project decisions.
+- Verification: `flutter analyze` and the complete Flutter test suite passed;
+  Graphify mobile refresh and project-memory checks passed.
 
 ## 2026-10-26 — Consolidate admin Settings tabs
 

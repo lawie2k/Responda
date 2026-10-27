@@ -39,8 +39,8 @@ class _PrivacyNoticeScreenState extends State<PrivacyNoticeScreen> {
         ),
         const IdentityInfoCard(
           icon: Icons.person_outline_rounded,
-          title: 'Basic details are optional',
-          message: 'You may add your name and barangay, but you can skip them and still report an emergency.',
+          title: 'Basic details are required',
+          message: 'Your name and barangay help responders recognize your account and reports.',
         ),
         const IdentityInfoCard(
           icon: Icons.emergency_outlined,

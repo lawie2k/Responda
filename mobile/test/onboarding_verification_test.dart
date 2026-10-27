@@ -24,58 +24,64 @@ void main() {
 
   final privacyAcceptedAt = DateTime(2026, 10, 8, 9, 30);
 
-  testWidgets(
-    'skip OTP entry uses the development code and continues to optional profile',
-    (tester) async {
-      await setPhoneSize(tester);
-      final tokens = MemoryTokenStore();
-      final api = FakeMobileAccountApi();
-      final controller = AccountController(
-        store: _MemoryAccountStore(),
-        api: api,
-        tokenStore: tokens,
-      );
-      addTearDown(controller.dispose);
-      await controller.load();
-      await controller.sendCode('+639171234567');
-      await tester.pumpWidget(
-        AccountScope(
-          controller: controller,
-          child: MaterialApp(
-            home: OtpVerificationScreen(
-              phoneNumber: '+639171234567',
-              otpService: controller,
-              privacyNoticeAcceptedAt: privacyAcceptedAt,
-            ),
-            routes: {AppRoutes.home: (_) => const _HomeMarker()},
+  testWidgets('beta OTP setup requires both name and barangay', (tester) async {
+    await setPhoneSize(tester);
+    final tokens = MemoryTokenStore();
+    final api = FakeMobileAccountApi();
+    final controller = AccountController(
+      store: _MemoryAccountStore(),
+      api: api,
+      tokenStore: tokens,
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+    await controller.sendCode('+639171234567');
+    await tester.pumpWidget(
+      AccountScope(
+        controller: controller,
+        child: MaterialApp(
+          home: OtpVerificationScreen(
+            phoneNumber: '+639171234567',
+            otpService: controller,
+            privacyNoticeAcceptedAt: privacyAcceptedAt,
           ),
+          routes: {AppRoutes.home: (_) => const _HomeMarker()},
         ),
-      );
-      await tester.pumpAndSettle();
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key('skip_otp_verification')));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('skip_otp_verification')));
+    await tester.pumpAndSettle();
 
-      expect(find.text('Optional account details'), findsOneWidget);
-      expect(find.byType(_HomeMarker), findsNothing);
-      expect(api.verifiedCode, '123456');
-      expect(controller.hasAccount, isTrue);
-      expect(controller.profile?.status, AccountVerificationStatus.verified);
-      expect(await tokens.read(), isNotNull);
+    expect(find.text('Account details'), findsOneWidget);
+    expect(find.byType(_HomeMarker), findsNothing);
+    expect(api.verifiedCode, '123456');
+    expect(controller.hasAccount, isTrue);
+    expect(controller.profile?.status, AccountVerificationStatus.verified);
+    expect(await tokens.read(), isNotNull);
 
-      await tester.enterText(
-        find.byKey(const Key('optional_profile_name_field')),
-        'Beta Tester',
-      );
-      final finish = find.byKey(const Key('finish_account_setup_button'));
-      await tester.ensureVisible(finish);
-      await tester.tap(finish);
-      await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('optional_profile_name_field')),
+      'Beta Tester',
+    );
+    final finish = find.byKey(const Key('finish_account_setup_button'));
+    await tester.ensureVisible(finish);
+    await tester.tap(finish);
+    await tester.pumpAndSettle();
+    expect(find.text('Select your barangay.'), findsOneWidget);
 
-      expect(find.text('Phone verified'), findsOneWidget);
-      expect(api.fullName, 'Beta Tester');
-    },
-  );
+    await tester.tap(find.byKey(const Key('optional_profile_barangay_field')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kingking').last);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(finish);
+    await tester.tap(finish);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Phone verified'), findsOneWidget);
+    expect(api.fullName, 'Beta Tester');
+  });
 
   testWidgets('phone entry keeps verification required', (tester) async {
     await setPhoneSize(tester);
@@ -91,7 +97,7 @@ void main() {
   });
 
   test(
-    'account profile persists phone verification and optional details',
+    'account profile persists phone verification and required details',
     () async {
       final store = _MemoryAccountStore();
       final api = FakeMobileAccountApi();
@@ -178,12 +184,17 @@ void main() {
     await tester.tap(find.byKey(const Key('verify_identity_otp_button')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Optional account details'), findsOneWidget);
-    expect(find.text('Name (optional)'), findsOneWidget);
-    expect(find.text('Enter your full name'), findsNothing);
+    expect(find.text('Account details'), findsOneWidget);
+    expect(find.text('Name'), findsOneWidget);
+    expect(find.text('Barangay'), findsOneWidget);
     expect(find.text('Upload a valid ID'), findsNothing);
     expect(find.text('Take a face photo'), findsNothing);
-    expect(find.text('Skip for now'), findsOneWidget);
+    final finish = find.byKey(const Key('finish_account_setup_button'));
+    await tester.ensureVisible(finish);
+    await tester.tap(finish);
+    await tester.pumpAndSettle();
+    expect(find.text('Enter your full name.'), findsOneWidget);
+    expect(find.text('Select your barangay.'), findsOneWidget);
     await tester.enterText(
       find.byKey(const Key('optional_profile_name_field')),
       'Juan Dela Cruz',
@@ -194,8 +205,6 @@ void main() {
     await tester.tap(find.text('Kingking').last);
     await tester.pumpAndSettle();
     expect(find.text('Save and continue'), findsOneWidget);
-    expect(find.text('Skip for now'), findsNothing);
-    final finish = find.byKey(const Key('finish_account_setup_button'));
     await tester.ensureVisible(finish);
     await tester.tap(finish);
     await tester.pumpAndSettle();

@@ -186,6 +186,8 @@ class MobileAuthService:
             user.deleted_at is not None or not user.is_active or user.role != "reporter"
         ):
             await self.db.commit()
+            if user.deleted_at is None and user.role == "reporter" and not user.is_active:
+                raise self.suspended_error()
             raise ApplicationError(
                 "This account cannot sign in. Contact the municipal office.",
                 code="account_unavailable",
@@ -235,6 +237,14 @@ class MobileAuthService:
             user=MobileUser.model_validate(user), expires_at=session.expires_at, access_token=token
         )
 
+    @staticmethod
+    def suspended_error() -> ApplicationError:
+        return ApplicationError(
+            "Your account is suspended. Contact MDRRMO for assistance.",
+            code="account_suspended",
+            status_code=403,
+        )
+
     async def authenticate(self, token: str | None) -> tuple[User, AuthSession]:
         error = ApplicationError(
             "Sign in with your phone number.", code="mobile_session_invalid", status_code=401
@@ -258,10 +268,8 @@ class MobileAuthService:
                 )
                 .where(
                     AuthSession.refresh_token_hash == hash_session_token(token),
-                    AuthSession.revoked_at.is_(None),
                     AuthSession.expires_at > datetime.now(UTC),
                     User.role == "reporter",
-                    User.is_active.is_(True),
                     User.deleted_at.is_(None),
                     identity_check,
                     User.privacy_notice_accepted_at.is_not(None),
@@ -271,6 +279,12 @@ class MobileAuthService:
             )
         ).one_or_none()
         if row is None:
+            raise error
+        # A known unexpired token may disclose suspension, but grants no access.
+        # Restoration still requires a fresh login because sessions stay revoked.
+        if not row[0].is_active:
+            raise self.suspended_error()
+        if row[1].revoked_at is not None:
             raise error
         return row[0], row[1]
 

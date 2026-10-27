@@ -115,17 +115,23 @@ class MobileAccountApi {
     })().timeout(const Duration(seconds: 10));
     if (response.statusCode < 200 || response.statusCode >= 300) {
       String message = 'Unable to connect. Please try again.';
+      String? code;
       try {
         final decoded = jsonDecode(response.body);
         if (decoded is Map &&
             decoded['error'] is Map &&
             decoded['error']['message'] is String) {
           message = decoded['error']['message'] as String;
+          code = decoded['error']['code'] as String?;
         }
       } catch (_) {
         /* Keep the safe fallback for non-JSON server errors. */
       }
-      throw RespondaApiException(message, statusCode: response.statusCode);
+      throw RespondaApiException(
+        message,
+        statusCode: response.statusCode,
+        code: code,
+      );
     }
     if (response.statusCode == 204) return {};
     return Map<String, dynamic>.from(jsonDecode(response.body) as Map);

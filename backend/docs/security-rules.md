@@ -61,6 +61,12 @@ VA101 to FastAPI and PostgreSQL; VA101's Next.js code is a reference, not code t
   them. Logout revokes the server session before clearing local state. Account
   suspension immediately rejects further API access; Flutter rechecks on resume.
   Cached unexpired identity supports offline UI only and grants no API authority.
+- A known unexpired mobile token for an undeleted suspended reporter receives
+  only `account_suspended` (403), including tokens revoked by suspension. This
+  grants no protected access and reveals no suspension reason or profile data.
+  Unknown, expired, deleted-account and restored-but-revoked tokens still receive
+  the generic 401. Restoration requires a new OTP login. Mobile caches the
+  restriction, clears SMS keys, and checks on resume and every 15 foreground seconds.
 - Mobile account endpoints use no-store responses and safe validation errors
   that do not echo phone numbers or OTPs. Profile fields are optional, bounded,
   and barangay values come from the Pantukan list. Audits contain account IDs and

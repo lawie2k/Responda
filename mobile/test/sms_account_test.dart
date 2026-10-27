@@ -179,7 +179,11 @@ void main() {
       smsKeyStore: _Keys(),
     );
     addTearDown(account.dispose);
-    await account.completeBetaProfile(privacyNoticeAcceptedAt: DateTime.now());
+    await account.completeBetaProfile(
+      privacyNoticeAcceptedAt: DateTime.now(),
+      fullName: 'SMS Tester',
+      barangay: 'Kingking',
+    );
     await expectLater(account.enableOfflineSms(), throwsException);
     await expectLater(account.saveSignedOfflineReport(draft), throwsException);
     expect(api.calls, isEmpty);

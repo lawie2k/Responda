@@ -2,7 +2,7 @@
 tags:
   - responda/memory
   - responda/status
-updated: 2026-10-26
+updated: 2026-10-28
 ---
 
 # Current state
@@ -101,8 +101,8 @@ updated: 2026-10-26
   audit in one transaction. It validates payloads, limits submissions by
   account/IP, and uses the client UUID for retry-safe creation. The existing
   dashboard Live Reports API already includes these `app_api` rows; no migration
-  was required. Gateway backend ingestion now exists; client wiring and reporter
-  notifications remain pending.
+  was required. Gateway ingestion and client delivery are verified locally;
+  reporter notifications remain pending.
 - Authenticated `GET /api/v1/mobile/reports` and report-detail reads now expose
   only the signed-in citizen's undeleted reports, with capped pagination,
   Active/Completed filters, active totals, current review/incident status, and
@@ -297,6 +297,16 @@ updated: 2026-10-26
 ## Mobile app
 
 - The active mobile codebase is Flutter, not React Native.
+- Suspended citizens now see a dedicated localized screen across all routes,
+  with status recheck, phone contact, and return-to-sign-in actions. Suspension
+  is cached for offline restarts, blocks reporting and SMS signing, and clears
+  local SMS keys. Account status refreshes on resume and every 15 foreground
+  seconds. Backend returns only `account_suspended` for known unexpired tokens
+  belonging to suspended reporters, including revoked tokens; restoration keeps
+  sessions revoked and requires fresh OTP. Physical suspension/restore walkthrough
+  remains pending. The signed release was built and installed on the paired
+  iPhone on 2026-10-27. The initial signing/trust launch error is resolved;
+  subsequent device launch succeeded during SMS diagnosis.
 - The user-selected iPhone build copy is `/Users/lawie/local Documents/Responda/mobile`;
   the tracked Git source remains `/Users/lawie/develop/responda/mobile`. They now
   match for application code; the Documents copy has no Git metadata and its
@@ -311,29 +321,32 @@ updated: 2026-10-26
   remains pending. Online/Offline
   shell selection is determined independently by device connectivity and backend
   health.
-- The citizen-account flow now connects privacy acknowledgement, phone OTP,
-  optional name/barangay, session restoration, and sign-out to the backend.
+- The citizen-account flow connects privacy acknowledgement, phone OTP,
+  required name/barangay, session restoration, and sign-out to the backend.
   Local development shows the backend-generated test code; it sends no SMS.
   The separate beta registration is explicitly opt-in on both app and backend.
   Tokens use `flutter_secure_storage` with native platform configuration;
   preferences retain only profile/expiry for offline UI, never tokens. Resume
   rechecks the session. Old local profiles without a real token must verify again.
   Retired ID/face screens, media-picker reference, and prototype code were removed
-  (recoverable from Git). The optional profile form preserves recovered details.
+  (recoverable from Git). The account-details form requires a name and a
+  Pantukan barangay for both OTP and beta setup, and preserves recovered details.
   The phone-entry screen now shows the remaining backend-provided OTP cooldown
   when returning from code entry and disables another request for that number.
-  Optional profile name uses a fixed label without placeholder text, and the
-  successful phone-verification screen omits the obsolete ID/face card. The
+  Account name uses a fixed label without placeholder text, and the successful
+  phone-verification screen omits the obsolete ID/face card. The
   Emergency Info tab no longer shows offline availability badges/cards. These
   UI changes are synchronized to the Documents build copy; the signed release
   was rebuilt with the active wired backend address and installed/launched on
   the paired iPhone on 2026-10-25.
 - It has a backend health client and environment-aware base URLs, including the
-  Android emulator host address. On the current iPhone/Mac pair, Wi-Fi access
-  was blocked despite matching subnet/router settings; the app reached the
-  backend over the wired device link when built with the Mac-side USB interface
-  address. That address is dynamic; check `ipconfig getifaddr en8` before a
-  wired build.
+  Android emulator host address. The old iPhone build used a USB interface IP
+  that changed after reconnecting. The Mac's Bonjour `.local` hostname was
+  reached directly from iPhone Safari and replaces that dynamic IP for local
+  development builds. Health checks now run even when iOS reports no internet
+  path; actual backend health determines online mode. Foreground refresh runs
+  every 15 seconds as well as on resume and network changes. The rebuilt release
+  is installed and the user confirmed online mode on the physical iPhone.
 - Online report submission now uses the verified mobile bearer session and the
   protected report-creation endpoint. It stores the server report UUID and
   receipt time locally only after success, retains the client idempotency UUID
@@ -371,11 +384,27 @@ updated: 2026-10-26
   acknowledgements. Native permission checks deny receiving until enabled.
 - Canonical and Documents mobile source copies match. Both Android debug APKs
   were built from the Documents folder; citizen APK permissions exclude SMS receipt.
-  Setup/test guide: mobile/docs/sms-testing.md. The Android phone was not connected,
-  so neither installation nor real multipart/SIM delivery was performed. The
-  existing iPhone installation still predates SMS signing. Notifications remain pending.
+  Setup/test guide: mobile/docs/sms-testing.md. The current iPhone release includes
+  SMS signing. On 2026-10-27, citizen SMS setup was completed and a real SMS was
+  received and queued by the connected Android gateway. Its localhost backend
+  lacked USB forwarding. Adding `adb reverse tcp:8000 tcp:8000` and retrying the
+  worker delivered the queued message: one accepted SMS receipt, an empty gateway
+  queue, and a new/pending SMS report in the Live Reports service. This local
+  gateway setup depends on the USB tunnel. The Mac now has a user LaunchAgent
+  that checks the selected authorized USB gateway every ten seconds and restores
+  its port 8000 mapping automatically. Simulated mapping loss recovered in 9.5
+  seconds and Android backend health passed. Untethered operation remains pending.
+  Notifications remain pending.
 
 ## Verification history
+
+- The 2026-10-28 mobile/gateway checkpoint preserves backend Ruff, strict mypy
+  and 379 passing tests, Flutter analysis and 101 passing tests with one beta-only
+  skip, and successful signed iPhone installation. The user confirmed online mode.
+  Three real gateway reports were accepted; automatic USB mapping recovery was
+  verified in 9.5 seconds with Android backend health passing. The Documents
+  mobile source/test/docs mirror matches. Physical cable reconnection, full
+  citizen tracking and suspension/restoration walkthroughs remain pending.
 
 - Citizen tracking passed backend Ruff, strict mypy and 325 tests, Flutter
   analysis and 87 normal-mode tests (one beta-only test skipped), plus both

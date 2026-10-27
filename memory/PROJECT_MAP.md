@@ -2,7 +2,7 @@
 tags:
   - responda/memory
   - responda/code-map
-updated: 2026-10-25
+updated: 2026-10-27
 ---
 
 # Project map
@@ -91,8 +91,27 @@ flutter run
 ```
 
 The Android emulator uses `http://10.0.2.2:8000` for a backend running on the
-development laptop. A physical phone needs the laptop's LAN address and
-`make run-mobile` on the backend.
+development laptop. Physical phones need a reachable laptop origin and
+`make run-mobile` on the backend. For the paired iPhone, Bonjour avoids changing
+USB interface IPs:
+
+```bash
+flutter build ios --release --dart-define="RESPONDA_API_BASE_URL=http://$(scutil --get LocalHostName).local:8000"
+```
+
+For the connected Android gateway's local USB test, its `localhost:8000`
+configuration reaches the laptop only while this tunnel is active:
+
+```bash
+adb reverse tcp:8000 tcp:8000
+```
+
+The current Mac automatically restores this mapping every ten seconds through
+the user LaunchAgent `com.responda.gateway-usb`. Reinstall from the monorepo root
+with `python3 scripts/gateway-usb-forwarding.py install --device GATEWAY_ADB_SERIAL`.
+The device selection stays in the local LaunchAgent plist, not project memory.
+Untethered operation needs a reachable LAN/deployed origin; preserve pending
+queues when changing configuration.
 
 ## Graph maintenance
 
