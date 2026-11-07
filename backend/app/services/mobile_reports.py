@@ -145,6 +145,7 @@ class MobileReportService:
                         ResponseAssignment.incident_id,
                         func.min(ResponseAssignment.assigned_at),
                         func.min(ResponseAssignment.responding_at),
+                        func.min(ResponseAssignment.on_site_at),
                     )
                     .join(ResponseUnit, ResponseUnit.unit_id == ResponseAssignment.unit_id)
                     .where(
@@ -159,7 +160,7 @@ class MobileReportService:
             if incident_ids
             else []
         )
-        assignment_times = {row[0]: (row[1], row[2]) for row in assignments}
+        assignment_times = {row[0]: (row[1], row[2], row[3]) for row in assignments}
         items = []
         for report, incident_type, location, incident in rows:
             status: TrackingStatus = "for_verification"
@@ -172,17 +173,19 @@ class MobileReportService:
             elif report.verification_status == "verified":
                 status = "for_dispatch"
             if incident is not None:
-                assigned_at, responding_at = assignment_times.get(
-                    incident.incident_id, (None, None)
+                assigned_at, responding_at, on_site_at = assignment_times.get(
+                    incident.incident_id, (None, None, None)
                 )
                 if assigned_at is not None:
                     times["team_assigned"] = assigned_at
                 if responding_at is not None:
                     times["responding"] = responding_at
+                if on_site_at is not None:
+                    times["on_site"] = on_site_at
                 if incident.status == "dispatched":
                     status = "team_assigned"
                 elif incident.status == "responding":
-                    status = "responding"
+                    status = "on_site" if on_site_at is not None else "responding"
                 elif incident.status == "resolved":
                     status = "resolved"
                     if incident.resolved_at is not None:

@@ -65,6 +65,7 @@ TrackingStatus = Literal[
     "for_dispatch",
     "team_assigned",
     "responding",
+    "on_site",
     "resolved",
     "closed",
 ]

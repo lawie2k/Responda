@@ -93,7 +93,7 @@ export function useActiveAdminAssignments() {
         data: lists
           .flatMap((list) => list.items)
           .filter((assignment) =>
-            ["assigned", "acknowledged", "responding"].includes(
+            ["assigned", "acknowledged", "responding", "on_site"].includes(
               assignment.status,
             ),
           ),

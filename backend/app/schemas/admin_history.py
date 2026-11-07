@@ -63,6 +63,7 @@ class HistoricalAssignment(BaseModel):
     status: AssignmentStatusValue
     assigned_at: datetime
     acknowledged_at: datetime | None
+    on_site_at: datetime | None = None
     responding_at: datetime | None
     completed_at: datetime | None
     cancelled_at: datetime | None

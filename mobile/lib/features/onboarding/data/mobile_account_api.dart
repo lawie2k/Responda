@@ -58,6 +58,22 @@ class MobileAccountApi {
     );
   }
 
+  Future<Map<String, dynamic>> uploadReportPhoto({
+    required String token,
+    required String reportId,
+    required List<int> bytes,
+    required String contentType,
+  }) => _request(
+    ApiConfig.endpoint(
+      '/api/v1/mobile/reports/$reportId/photo',
+      overrideBaseUrl: baseUrl,
+    ),
+    method: 'POST',
+    token: token,
+    bytes: bytes,
+    contentType: contentType,
+  );
+
   Future<Map<String, dynamic>> smsDevice(
     String deviceId, {
     required String token,
@@ -102,14 +118,20 @@ class MobileAccountApi {
     required String method,
     String? token,
     Map<String, Object?>? body,
+    List<int>? bytes,
+    String contentType = 'application/json',
   }) async {
     final request = http.Request(method, uri);
     request.headers.addAll({
       'Accept': 'application/json',
-      'Content-Type': 'application/json',
+      'Content-Type': contentType,
     });
     if (token != null) request.headers['Authorization'] = 'Bearer $token';
-    if (body != null) request.body = jsonEncode(body);
+    if (bytes != null) {
+      request.bodyBytes = bytes;
+    } else if (body != null) {
+      request.body = jsonEncode(body);
+    }
     final response = await (() async {
       return http.Response.fromStream(await _client.send(request));
     })().timeout(const Duration(seconds: 10));

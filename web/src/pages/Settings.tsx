@@ -236,9 +236,9 @@ function StaffSettings({ tab }: { tab: "staff" | "rules" }) {
         <ul className="m-0 grid gap-3 pl-4 text-[11px] leading-relaxed text-muted">
           <li>Super Admins manage normal Administrator accounts. Both administrator tiers handle reports, validation, incidents, and response teams.</li>
           <li>Verified reports require staff notes and a final priority. Review checklists are optional.</li>
-          <li>Response teams are assigned to incidents. Administrators record acknowledgment, responding, and completion.</li>
+          <li>Response teams are assigned to incidents. Administrators record acknowledgment, responding, On Site arrival, and completion.</li>
           <li>Operational records use soft deletion. Audit and processing history are retained. Automated retention deletion is not configured.</li>
-          <li>Mobile OTP, report submission, SMS ingestion, and advisory ML integration are pending implementation.</li>
+          <li>Mobile reporting and signed SMS intake are connected. Production OTP delivery and advisory ML integration remain pending.</li>
         </ul>
       </Card>
     </>}

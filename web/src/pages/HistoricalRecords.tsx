@@ -147,7 +147,7 @@ function RecordDetails({ record }: { record: HistoricalIncident }) {
                     <dl className="mb-0 mt-3 grid gap-2 text-[9px] [&>div]:flex [&>div]:justify-between [&>div]:gap-3 [&_dt]:text-muted [&_dd]:m-0 [&_dd]:text-right">
                       {([
                         ["Assigned", assignment.assigned_at], ["Acknowledged", assignment.acknowledged_at],
-                        ["Responding", assignment.responding_at], ["Completed", assignment.completed_at],
+                        ["Responding", assignment.responding_at], ["On Site", assignment.on_site_at], ["Completed", assignment.completed_at],
                         ["Cancelled", assignment.cancelled_at],
                       ] as const).filter(([, value]) => value !== null).map(([label, value]) => (
                         <div key={label}><dt>{label}</dt><dd>{formatDate(value)}</dd></div>

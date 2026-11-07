@@ -390,6 +390,7 @@ class AdminHistoryService:
                         assigned_at=a.assigned_at,
                         acknowledged_at=a.acknowledged_at,
                         responding_at=a.responding_at,
+                        on_site_at=a.on_site_at,
                         completed_at=a.completed_at,
                         cancelled_at=a.cancelled_at,
                     )

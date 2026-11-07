@@ -41,6 +41,7 @@ const assignmentStatusMeta: Record<
   assigned: { label: "ASSIGNED", tone: "blue" },
   acknowledged: { label: "ACKNOWLEDGED", tone: "blue" },
   responding: { label: "RESPONDING", tone: "maroon" },
+  on_site: { label: "ON SITE", tone: "maroon" },
   completed: { label: "COMPLETED", tone: "green" },
   cancelled: { label: "CANCELLED", tone: "amber" },
 };
@@ -522,7 +523,7 @@ export function ResponseTeams({ role }: { role: AdminUser["role"] }) {
       {editor && (
         <div
           aria-modal="true"
-          className="fixed inset-0 z-[120] grid place-items-center bg-[#23090f7a] p-5 backdrop-blur"
+          className="fixed inset-0 z-[100] grid place-items-center bg-[#23090f7a] p-5 backdrop-blur"
           onMouseDown={closeEditor}
           role="dialog"
         >

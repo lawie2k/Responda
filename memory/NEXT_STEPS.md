@@ -2,10 +2,18 @@
 tags:
   - responda/memory
   - responda/planning
-updated: 2026-10-27
+updated: 2026-11-05
 ---
 
 # Next steps
+
+2026-11-05 non-ML web scope is implemented; deployment is explicitly skipped.
+Next: run web/docs/non-ml-acceptance.md with MDRRMO and the physical citizen phone.
+Rebuild the phone from the synchronized source; opt in to background browser
+alerts and test actual delivery/notification clicks, logout expiry, correction
+conflicts, photo upload/retry/viewing, and On Site through final completion.
+Keep the API running for push delivery. Confirm photo retention and schedule the
+purge CLI before any later deployment. ML remains outside this implementation.
 
 The gateway SIM phone and citizen SMS installation are configured. The first
 real SMS reached the backend and Live Reports after enabling the Android USB
@@ -46,5 +54,5 @@ verified in the browser.
    editable organization details, notification delivery, and retention controls.
 
 Before later phases, confirm attachment retention, the Android forwarding app
-deployment/distribution approach, and the exact ML model. Online submission blocks reports with photos
-until attachment storage/retention is agreed.
+deployment/distribution approach, and the exact ML model. Online photo uploads
+now use the private bounded storage flow; institutional retention still needs confirmation.

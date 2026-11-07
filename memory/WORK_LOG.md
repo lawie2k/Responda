@@ -2,10 +2,26 @@
 tags:
   - responda/memory
   - responda/work-log
-updated: 2026-10-28
+updated: 2026-11-05
 ---
 
 # Work log
+
+## 2026-11-04 — Audit system progress against both capstone manuscripts
+
+- Compared canonical memory, Graphify and current backend/web/mobile source
+  against both revised manuscripts and inspected the outline-defense minutes.
+- Recorded an estimated 80–85% core reporting prototype and approximately 50%
+  full manuscript scope, with an explicit rubric and remaining ML/data, spatial
+  analysis, photos, notifications, synchronization, deployment and evaluation gaps.
+- Identified manuscript/implementation differences in report fields, categories,
+  technology choices, correction workflows, lifecycle and priority-model wording.
+- Corrected outdated architecture statements about SMS, schema size, location
+  storage and notification delivery; linked the audit in the memory index.
+- Verification: backend Ruff/mypy and 379 tests, web lint/build, Flutter analysis
+  and 101 tests passed with one beta-only skip. Web retains its bundle warning.
+  No fresh physical-device/SIM, browser, live-database or deployment test was run.
+  Application source and Graphify were unchanged; memory validation passed.
 
 ## 2026-10-28 — Save mobile account and SMS gateway checkpoint
 
@@ -1234,3 +1250,113 @@ conversation.
   WebStorm mirror.
 - Verification: web lint and production build passed; Graphify web refresh and
   `git diff --check` passed. The existing Vite bundle-size advisory remains.
+
+## 2026-11-05 — Complete non-ML operational dashboard expansion
+
+- Added date/category-filtered SQL density aggregation, linked-report
+  deduplication, a canvas heatmap and deterministic recurring-hotspot planning
+  suggestions. Staff review is required; no ML implementation was added.
+- Added authenticated, versioned location/category corrections with original
+  evidence in protected history, generic audits and linked-category safeguards.
+- Replaced sample alerts with real recent-report reads, persisted per-account
+  receipts and opt-in background Web Push. Added provider endpoint validation,
+  session-bound subscriptions, retry cursors, service-worker clicks and private
+  local VAPID setup. Local push configuration is enabled; keys remain ignored.
+- Added bounded owned JPEG/PNG uploads, metadata stripping, private staff photo
+  reads, retry deduplication, 30-day configurable access expiry and a purge CLI.
+  Daily physical purge scheduling remains a future deployment task.
+- Added On Site assignment arrival, active-unit uniqueness, history and citizen
+  milestones, including Tagalog/Bisaya text. Applied both local migrations.
+- Verification: backend Ruff/strict mypy and 398 tests passed; web lint/build
+  passed (existing bundle-size advisory); Flutter analysis passed and 103 tests
+  passed with one existing skipped test. PostgreSQL rehearsal passed for
+  aggregation/correction/arrival/photo retry/alert receipts; synthetic records
+  were rolled back and temporary photos removed. Graphify all refresh passed.
+- Synchronized web/mobile source and acceptance instructions to Documents
+  copies. Actual browser push permission/delivery and physical-device testing
+  remain pending; no phone binary was rebuilt. Browser inspection could not run
+  because the local dashboard dev server was stopped. The acceptance checklist
+  is web/docs/non-ml-acceptance.md. User explicitly skipped deployment.
+
+## 2026-11-06 — Expand Report Validation map
+
+- Moved the report location map below the two-column submitted-information and
+  review-checklist area so it spans the full review panel width. Set its height
+  to 240px and synchronized the WebStorm source copy.
+- Verification: web lint/build, Graphify web refresh and memory/diff checks.
+
+## 2026-11-06 — Float report corrections in a modal
+
+- Changed the shared correction form into a centered native dialog rendered in
+  the document body, with a backdrop, scrollable content, larger map and close
+  control. Native modal focus/Escape handling and body scroll locking prevent
+  clipping inside report panels; closing is guarded while saving.
+- Synced the WebStorm copy. Verification: web lint/build, Graphify refresh,
+  project-memory validation and diff checks.
+
+## 2026-11-06 — Place full-width correction control under report maps
+
+- Moved the shared correction control directly below the map in Report Validation
+  and Live Reports, stretched it across the panel width, and placed photo content
+  after the button. The floating correction dialog remains available.
+- Synced WebStorm sources. Verification: web lint/build, Graphify web refresh,
+  memory validation and diff checks.
+
+## 2026-11-06 — Match Submitted Information panel height
+
+- Stretched the Submitted Information surface inside its grid column to match
+  the combined right-side suggestion/checklist height. Single-column layouts
+  retain natural sizing. Synced the WebStorm page copy.
+- Verification: web lint/build, Graphify refresh, memory validation and diff checks.
+
+## 2026-11-06 — Start manual reporter phone input empty
+
+- Removed the prefilled/restored 9. The +63 local-number input now starts empty,
+  removes leading zeroes, accepts digits only and caps entry at ten digits.
+  Submission still requires a valid ten-digit Philippine mobile number starting
+  with 9. Synced the WebStorm source.
+- Verification: web lint/build, Graphify web refresh, memory and diff checks.
+
+## 2026-11-06 — Align Encode Report contact/source controls
+
+- Set both phone and Report Source controls to 40px and aligned their labels
+  to the top so the phone helper text cannot stretch the source dropdown.
+- Synced WebStorm. Verification: web lint/build, Graphify web refresh and
+  memory/diff checks.
+
+## 2026-11-06 — Remove Encode Report information box
+
+- Removed the requested Sent to Report Validation/default-priority information
+  box from Encode a Report and synchronized the WebStorm source.
+- Verification: web lint/build, Graphify refresh and memory/diff checks.
+
+## 2026-11-06 — Dismiss floating UI on dashboard navigation
+
+- Centralized navigation for sidebar, header results, notifications and page
+  shortcuts. Every navigation closes global Encode Report/search/notification
+  overlays and the mobile sidebar; page-owned overlays unmount with their page.
+- Guarded Encode Report completion/error callbacks after dismissal so a request
+  finishing during navigation cannot reopen or redirect away from the new page.
+- Synced App/ReportModal to WebStorm. Web lint and production build passed;
+  existing bundle-size advisory remains. Graphify web refresh, memory validation
+  and diff checks passed. Browser interaction was not exercised for this change.
+
+## 2026-11-06 — Keep sidebar above Register Unit backdrop
+
+- Lowered the response-unit registration/edit overlay below sidebar navigation,
+  matching Encode Report so navigation stays clear and clickable. Changing pages
+  unmounts the unit editor. Synced WebStorm.
+- Verification: web lint/build, Graphify web refresh and memory/diff checks.
+
+## 2026-11-07 — Save and push non-ML operations checkpoint
+
+- Saved heatmaps, deterministic hotspot suggestions, audited corrections, private
+  report photos, real staff alerts/browser push, On Site arrival, and subsequent
+  dashboard layout/navigation refinements across backend, web and Flutter.
+- Prior verification passed: backend check (398 tests), web lint/build, Flutter
+  analysis/tests (103 passed, one existing skip), transactional PostgreSQL
+  rehearsal, and component Graphify refreshes. Final checkpoint validates memory
+  and whitespace; private configuration and push keys remain ignored.
+- Deployment and ML remain excluded. Next: rebuild the phone and run the
+  documented MDRRMO/browser/device acceptance walkthrough, including real push
+  delivery; confirm retention and schedule cleanup before any future deployment.

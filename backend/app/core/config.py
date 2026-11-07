@@ -21,6 +21,11 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    web_push_enabled: bool = False
+    web_push_key_file: str = "./.private-webpush.pem"
+    web_push_subject: str = "mailto:admin@responda.local"
+    attachment_storage_dir: str = "./private-attachments"
+    attachment_retention_days: int = Field(default=30, ge=1, le=3650)
     app_name: str = "Responda API"
     environment: Environment = Environment.DEVELOPMENT
     debug: bool = True

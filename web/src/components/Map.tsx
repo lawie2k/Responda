@@ -9,6 +9,7 @@ import {
   TileLayer,
   Tooltip,
   useMap,
+  useMapEvents,
   ZoomControl,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -17,6 +18,14 @@ import floodHazardsUrl from "../data/gis/pantukan-flood.geojson?url";
 import landslideHazardsUrl from "../data/gis/pantukan-landslide.geojson?url";
 import stormSurgeHazardsUrl from "../data/gis/pantukan-storm-surge.geojson?url";
 import type { MapFocus, MapPoint } from "../data/mapData";
+
+import { HeatLayer } from "./HeatLayer";
+import type { HeatCell } from "../api/operations";
+
+function LocationPicker({onPick}: {onPick: (position: [number, number]) => void}) {
+  useMapEvents({click: event => onPick([event.latlng.lat, event.latlng.lng])});
+  return null;
+}
 
 const pantukan: [number, number] = [7.12682, 125.89714];
 const priorityColors: Record<MapPoint["priority"], string> = {
@@ -124,8 +133,12 @@ export function MiniMap({
   layers = [true, true, false, false, false],
   points = [],
   focus = null,
+  heatCells,
+  onLocationPick,
 }: {
   large?: boolean;
+  heatCells?: HeatCell[];
+  onLocationPick?: (position: [number, number]) => void;
   layers?: boolean[];
   points?: MapPoint[];
   focus?: MapFocus | null;
@@ -145,6 +158,8 @@ export function MiniMap({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        {heatCells && <HeatLayer cells={heatCells} />}
+        {onLocationPick && <LocationPicker onPick={onLocationPick} />}
         {(large || focus) && <MapViewportController focus={focus} />}
         {large && <ZoomControl position="bottomright" />}
         {large && layers[2] && (

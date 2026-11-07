@@ -193,3 +193,29 @@ material. HMAC proves a registered credential, not an attested app binary.
 - Run `make check` before considering backend work complete.
 - Review authentication, authorization, audit, and transaction behavior whenever a schema or role
   changes.
+
+## Spatial analysis, staff corrections and photos (2026-11-05)
+
+- Heatmaps are authenticated SQL aggregates of verified reports in bounded
+  Philippine date windows, capped at 5,000 cells. Linked duplicates count once;
+  spatial output contains cell centers/counts, never reporter identity or narratives.
+- Corrections require a trusted origin, report row lock, last-seen version,
+  finite coordinate pairs, an active category and an explanation. Linked report
+  categories cannot be changed independently. Preserve original evidence in
+  protected ReportEvent history; audit only actor, report and field names.
+- Report alerts expose only recent report references/source/timestamp. Read
+  receipts are server-persisted and scoped to the signed-in account. In-app polling is paired with opt-in background Web Push through a service worker.
+  Subscriptions are bound to active staff sessions, allow only known provider
+  hosts, retry temporary failures and stop on revoked/expired/deactivated access.
+  Private VAPID material stays outside source control; push payloads contain
+  generic text and a report reference only.
+- Photo writes require an active citizen session and report ownership, bounded
+  streamed bytes, rate limits and a report lock. Decode JPEG/PNG only, reject
+  excessive pixel counts and reencode without original metadata. Private UUID
+  paths are never returned. Only authenticated staff can read attachment bytes.
+- Default photo access retention is 30 days and configurable; purge expired files
+  with app.cli.purge_report_photos. No public storage mount or deployment scheduler
+  is configured. Photo retries are idempotent by normalized content checksum.
+- On Site is a recorded response-assignment milestone. The incident and response
+  unit remain responding until completion/cancellation. Active-unit uniqueness
+  includes on-site assignments. Historical and citizen timelines retain arrival.

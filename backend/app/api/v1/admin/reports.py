@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query, Request, Response, status
 from app.api.dependencies import (
     AdminReportServiceDependency,
     CurrentAdmin,
+    DatabaseSession,
     SettingsDependency,
     require_trusted_origin,
 )
@@ -188,4 +189,27 @@ async def review_report(
             request,
             trust_proxy_headers=bool(settings.trust_proxy_headers),
         ),
+    )
+
+
+@router.get("/{report_id}/attachments/{attachment_id}")
+async def get_photo(
+    report_id: uuid.UUID,
+    attachment_id: uuid.UUID,
+    current: CurrentAdmin,
+    settings: SettingsDependency,
+    db: DatabaseSession,
+) -> Response:
+    from app.services.report_photos import read_photo
+
+    del current
+    content = await read_photo(db, settings, report_id, attachment_id)
+    return Response(
+        content,
+        media_type="image/jpeg",
+        headers={
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+            "Content-Disposition": 'inline; filename="report-photo.jpg"',
+        },
     )

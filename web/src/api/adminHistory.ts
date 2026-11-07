@@ -68,6 +68,7 @@ export type HistoricalAssignment = {
   assigned_at: string;
   acknowledged_at: string | null;
   responding_at: string | null;
+  on_site_at: string | null;
   completed_at: string | null;
   cancelled_at: string | null;
 };
@@ -214,7 +215,7 @@ function isReport(value: unknown): value is HistoricalReport {
 function isAssignment(value: unknown): value is HistoricalAssignment {
   return isObject(value) && typeof value.assignment_id === "string" &&
     typeof value.unit_name === "string" && typeof value.unit_type === "string" &&
-    ["assigned", "acknowledged", "responding", "completed", "cancelled"].includes(String(value.status)) &&
+    ["assigned", "acknowledged", "responding", "on_site", "completed", "cancelled"].includes(String(value.status)) &&
     isDate(value.assigned_at) && isNullableDate(value.acknowledged_at) &&
     isNullableDate(value.responding_at) && isNullableDate(value.completed_at) &&
     isNullableDate(value.cancelled_at);

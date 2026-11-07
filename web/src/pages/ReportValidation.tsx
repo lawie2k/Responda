@@ -1,3 +1,4 @@
+import { ReportTools } from "../components/ReportTools";
 import { useMemo, useState } from "react";
 import {
   reviewAdminReport,
@@ -339,7 +340,7 @@ export function ReportValidation({
               <>
                 <div className="grid grid-cols-2 gap-3 max-[1180px]:grid-cols-1 [&>div]:flex [&>div]:flex-col [&>div]:gap-[9px] [&_.map-canvas]:h-[190px]">
                   <div>
-                    <div className="rounded-xl bg-soft-gray px-[10px] py-2 [&>div]:flex [&>div]:min-h-[27px] [&>div]:items-center [&>div]:justify-between [&>div]:gap-[10px] [&>div]:text-[9px] [&_span]:text-muted">
+                    <div className="flex-1 rounded-xl bg-soft-gray px-[10px] py-2 [&>div]:flex [&>div]:min-h-[27px] [&>div]:items-center [&>div]:justify-between [&>div]:gap-[10px] [&>div]:text-[9px] [&_span]:text-muted">
                       <b className="text-[9px] text-muted">SUBMITTED INFORMATION</b>
                       {[
                         ["Incident", selected.incident],
@@ -377,20 +378,7 @@ export function ReportValidation({
                         </div>
                       ))}
                     </div>
-                    {mapPoint ? (
-                      <MiniMap
-                        points={[mapPoint]}
-                        focus={{
-                          label: mapPoint.location,
-                          position: mapPoint.position,
-                          zoom: 15,
-                        }}
-                      />
-                    ) : (
-                      <div className="grid min-h-[120px] place-items-center rounded-xl bg-soft-gray text-[9px] text-muted">
-                        No report coordinates were provided.
-                      </div>
-                    )}
+
                   </div>
 
                   <div>
@@ -448,6 +436,25 @@ export function ReportValidation({
                     </div>
                   </div>
                 </div>
+
+                <div className="w-full [&_.map-canvas]:h-[240px]">
+                    {mapPoint ? (
+                      <MiniMap
+                        points={[mapPoint]}
+                        focus={{
+                          label: mapPoint.location,
+                          position: mapPoint.position,
+                          zoom: 15,
+                        }}
+                      />
+                    ) : (
+                      <div className="grid min-h-[120px] place-items-center rounded-xl bg-soft-gray text-[9px] text-muted">
+                        No report coordinates were provided.
+                      </div>
+                    )}
+                </div>
+
+                    <ReportTools key={detail.data.report_id + detail.data.updated_at} detail={detail.data} onSaved={() => {detail.refetch(); queue.refetch(); onReportReviewed();}} />
 
                 <div className="grid grid-cols-2 gap-3 max-[650px]:grid-cols-1">
                   <SelectField

@@ -426,3 +426,26 @@ def test_transition_rejects_a_stale_assignment() -> None:
 
     assert error.value.code == "assignment_update_conflict"
     database.commit.assert_not_awaited()
+
+
+def test_arrival_records_timestamp_and_keeps_incident_and_unit_responding() -> None:
+    assignment_record = assignment(status="responding")
+    incident_record = incident(status="responding")
+    unit_record = unit(status="responding")
+    database = transition_database(
+        assignment_record, incident_record, unit_record, active_statuses=["on_site"]
+    )
+    result = asyncio.run(
+        AdminAssignmentService(database).transition_assignment(
+            ASSIGNMENT_ID,
+            staff_id=STAFF_ID,
+            payload=AdminAssignmentTransitionRequest(
+                expected_updated_at=UPDATED_AT, status="on_site"
+            ),
+            ip_address="127.0.0.1",
+        )
+    )
+    assert result.assignment.on_site_at is not None
+    assert result.assignment.status == "on_site"
+    assert result.incident_status == "responding"
+    assert result.assignment.unit.status == "responding"

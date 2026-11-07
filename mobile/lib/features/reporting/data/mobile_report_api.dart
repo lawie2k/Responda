@@ -1,3 +1,6 @@
+import '../../../core/network/responda_api_client.dart';
+
+import 'dart:io';
 import 'dart:math';
 
 import '../domain/models/report_draft.dart';
@@ -63,6 +66,7 @@ class MobileReportApi {
       'needs_review' => OnlineReportStatus.needsReview,
       'for_dispatch' => OnlineReportStatus.forDispatch,
       'team_assigned' => OnlineReportStatus.teamAssigned,
+      'on_site' => OnlineReportStatus.onSite,
       'responding' => OnlineReportStatus.responding,
       'resolved' => OnlineReportStatus.resolved,
       'closed' => OnlineReportStatus.closed,
@@ -93,6 +97,25 @@ class MobileReportApi {
     required String clientReportId,
     required ReportDraft draft,
   }) async {
+    final photo = draft.photoPath == null ? null : File(draft.photoPath!);
+    if (photo != null && await photo.length() > 5 * 1024 * 1024) {
+      throw const RespondaApiException(
+        'Choose a JPEG or PNG photo smaller than 5 MB.',
+      );
+    }
+    final photoBytes = photo == null ? null : await photo.readAsBytes();
+    final isPng =
+        photoBytes != null &&
+        photoBytes.length > 3 &&
+        photoBytes[0] == 0x89 &&
+        photoBytes[1] == 0x50;
+    if (photoBytes != null &&
+        !isPng &&
+        !(photoBytes.length > 2 &&
+            photoBytes[0] == 0xff &&
+            photoBytes[1] == 0xd8)) {
+      throw const RespondaApiException('Choose a JPEG or PNG photo.');
+    }
     final result = await _accountApi.submitReport(
       token: token,
       body: {
@@ -113,6 +136,22 @@ class MobileReportApi {
             .toIso8601String(),
       },
     );
+    if (photoBytes != null) {
+      try {
+        await _accountApi.uploadReportPhoto(
+          token: token,
+          reportId: result['report_id'] as String,
+          bytes: photoBytes,
+          contentType: isPng ? 'image/png' : 'image/jpeg',
+        );
+      } on RespondaApiException catch (error) {
+        throw RespondaApiException(
+          'Report received. Photo upload failed; retry to attach it. ${error.message}',
+          statusCode: error.statusCode,
+          code: error.code,
+        );
+      }
+    }
     return MobileReportReceipt.fromJson(result);
   }
 

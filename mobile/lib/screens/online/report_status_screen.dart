@@ -327,6 +327,7 @@ class _ReportJourney extends StatelessWidget {
             ('For dispatch', 'for_dispatch'),
             ('Team assigned', 'team_assigned'),
             ('Team responding', 'responding'),
+            ('Team on site', 'on_site'),
             ('Resolved', 'resolved'),
           ];
     final current = closed ? stages.length - 1 : report.status.stage - 1;

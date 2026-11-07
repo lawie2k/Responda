@@ -559,4 +559,9 @@ const bisayaTranslations = <String, String>{
   "Could not check your account. Connect to the internet and try again.": "Dili masusi ang imong account. Konektaha sa internet ug sulayi pag-usab.",
   "Calls do not share your GPS location. Tell MDRRMO where you are.": "Dili mapadala sa tawag ang imong GPS location. Sultihi ang MDRRMO kung asa ka.",
   "Return to sign in": "Balik sa pag-sign in",
+  'ON SITE': 'NAA SA LUGAR',
+  'The response team is on site': 'Naa na sa lugar ang grupo sa pagtubag',
+  'MDRRMO has recorded the arrival of a response team.':
+      'Gitala sa MDRRMO ang pag-abot sa grupo sa pagtubag.',
+  'Team on site': 'Naa na sa lugar ang grupo',
 };

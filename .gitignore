@@ -43,3 +43,7 @@ mobile/**/Flutter/.last_build_id
 .graphify-components/
 graphify-out/
 graphify-notes/
+
+private-attachments/
+
+.private-webpush.pem

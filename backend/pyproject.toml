@@ -9,6 +9,8 @@ description = "Backend API for the Responda emergency reporting platform."
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
 dependencies = [
+    "Pillow==13.0.0",
+    "pywebpush==2.5.0",
     "alembic==1.20.0",
     "argon2-cffi==25.1.0",
     "fastapi==0.142.2",

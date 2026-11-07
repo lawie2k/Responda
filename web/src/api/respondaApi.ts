@@ -295,6 +295,7 @@ export type AdminResponseUnitUpdatePayload =
 
 export type AssignmentStatus =
   | "assigned"
+  | "on_site"
   | "acknowledged"
   | "responding"
   | "completed"
@@ -317,6 +318,7 @@ export type AdminAssignmentListItem = {
   assigned_at: string;
   acknowledged_at: string | null;
   responding_at: string | null;
+  on_site_at: string | null;
   completed_at: string | null;
   cancelled_at: string | null;
   updated_at: string;
@@ -1190,6 +1192,7 @@ function isAdminAssignmentMutationResult(
 function isAssignmentStatus(value: unknown): value is AssignmentStatus {
   return (
     value === "assigned" ||
+    value === "on_site" ||
     value === "acknowledged" ||
     value === "responding" ||
     value === "completed" ||

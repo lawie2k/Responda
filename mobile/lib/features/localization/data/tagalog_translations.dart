@@ -558,4 +558,9 @@ const tagalogTranslations = <String, String>{
       "Hindi masuri ang account mo. Kumonekta sa internet at subukang muli.",
   "Calls do not share your GPS location. Tell MDRRMO where you are.": "Hindi naipapadala ng tawag ang GPS location mo. Sabihin sa MDRRMO kung nasaan ka.",
   "Return to sign in": "Bumalik sa pag-sign in",
+  'ON SITE': 'NASA LUGAR',
+  'The response team is on site': 'Nasa lugar na ang pangkat ng pagtugon',
+  'MDRRMO has recorded the arrival of a response team.':
+      'Naitala ng MDRRMO ang pagdating ng pangkat ng pagtugon.',
+  'Team on site': 'Nasa lugar na ang pangkat',
 };

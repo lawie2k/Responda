@@ -1,6 +1,7 @@
+import asyncio
 import logging
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from typing import cast
 
 from fastapi import FastAPI, Request
@@ -9,10 +10,11 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.api.v1.router import api_router
-from app.core.config import Settings, get_settings
+from app.core.config import Environment, Settings, get_settings
 from app.core.exceptions import ApplicationError
 from app.core.rate_limit import LoginRateLimiter
 from app.db.session import create_database_engine, create_session_factory
+from app.services.web_push import push_worker
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +25,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
-        yield
-        engine = cast(AsyncEngine, application.state.database_engine)
-        await engine.dispose()
+        worker = (
+            asyncio.create_task(
+                push_worker(application.state.database_session_factory, current_settings)
+            )
+            if current_settings.web_push_enabled
+            and current_settings.environment != Environment.TESTING
+            else None
+        )
+        try:
+            yield
+        finally:
+            if worker is not None:
+                worker.cancel()
+                with suppress(asyncio.CancelledError):
+                    await worker
+            engine = cast(AsyncEngine, application.state.database_engine)
+            await engine.dispose()
 
     application = FastAPI(
         title=current_settings.app_name,
@@ -50,10 +66,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         secret_key=current_settings.secret_key.get_secret_value(),
     )
     for kind, attempts in (("register", 10), ("ingest", 300), ("report", 10)):
-        setattr(application.state, f"sms_{kind}_limiter", LoginRateLimiter(
-            max_attempts=attempts, window_seconds=600,
-            secret_key=current_settings.secret_key.get_secret_value(),
-        ))
+        setattr(
+            application.state,
+            f"sms_{kind}_limiter",
+            LoginRateLimiter(
+                max_attempts=attempts,
+                window_seconds=600,
+                secret_key=current_settings.secret_key.get_secret_value(),
+            ),
+        )
     application.state.database_engine = database_engine
     application.state.database_session_factory = create_session_factory(database_engine)
     application.state.admin_login_rate_limiter = LoginRateLimiter(

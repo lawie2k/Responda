@@ -2,7 +2,7 @@
 tags:
   - responda/memory
   - responda/index
-updated: 2026-10-15
+updated: 2026-11-04
 ---
 
 # Responda memory index
@@ -17,6 +17,9 @@ Read these notes in this order when beginning a new project task:
 
 Use [[ARCHITECTURE]] for data flow and component responsibilities. Use
 [[WORK_LOG]] when the reason for a recent change matters.
+
+See [[PROGRESS_AUDIT_2026-11-04]] for the dated manuscript-to-source comparison,
+completion estimate, missing requirements and current verification results.
 
 ## Memory rules
 

@@ -11,12 +11,14 @@ AssignmentStatusValue = Literal[
     "assigned",
     "acknowledged",
     "responding",
+    "on_site",
     "completed",
     "cancelled",
 ]
 AssignmentTransitionValue = Literal[
     "acknowledged",
     "responding",
+    "on_site",
     "completed",
     "cancelled",
 ]
@@ -39,6 +41,7 @@ class AdminAssignmentListItem(BaseModel):
     assigned_at: datetime
     acknowledged_at: datetime | None
     responding_at: datetime | None
+    on_site_at: datetime | None = None
     completed_at: datetime | None
     cancelled_at: datetime | None
     updated_at: datetime

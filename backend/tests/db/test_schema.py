@@ -4,6 +4,7 @@ from app.db.base import Base
 from app.models import SmsMessage, User
 
 EXPECTED_TABLES = {
+    "web_push_subscriptions",
     "audit_logs",
     "auth_sessions",
     "incident_types",

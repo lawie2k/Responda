@@ -35,11 +35,17 @@ enum OnlineReportStatus {
     description: 'MDRRMO has confirmed that the team is responding.',
     stage: 6,
   ),
+  onSite(
+    label: 'ON SITE',
+    headline: 'The response team is on site',
+    description: 'MDRRMO has recorded the arrival of a response team.',
+    stage: 7,
+  ),
   resolved(
     label: 'RESOLVED',
     headline: 'The incident has been resolved',
     description: 'MDRRMO has marked the response as completed.',
-    stage: 7,
+    stage: 8,
   ),
   closed(
     label: 'CLOSED',

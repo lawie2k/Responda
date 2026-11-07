@@ -22,11 +22,12 @@ from app.schemas.admin_assignments import (
 from app.schemas.admin_reports import IncidentStatusValue
 from app.schemas.admin_response_units import ResponseUnitStatusValue
 
-ACTIVE_ASSIGNMENT_STATUSES = {"assigned", "acknowledged", "responding"}
+ACTIVE_ASSIGNMENT_STATUSES = {"assigned", "acknowledged", "responding", "on_site"}
 ALLOWED_TRANSITIONS = {
     "assigned": {"acknowledged", "cancelled"},
     "acknowledged": {"responding", "cancelled"},
-    "responding": {"completed", "cancelled"},
+    "responding": {"on_site", "completed", "cancelled"},
+    "on_site": {"completed", "cancelled"},
 }
 
 
@@ -221,6 +222,9 @@ class AdminAssignmentService:
         elif payload.status == "responding":
             assignment.responding_at = now
             unit.status = "responding"
+        elif payload.status == "on_site":
+            assignment.on_site_at = now
+            unit.status = "responding"
         elif payload.status == "completed":
             assignment.completed_at = now
             unit.status = "available"
@@ -238,7 +242,7 @@ class AdminAssignmentService:
             )
         )
         active_statuses = set(active_status_result.scalars())
-        if "responding" in active_statuses:
+        if {"responding", "on_site"} & active_statuses:
             incident.status = "responding"
             incident.resolved_at = None
         elif active_statuses:
@@ -356,6 +360,7 @@ class AdminAssignmentService:
             assigned_at=assignment.assigned_at,
             acknowledged_at=assignment.acknowledged_at,
             responding_at=assignment.responding_at,
+            on_site_at=assignment.on_site_at,
             completed_at=assignment.completed_at,
             cancelled_at=assignment.cancelled_at,
             updated_at=assignment.updated_at,

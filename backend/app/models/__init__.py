@@ -18,6 +18,7 @@ from app.models.entities import (
     SmsGateway,
     SmsMessage,
     User,
+    WebPushSubscription,
 )
 
 __all__ = [
@@ -40,4 +41,5 @@ __all__ = [
     "SmsGateway",
     "SmsMessage",
     "User",
+    "WebPushSubscription",
 ]

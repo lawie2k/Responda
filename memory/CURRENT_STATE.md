@@ -2,7 +2,7 @@
 tags:
   - responda/memory
   - responda/status
-updated: 2026-10-28
+updated: 2026-11-07
 ---
 
 # Current state
@@ -12,8 +12,8 @@ updated: 2026-10-28
 - The FastAPI project structure, configuration, exception handling, CORS, async
   database session setup, and `/api/v1` router separation exist.
 - PostgreSQL is configured locally through a private `.env` file.
-- Seven Alembic migrations and 19 SQLAlchemy tables exist. Local PostgreSQL is at
-  `d5f08c72a931`, adding revocable SMS installation credentials and receipt fingerprints.
+- Nine Alembic migrations and 20 SQLAlchemy tables exist. Local PostgreSQL is at
+  `f720b9c82e12`, including assignment arrival timestamps and staff push subscriptions.
 - Mutable operational records use indexed nullable `deleted_at` timestamps:
   users, incident types, incidents, reports, report locations, report
   attachments, SMS gateways/messages, response units/assignments, and
@@ -153,6 +153,35 @@ updated: 2026-10-28
 
 ## Web dashboard
 
+- Dashboard navigation closes Encode a Report, header search/notification menus
+  and the mobile sidebar. Page-owned dialogs/dropdowns unmount when their page
+  changes. A dismissed report submission cannot redirect staff back after its
+  server request finishes.
+
+- As of 2026-11-05 the non-ML expansion adds an Incident Map density/recurrence
+  view with bounded date/category filtering, approximately 550 m aggregate cells,
+  linked-incident deduplication and rule-based planning suggestions (not approved
+  dispatch instructions). Staff can correct coordinates/landmark and unlinked
+  report category with version checks, protected original evidence and audit.
+- Report alerts now use real seven-day server data and account-specific read
+  receipts. Opt-in Web Push uses a service worker and session-bound subscriptions,
+  a retrying API worker, private local VAPID keys and provider endpoint validation.
+  Local configuration is enabled; actual browser permission/delivery needs a
+  walkthrough. No phone numbers, narratives or precise locations enter push.
+- Mobile photo uploads and staff photo viewing are connected. Private storage
+  validates/reencodes JPEG/PNG, strips metadata, limits bytes/pixels/counts and
+  supports idempotent retries. Access expires after 30 configurable days; the
+  purge CLI removes expired files. Daily purge scheduling and institutional
+  retention confirmation remain deployment tasks.
+- On Site is now an assignment milestone with recorded arrival in history and
+  citizen tracking. The incident/unit remain responding while a team is on site;
+  active-unit uniqueness includes that state. Migrations f710b9c82e11 and
+  f720b9c82e12 are applied locally. Source changes are mirrored to the Documents
+  web/mobile copies; the phone binaries have not been rebuilt in this change.
+- Deployment was explicitly excluded by the user. Formal MDRRMO acceptance and
+  physical browser/device delivery checks remain human verification tasks;
+  see web/docs/non-ml-acceptance.md. ML implementation remains excluded.
+
 - The React/Vite dashboard has a responsive staff login page wired to the real
   admin login, session, and logout endpoints. Its restrained civic layout uses
   one flat maroon accent, the supplied MDRRMO Operation Center photo, clear
@@ -183,8 +212,9 @@ updated: 2026-10-28
 - The Encode a Report modal is connected to PostgreSQL. It loads real incident
   types, submits validated manual reports with loading/error states, prevents
   duplicate clicks, confirms success, opens Live Reports, and refreshes both
-  dashboard and queue data. Its phone input fixes `+63 9` as the beginning,
-  accepts digits only, and limits the local number to 10 digits. Written manual
+  dashboard and queue data. Its phone input fixes `+63` as the country code, starts empty, ignores leading zeroes,
+  accepts digits only, and limits the local number to 10 digits. Submission
+  requires a valid local mobile number beginning with 9. Written manual
   locations remain visible even when no coordinates were provided.
 - Both administrator roles can open Settings to change their own password.
   Staff administration and system rules remain visible only to Super Admins;
@@ -351,9 +381,10 @@ updated: 2026-10-28
   protected report-creation endpoint. It stores the server report UUID and
   receipt time locally only after success, retains the client idempotency UUID
   across retries/back-to-review. Offline handoff now uses the signed SMS flow below.
-  Failed sends do not show success. Photo-attached online reports are blocked
-  with an explicit message until secure attachment storage/retention is chosen;
-  attachments are never silently discarded or uploaded.
+  Failed sends do not show success. Online JPEG/PNG photos now upload through
+  authenticated ownership checks after the idempotent report receipt; photo
+  failures explain that the report was received and offer retry. Offline/SMS
+  remains text-only.
 - The application contains onboarding, connectivity handling, reporting flows,
   localization, offline-related behavior, and tests. Emergency Info keeps the
   safety manual and emergency contacts without the redundant offline availability
@@ -363,8 +394,8 @@ updated: 2026-10-28
   visible, on tab return/resume, and manually; requests do not overlap and stale
   results are marked after failures. Completed includes resolved/closed reports.
   Real milestone times replace the fabricated verification delay; the journey
-  uses Team responding because staff do not record arrival on site. Saved offline
-  reports remain local. New copy is translated into Tagalog/Bisaya, and Home plus
+  now records On Site from the server arrival timestamp after Team responding.
+  Saved offline reports remain local. New copy is translated into Tagalog/Bisaya, and Home plus
   offline My Reports headers no longer display connectivity badges. Both mobile
   source copies are synchronized. The signed iOS release was rebuilt on
   2026-10-25 with the active wired backend address, installed, and launched on
@@ -540,8 +571,8 @@ updated: 2026-10-28
 - Human-written project memory is in `memory/`.
 - Graphify indexes code from backend, web, mobile, and the monorepo root into one
   combined graph.
-- The combined graph currently contains 3,447 code nodes, 7,145 relationships,
-  and 272 detected communities. Generated graph artifacts remain local and
+- The combined graph includes the current backend, web, mobile and workspace
+  code; generated node and community totals are available in graphify-out/. Generated graph artifacts remain local and
   ignored.
 - `AGENTS.md` directs future coding sessions to read memory and query Graphify
   before broad filesystem searches.

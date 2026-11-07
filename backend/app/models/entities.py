@@ -434,7 +434,7 @@ class ResponseAssignment(SoftDeleteMixin, Base):
     __tablename__ = "response_assignments"
     __table_args__ = (
         CheckConstraint(
-            "status IN ('assigned','acknowledged','responding','completed','cancelled')",
+            "status IN ('assigned','acknowledged','responding','on_site','completed','cancelled')",
             name="status_valid",
         ),
         Index(
@@ -442,7 +442,8 @@ class ResponseAssignment(SoftDeleteMixin, Base):
             "unit_id",
             unique=True,
             postgresql_where=text(
-                "deleted_at IS NULL AND status IN ('assigned','acknowledged','responding')"
+                "deleted_at IS NULL AND "
+                "status IN ('assigned','acknowledged','responding','on_site')"
             ),
         ),
     )
@@ -463,6 +464,7 @@ class ResponseAssignment(SoftDeleteMixin, Base):
     assigned_at: Mapped[datetime] = created_at_column()
     acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     responding_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    on_site_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = created_at_column()
@@ -516,3 +518,21 @@ class AuditLog(Base):
     details: Mapped[str | None] = mapped_column(Text)
     ip_address: Mapped[str | None] = mapped_column(String(45))
     created_at: Mapped[datetime] = created_at_column()
+
+
+class WebPushSubscription(Base):
+    __tablename__ = "web_push_subscriptions"
+
+    subscription_id: Mapped[uuid.UUID] = uuid_primary_key()
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.user_id", ondelete="CASCADE"), index=True
+    )
+    session_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("auth_sessions.session_id", ondelete="CASCADE")
+    )
+    endpoint: Mapped[str] = mapped_column(Text, unique=True)
+    p256dh: Mapped[str] = mapped_column(String(200))
+    auth: Mapped[str] = mapped_column(String(100))
+    cursor_at: Mapped[datetime] = created_at_column()
+    cursor_id: Mapped[uuid.UUID] = mapped_column(Uuid)
+    next_attempt_at: Mapped[datetime] = created_at_column()

@@ -1,3 +1,4 @@
+import { ReportTools } from "../components/ReportTools";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createAdminAssignment,
@@ -271,7 +272,7 @@ function IncidentDispatch({
 
   const activeAssignments =
     assignments.data?.items.filter((assignment) =>
-      ["assigned", "acknowledged", "responding"].includes(assignment.status),
+      ["assigned", "acknowledged", "responding", "on_site"].includes(assignment.status),
     ) ?? [];
 
   const [cancellationId, setCancellationId] = useState<string | null>(null);
@@ -379,12 +380,12 @@ function IncidentDispatch({
                   ? "acknowledged"
                   : assignment.status === "acknowledged"
                     ? "responding"
-                    : "completed";
+                    : assignment.status === "responding" ? "on_site" : "completed";
                 const label = nextStatus === "acknowledged"
                   ? "Record acknowledgment"
                   : nextStatus === "responding"
                     ? "Mark responding"
-                    : "Complete response";
+                    : nextStatus === "on_site" ? "Record arrival on site" : "Complete response";
                 return (
                   <div
                     className="grid gap-2 border-b border-border pb-3 text-[9px] last:border-0 last:pb-0"
@@ -645,6 +646,7 @@ function ReportDetail({
       ) : (
         <MiniMap points={[]} />
       )}
+      {detail && <ReportTools key={detail.report_id + detail.updated_at} detail={detail} onSaved={() => onIncidentChanged("Report correction saved.")} />}
       {detailStatus === "error" ? (
         <div className="rounded-xl bg-red-soft px-[10px] py-3 text-[9px] text-priority-red">
           {detailError}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   createAdminManualReport,
   getAdminIncidentTypes,
@@ -21,6 +21,11 @@ export function ReportModal({
   close: () => void;
   onCreated: (result: AdminManualReportCreateResult) => void;
 }) {
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
   const [incidentType, setIncidentType] = useState("");
   const [incidentTypes, setIncidentTypes] = useState<AdminIncidentType[]>([]);
   const [incidentTypesStatus, setIncidentTypesStatus] = useState<
@@ -28,7 +33,7 @@ export function ReportModal({
   >("loading");
   const [incidentTypesVersion, setIncidentTypesVersion] = useState(0);
   const [location, setLocation] = useState("");
-  const [reporterContact, setReporterContact] = useState("9");
+  const [reporterContact, setReporterContact] = useState("");
   const [reportSource, setReportSource] = useState<
     ManualIntakeChannel | ""
   >("");
@@ -95,8 +100,10 @@ export function ReportModal({
         additional_assistance: answers[1] === true,
         immediate_danger: answers[2] === true,
       });
-      onCreated(result);
+      // Navigation may dismiss this dialog while the server finishes saving.
+      if (mounted.current) onCreated(result);
     } catch (caught) {
+      if (!mounted.current) return;
       setError(
         caught instanceof Error
           ? caught.message
@@ -177,9 +184,9 @@ export function ReportModal({
           />
         </label>
         <div className="grid grid-cols-2 gap-3 max-[650px]:grid-cols-1">
-          <label className="grid gap-1.5 text-[9px] font-semibold">
+          <label className="grid content-start gap-1.5 text-[9px] font-semibold">
             Reporter mobile number
-            <span className="flex items-center overflow-hidden rounded-[10px] border border-border bg-white focus-within:border-maroon focus-within:shadow-[0_0_0_3px_rgba(122,31,43,.08)]">
+            <span className="flex h-10 items-center overflow-hidden rounded-[10px] border border-border bg-white focus-within:border-maroon focus-within:shadow-[0_0_0_3px_rgba(122,31,43,.08)]">
               <span className="border-r border-border bg-soft-gray px-3 py-[10px] text-[11px] font-semibold text-[#4a4143]">
                 +63
               </span>
@@ -187,7 +194,7 @@ export function ReportModal({
                 required
                 aria-label="Reporter mobile number after plus sixty-three"
                 autoComplete="tel-national"
-                className="min-w-0 flex-1 !rounded-none !border-0 !px-2 !shadow-none !outline-0"
+                className="h-full min-w-0 flex-1 !py-0 !rounded-none !border-0 !px-2 !shadow-none !outline-0"
                 disabled={submitting}
                 inputMode="numeric"
                 maxLength={10}
@@ -195,14 +202,7 @@ export function ReportModal({
                 type="tel"
                 value={reporterContact}
                 onChange={(event) => {
-                  let digits = event.target.value.replace(/\D/g, "");
-                  if (digits.startsWith("63")) digits = digits.slice(2);
-                  if (digits.startsWith("0")) digits = digits.slice(1);
-                  if (!digits) {
-                    setReporterContact("9");
-                    return;
-                  }
-                  if (!digits.startsWith("9")) return;
+                  const digits = event.target.value.replace(/\D/g, "").replace(/^0+/, "");
                   setReporterContact(digits.slice(0, 10));
                 }}
               />
@@ -211,9 +211,10 @@ export function ReportModal({
               10 digits beginning with 9
             </span>
           </label>
-          <label className="grid gap-1.5 text-[9px] font-semibold">
+          <label className="grid content-start gap-1.5 text-[9px] font-semibold">
             Report source
             <select
+              className="h-10"
               required
               disabled={submitting}
               value={reportSource}
@@ -274,11 +275,6 @@ export function ReportModal({
               </div>
             </div>
           ))}
-        </div>
-        <div className="rounded-xl bg-blue-soft px-3 py-[10px] text-[9px] leading-[1.5] text-status-blue">
-          <b className="block text-[10px]">Sent to Report Validation</b>
-          The incident type's default priority is used until decision-support
-          scoring is available. Staff must verify this report before dispatch.
         </div>
         {error && (
           <div

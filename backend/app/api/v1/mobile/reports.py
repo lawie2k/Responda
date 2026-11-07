@@ -3,7 +3,7 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Query, Request, status
 
-from app.api.dependencies import MobileReportServiceDependency, SettingsDependency
+from app.api.dependencies import DatabaseSession, MobileReportServiceDependency, SettingsDependency
 from app.api.v1.mobile.auth import CurrentMobileUser, PrivateRoute
 from app.core.exceptions import ApplicationError
 from app.core.rate_limit import LoginRateLimiter
@@ -76,3 +76,37 @@ async def create_report(
             headers={"Retry-After": str(retry_after)},
         )
     return await service.create_report(reporter=reporter, payload=payload)
+
+
+@router.post("/{report_id}/photo", status_code=201)
+async def upload_photo(
+    report_id: uuid.UUID,
+    request: Request,
+    reporter: CurrentMobileUser,
+    settings: SettingsDependency,
+    db: DatabaseSession,
+) -> dict[str, str]:
+    from app.services.report_photos import MAX_PHOTO_BYTES, save_photo
+
+    if request.headers.get("content-type", "").split(";")[0] not in {"image/jpeg", "image/png"}:
+        raise ApplicationError("Use JPEG or PNG.", code="invalid_photo", status_code=415)
+    limiter: LoginRateLimiter = request.app.state.mobile_report_limiter
+    retry = await limiter.consume(
+        ip_address=request.client.host if request.client else "unknown",
+        identity=f"photo:{reporter.user_id}",
+    )
+    if retry is not None:
+        raise ApplicationError(
+            "Too many photo uploads. Retry later.",
+            code="photo_rate_limited",
+            status_code=429,
+            headers={"Retry-After": str(retry)},
+        )
+    chunks = bytearray()
+    async for chunk in request.stream():
+        chunks.extend(chunk)
+        if len(chunks) > MAX_PHOTO_BYTES:
+            raise ApplicationError(
+                "Photos must be at most 5 MB.", code="photo_too_large", status_code=413
+            )
+    return await save_photo(db, settings, report_id, reporter.user_id, bytes(chunks))

@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { operations, enableBackgroundAlerts, disableBackgroundAlerts, type ReportAlert } from "./api/operations";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AdminSession } from "./api/respondaApi";
 import respondaLogo from "./assets/responda-logo.png";
 import { BackendStatus } from "./components/BackendStatus";
@@ -25,7 +26,7 @@ import { useAdminSession } from "./hooks/useAdminSession";
 import type { Page } from "./types";
 
 type Notification = {
-  id: number;
+  id: string;
   title: string;
   detail: string;
   time: string;
@@ -79,8 +80,10 @@ function Dashboard({
   session: AdminSession;
   onLogout: () => Promise<void>;
 }) {
-  const [page, setPage] = useState<Page>("Overview");
-  const [query, setQuery] = useState("");
+  const initialReport = new URLSearchParams(window.location.search).get("report") ?? "";
+  const validInitialReport = /^[0-9a-f-]{36}$/i.test(initialReport) ? initialReport : "";
+  const [page, setCurrentPage] = useState<Page>(validInitialReport ? "Live Reports" : "Overview");
+  const [query, setQuery] = useState(validInitialReport);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportRefreshVersion, setReportRefreshVersion] = useState(0);
@@ -89,24 +92,51 @@ function Dashboard({
   const [mapFocus, setMapFocus] = useState<MapFocus | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: 2,
-      title: "New phone-verified account",
-      detail: "A mobile user completed OTP verification and account setup.",
-      time: "12 min ago",
-      page: "Mobile Accounts",
-      read: false,
-    },
-    {
-      id: 3,
-      title: "Team status updated",
-      detail: "Rescue Alpha is now on route to an incident.",
-      time: "25 min ago",
-      page: "Response Teams",
-      read: false,
-    },
-  ]);
+  const navigate = useCallback((nextPage: Page) => {
+    setReportModalOpen(false);
+    setSearchOpen(false);
+    setNotificationsOpen(false);
+    setSidebarOpen(false);
+    setCurrentPage(nextPage);
+  }, []);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [alertError, setAlertError] = useState("");
+  const [browserAlerts, setBrowserAlerts] = useState(false);
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    const receive = (event: MessageEvent) => {
+      if(event.data?.type === "report-alert" && /^[0-9a-f-]{36}$/i.test(event.data.reportId ?? "")) {
+        setQuery(event.data.reportId);navigate("Live Reports");
+      }
+    };
+    navigator.serviceWorker.addEventListener("message", receive);
+    void navigator.serviceWorker.getRegistration('/').then(async registration => {
+      const subscription = await registration?.pushManager.getSubscription();
+      if(subscription) {await enableBackgroundAlerts();setBrowserAlerts(true);}
+    }).catch(() => {});
+    return () => navigator.serviceWorker.removeEventListener("message", receive);
+  }, [navigate]);
+  useEffect(() => {
+    const controller = new AbortController();
+    let timer: number | undefined;
+    const load = async () => {
+      try {
+        const items = await operations<ReportAlert[]>("alerts", undefined, "GET", controller.signal);
+        if (controller.signal.aborted) return;
+        setNotifications(items.map(item => ({...item, time:new Date(item.time).toLocaleString("en-PH"), page:"Live Reports"})));
+        setAlertError("");
+      } catch (caught) {if (!controller.signal.aborted) setAlertError(caught instanceof Error ? caught.message : "Report alerts unavailable.");}
+      finally {if (!controller.signal.aborted) timer=window.setTimeout(() => void load(), 5000);}
+    };
+    void load();
+    return () => {controller.abort();window.clearTimeout(timer);};
+  }, []);
+  const markAlertsRead = async (ids: string[]) => {
+    try {
+      await operations("alerts/read", {report_ids:ids});
+      setNotifications(items=>items.map(item=>ids.includes(item.id)?{...item,read:true}:item));
+    } catch (caught) {setAlertError(caught instanceof Error ? caught.message : "Could not mark alerts read.");}
+  };
   const searchRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const reportQuery = useAdminReports(
@@ -176,7 +206,7 @@ function Dashboard({
     <div className="dashboard-shell flex min-h-screen bg-[#f4f2f0]">
       <Sidebar
         page={page}
-        go={setPage}
+        go={navigate}
         open={sidebarOpen}
         close={() => setSidebarOpen(false)}
         user={session.user}
@@ -231,7 +261,7 @@ function Dashboard({
                   }}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" && query.trim()) {
-                      setPage("Live Reports");
+                      navigate("Live Reports");
                       setSearchOpen(false);
                     }
                     if (event.key === "Escape") setSearchOpen(false);
@@ -263,7 +293,7 @@ function Dashboard({
                           className="flex min-h-10 w-full items-center gap-2 rounded-[6px] border-0 bg-white px-2 text-left hover:bg-soft-gray"
                           key={name}
                           onClick={() => {
-                            setPage(name);
+                            navigate(name);
                             setQuery("");
                             setSearchOpen(false);
                           }}
@@ -296,7 +326,7 @@ function Dashboard({
                           key={report.id}
                           onClick={() => {
                             setQuery(report.reference);
-                            setPage("Live Reports");
+                            navigate("Live Reports");
                             setSearchOpen(false);
                           }}
                         >
@@ -356,29 +386,31 @@ function Dashboard({
                     <button
                       className="border-0 bg-transparent text-[9px] font-semibold text-maroon disabled:opacity-40"
                       disabled={!unreadCount}
-                      onClick={() =>
-                        setNotifications((items) =>
-                          items.map((item) => ({ ...item, read: true })),
-                        )
-                      }
+                      onClick={() => void markAlertsRead(notifications.filter(item => !item.read).map(item => item.id))}
                     >
                       Mark all read
                     </button>
                   </div>
-                  <div className="p-2">
+                  <div className="px-4 py-2 text-[9px] text-muted">
+                    Recent reports · last 7 days · up to 50 alerts
+                    <button className="mt-2 block border-0 bg-transparent text-maroon" onClick={async () => {
+                      try {
+                        if(browserAlerts) await disableBackgroundAlerts(); else await enableBackgroundAlerts();
+                        setBrowserAlerts(value=>!value);setAlertError("");
+                      } catch(caught) {setAlertError(caught instanceof Error ? caught.message : "Browser alerts unavailable.");}
+                    }}>{browserAlerts ? "Disable background browser alerts" : "Enable background browser alerts"}</button>
+                    {alertError && <p role="alert" className="text-priority-red">{alertError}</p>}
+                    {!notifications.length && <p>No recent report alerts.</p>}
+                  </div>
+                  <div className="max-h-[420px] overflow-y-auto p-2">
                     {notifications.map((notification) => (
                       <button
                         className={`flex min-h-[66px] w-full gap-3 rounded-[6px] border-0 border-l-2 px-3 py-2.5 text-left hover:bg-soft-gray ${notification.read ? "border-l-transparent bg-white" : "border-l-maroon bg-[#fbf6f7]"}`}
                         key={notification.id}
                         onClick={() => {
-                          setNotifications((items) =>
-                            items.map((item) =>
-                              item.id === notification.id
-                                ? { ...item, read: true }
-                                : item,
-                            ),
-                          );
-                          setPage(notification.page);
+                          void markAlertsRead([notification.id]);
+                          setQuery(notification.id);
+                          navigate(notification.page);
                           setNotificationsOpen(false);
                         }}
                       >
@@ -428,7 +460,7 @@ function Dashboard({
           )}
           {page === "Overview" && (
             <Overview
-              go={setPage}
+              go={navigate}
               role={session.user.role}
               firstName={session.user.full_name.split(/\s+/)[0] || "Staff"}
               reports={dashboardReports}
@@ -447,11 +479,11 @@ function Dashboard({
               openModal={() => setReportModalOpen(true)}
               openValidation={(reportId) => {
                 setValidationTarget(reportId);
-                setPage("Report Validation");
+                navigate("Report Validation");
               }}
               openMap={(focus) => {
                 setMapFocus(focus);
-                setPage("Incident Map");
+                navigate("Incident Map");
               }}
             />
           )}
@@ -475,7 +507,7 @@ function Dashboard({
           {page === "Response Teams" && (
             <ResponseTeams role={session.user.role} />
           )}
-          {page === "Analytics" && <Analytics go={setPage} />}
+          {page === "Analytics" && <Analytics go={navigate} />}
           {page === "Historical Records" && <HistoricalRecords />}
           {page === "Settings" && <Settings userRole={session.user.role} />}
         </div>
@@ -490,7 +522,7 @@ function Dashboard({
             );
             reportQuery.refetch();
             setReportRefreshVersion((value) => value + 1);
-            setPage("Live Reports");
+            navigate("Live Reports");
           }}
         />
       )}

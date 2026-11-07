@@ -1,3 +1,4 @@
+import { HotspotAnalysis } from "../components/HotspotAnalysis";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "../components/Icon";
 import { MiniMap } from "../components/Map";
@@ -75,6 +76,7 @@ export function IncidentMap({
   focus: MapFocus | null;
 }) {
   const assignments = useActiveAdminAssignments();
+  const [mapView, setMapView] = useState<"active" | "density">("active");
   const [layers, setLayers] = useState([true, true, false, false, false]);
   const [timeRange, setTimeRange] = useState("all");
   const [priority, setPriority] = useState("");
@@ -197,6 +199,12 @@ export function IncidentMap({
         title="Incident Map"
         subtitle="Monitor verified reports, active incidents, and deployed response teams across Pantukan."
       />
+      <div className="flex gap-2" aria-label="Map views">
+        <Button variant={mapView === "active" ? "primary" : "secondary"} onClick={() => setMapView("active")}>Active incident locations</Button>
+        <Button variant={mapView === "density" ? "primary" : "secondary"} onClick={() => setMapView("density")}>Heatmap & recurring hotspots</Button>
+      </div>
+      {mapView === "density" && <HotspotAnalysis />}
+      <div className={mapView === "active" ? "grid gap-5" : "hidden"}>
       {reportStatus === "error" && (
         <div className="flex min-h-[52px] items-center gap-3 rounded-[10px] border border-[#efc7c4] bg-red-soft px-3 py-2 text-priority-red">
           <Icon name="alert" />
@@ -484,6 +492,7 @@ export function IncidentMap({
           </div>
         </div>
       )}
+      </div>
     </>
   );
 }

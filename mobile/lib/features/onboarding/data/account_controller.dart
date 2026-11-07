@@ -323,11 +323,6 @@ class AccountController extends ChangeNotifier implements IdentityOtpService {
     ReportDraft draft, {
     required String clientReportId,
   }) async {
-    if (draft.photoPath != null) {
-      throw const RespondaApiException(
-        'Remove the attached photo to submit this report. Photo uploads are not available yet.',
-      );
-    }
     final profile = _profile;
     if (betaSkipMobileVerification &&
         profile?.isBetaLocal == true &&

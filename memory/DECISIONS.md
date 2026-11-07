@@ -2,12 +2,30 @@
 tags:
   - responda/memory
   - responda/decisions
-updated: 2026-10-27
+updated: 2026-11-05
 ---
 
 # Decisions
 
 ## Active decisions
+
+### 2026-11-05 — Complete non-ML operational dashboard features
+
+- User approved heatmaps, deterministic hotspot planning suggestions, real staff
+  alerts, audited report corrections, secure photo handling and a real On Site
+  arrival step. User explicitly excluded deployment and ML implementation.
+- Use verified data, 0.005-degree cells and one representative per linked
+  incident for density. Suggestions require MDRRMO review and are not predictions.
+- On Site belongs to assignments; keep the incident/unit responding until the
+  existing completion/cancellation rules change them. Preserve arrival timestamps.
+- Correct linked-report locations but lock their category to the linked incident;
+  category correction is available before linking. Preserve original evidence.
+- Private JPEG/PNG storage defaults to 30-day access retention, with a purge CLI
+  and configurable policy. Institutional retention and scheduled cleanup must
+  be confirmed before deployment. Do not expose original files or metadata.
+- Opt-in browser push is session-bound, provider-allowlisted and generic. Keep
+  private VAPID keys outside Git and use the API worker for retries; read receipts
+  stay per staff account. Real permission/push delivery remains to be exercised.
 
 ### 2026-10-27 — Restore the local Android gateway USB route automatically
 
@@ -125,8 +143,8 @@ updated: 2026-10-27
   Online history comes from the account, not device-local receipts. Saved offline
   reports keep their existing local behavior.
 - Completed contains resolved and closed reports. The journey uses real review
-  and response timestamps and Team responding rather than claiming arrival on
-  site, since the current staff lifecycle records no arrival state.
+  and response timestamps. The 2026-11-05 On Site addition now records arrival
+  explicitly instead of inferring it from Responding.
 
 ### 2026-10-20 — Poll Live Reports without resetting the staff workspace
 
@@ -180,8 +198,8 @@ updated: 2026-10-27
 - Online API submissions require the existing verified, active reporter session;
   each report has a client UUID for idempotent retries and is created as `app_api`
   with location, safety answers, event, and minimal audit in one transaction.
-- Do not silently drop selected photos. Online photo submission stays blocked
-  until secure storage and retention are decided. Offline/SMS remains separate.
+- Do not silently drop selected photos. The 2026-11-05 private upload flow
+  supersedes the original photo block. Offline/SMS remains text-only.
 - The API provides creation and server receipt only; live reporter status/history
   still needs a protected read API. No database migration was required.
 
