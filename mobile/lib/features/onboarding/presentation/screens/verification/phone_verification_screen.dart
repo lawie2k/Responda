@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:responda/core/config/beta_features.dart';
 import 'package:responda/core/theme/app_colors.dart';
 import 'package:responda/core/navigation/app_routes.dart';
 import 'package:responda/core/widgets/responda_button.dart';
@@ -45,6 +46,7 @@ class _IdentityVerificationScreenState
       _phoneController.text.startsWith('9');
 
   int get _remaining {
+    if (_previewOtp) return 0;
     final account = _account;
     if (!_validPhone ||
         account?.resendPhoneNumber != '+63${_phoneController.text}') {
@@ -55,6 +57,8 @@ class _IdentityVerificationScreenState
       60,
     );
   }
+
+  bool get _previewOtp => otpUiPreviewMode;
 
   @override
   void initState() {
@@ -86,11 +90,13 @@ class _IdentityVerificationScreenState
     setState(() => _sending = true);
     final phoneNumber = '+63${_phoneController.text}';
     try {
-      final service = widget.otpService ?? AccountScope.maybeOf(context);
+      final service = _previewOtp
+          ? const _OtpUiPreviewService()
+          : widget.otpService ?? AccountScope.maybeOf(context);
       if (service == null) {
         throw const RespondaApiException('Account storage is not available.');
       }
-      await service.sendCode(phoneNumber);
+      if (!_previewOtp) await service.sendCode(phoneNumber);
       if (!mounted) return;
       await Navigator.of(context).push<void>(
         MaterialPageRoute<void>(
@@ -98,6 +104,7 @@ class _IdentityVerificationScreenState
             phoneNumber: phoneNumber,
             otpService: service,
             privacyNoticeAcceptedAt: widget.privacyNoticeAcceptedAt,
+            previewOnly: _previewOtp,
           ),
         ),
       );
@@ -131,6 +138,12 @@ class _IdentityVerificationScreenState
           title: 'One account per phone number',
           message: 'Already registered? Use the same phone number and OTP to recover your account.',
         ),
+        if (_previewOtp)
+          const IdentityInfoCard(
+            icon: Icons.science_outlined,
+            title: 'OTP UI preview',
+            message: 'No code will be sent. Verification is disabled in this preview.',
+          ),
         const LocalizedText(
           'Mobile number',
           style: TextStyle(
@@ -190,6 +203,16 @@ class _IdentityVerificationScreenState
     }
     navigator.pushReplacementNamed(AppRoutes.language);
   }
+}
+
+class _OtpUiPreviewService implements IdentityOtpService {
+  const _OtpUiPreviewService();
+
+  @override
+  Future<void> sendCode(String phoneNumber) async {}
+
+  @override
+  Future<bool> verifyCode(String phoneNumber, String code) async => false;
 }
 
 class _PhilippineMobileNumberFormatter extends TextInputFormatter {

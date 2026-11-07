@@ -9,6 +9,10 @@ updated: 2026-11-07
 
 ## Backend
 
+- For physical-phone development, run `make run-mobile` in `backend/`.
+  `make run` binds loopback and cannot serve phone OTP requests over Wi-Fi.
+  The local service was restarted with mobile access after diagnosing OTP failure.
+
 - The FastAPI project structure, configuration, exception handling, CORS, async
   database session setup, and `/api/v1` router separation exist.
 - PostgreSQL is configured locally through a private `.env` file.
@@ -126,6 +130,14 @@ updated: 2026-11-07
   and reject suspended/deleted/unverified accounts. Production OTP delivery is
   unavailable until a provider is selected; deployment rejects the development
   flag. A real SMS provider is still pending.
+- The latest installed iPhone release has OTP preview disabled and uses the
+  backend development OTP flow. Backend/database health and focused account/OTP
+  tests passed; real SMS delivery remains unconfigured.
+- OTP UI can be previewed in explicitly flagged builds with
+  `--dart-define=RESPONDA_OTP_UI_PREVIEW=true`. This routes to the six-box OTP
+  screen without calling the backend; resend/verification remain local no-ops,
+  and the screen explains that no account can be verified. Normal builds retain
+  backend OTP behavior; flagged release builds support Home Screen launch.
 - Protected `/api/v1/admin/mobile-accounts` now lists real registered citizens
   with search, status filters, capped pagination, global counts, masked phones,
   actual last sign-in, and undeleted app-report totals. Manual callers, staff,
@@ -325,6 +337,20 @@ updated: 2026-11-07
   response targets and on-scene claims have been removed.
 
 ## Mobile app
+
+- After successful OTP, restored accounts with a name and valid Pantukan barangay
+  go directly to Home and clear the onboarding back stack. New or incomplete
+  profiles still complete account details; suspension remains server-controlled.
+
+- OTP entry shows six digit boxes backed by native autofill for iOS/Android, with
+  grouped autofill lifecycle, Done-key verification and clearer localized labels.
+  Native SMS suggestions can require a user tap; real incoming-SMS verification
+  awaits the production OTP sender. Sources are synced and the release is
+  installed; the user confirmed the OTP screen opens after the LAN fix.
+
+- Latest iPhone release: built and installed on 2026-11-07 with preview disabled;
+  device launch succeeded and Home Screen launch is supported. Backend is running
+  with LAN access. Complete sign-in and real incoming-SMS autofill remain to verify.
 
 - The active mobile codebase is Flutter, not React Native.
 - Suspended citizens now see a dedicated localized screen across all routes,

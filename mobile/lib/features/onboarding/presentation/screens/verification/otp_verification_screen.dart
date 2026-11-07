@@ -13,17 +13,22 @@ import 'package:responda/features/onboarding/presentation/widgets/onboarding_ste
 
 import 'optional_profile_screen.dart';
 
+import 'package:responda/core/navigation/app_routes.dart';
+import 'package:responda/core/constants/pantukan_barangays.dart';
+
 class OtpVerificationScreen extends StatefulWidget {
   const OtpVerificationScreen({
     required this.phoneNumber,
     required this.otpService,
     required this.privacyNoticeAcceptedAt,
+    this.previewOnly = false,
     super.key,
   });
 
   final String phoneNumber;
   final IdentityOtpService otpService;
   final DateTime privacyNoticeAcceptedAt;
+  final bool previewOnly;
 
   @override
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -31,6 +36,7 @@ class OtpVerificationScreen extends StatefulWidget {
 
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   final _codeController = TextEditingController();
+  final _codeFocus = FocusNode();
   bool _verifying = false;
   String? _error;
   bool _resending = false;
@@ -55,6 +61,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _codeFocus.dispose();
     _codeController.dispose();
     super.dispose();
   }
@@ -73,7 +80,22 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       if (!mounted) return;
       setState(() => _verifying = false);
       if (!valid) {
-        setState(() => _error = 'That code is incorrect. Please try again.');
+        setState(
+          () => _error = widget.previewOnly
+              ? 'OTP preview only. Verification is disabled.'
+              : 'That code is incorrect. Please try again.',
+        );
+        return;
+      }
+      TextInput.finishAutofillContext(shouldSave: false);
+      final account = _account;
+      final profile = account?.profile;
+      if (account?.hasAccount == true &&
+          profile != null &&
+          profile.fullName.trim().isNotEmpty &&
+          pantukanBarangays.contains(profile.barangay)) {
+        Navigator.of(context)
+            .pushNamedAndRemoveUntil(AppRoutes.home, (_) => false);
         return;
       }
       Navigator.of(context).pushReplacement(
@@ -114,6 +136,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     try {
       await widget.otpService.sendCode(widget.phoneNumber);
       _codeController.clear();
+      _codeFocus.requestFocus();
     } catch (error) {
       if (mounted) {
         setState(
@@ -137,6 +160,12 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         values: {'phone': widget.phoneNumber},
       ),
       children: [
+        if (widget.previewOnly)
+          const IdentityInfoCard(
+            icon: Icons.science_outlined,
+            title: 'OTP UI preview',
+            message: 'Enter any digits to preview the screen. No code is sent and verification is disabled.',
+          ),
         if (_account?.developmentCode != null)
           IdentityInfoCard(
             icon: Icons.science_outlined,
@@ -144,28 +173,108 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             message:
                 'Test code: ${_account!.developmentCode}. SMS delivery is not configured yet.',
           ),
-        TextField(
-          key: const Key('identity_otp_field'),
-          controller: _codeController,
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 24,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 8,
-          ),
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(6),
-          ],
-          onChanged: (_) => setState(() => _error = null),
-          decoration: identityInputDecoration(
-            hintText: '000000',
-            errorText: _error == null ? null : context.tr(_error!),
+        const LocalizedText(
+          'Verification code',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        ),
+        AutofillGroup(
+          onDisposeAction: AutofillContextAction.cancel,
+          child: AnimatedBuilder(
+            animation: Listenable.merge([_codeController, _codeFocus]),
+            builder: (context, _) => SizedBox(
+              height: 60,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // One native input preserves full-code SMS autofill and paste.
+                  Opacity(
+                    opacity: 0,
+                    alwaysIncludeSemantics: true,
+                    child: TextField(
+                      key: const Key('identity_otp_field'),
+                      controller: _codeController,
+                      focusNode: _codeFocus,
+                      autofillHints: const [AutofillHints.oneTimeCode],
+                      autofocus: true,
+                      enabled: !_verifying && !_resending,
+                      keyboardType: TextInputType.number,
+                      textInputAction: TextInputAction.done,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      maxLines: 1,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(6),
+                      ],
+                      onChanged: (_) => setState(() => _error = null),
+                      onSubmitted: (_) => _verify(),
+                      decoration: InputDecoration(
+                        labelText: context.tr('Verification code'),
+                      ),
+                    ),
+                  ),
+                  IgnorePointer(
+                    child: ExcludeSemantics(
+                      child: Row(
+                        spacing: 8,
+                        children: List.generate(6, (index) {
+                          final code = _codeController.text;
+                          final active =
+                              _codeFocus.hasFocus &&
+                              index ==
+                                  (_codeController.selection.extentOffset < 0
+                                      ? code.length.clamp(0, 5)
+                                      : _codeController.selection.extentOffset
+                                            .clamp(0, 5));
+                          return Expanded(
+                            child: Container(
+                              key: Key('otp_digit_box_$index'),
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: _verifying || _resending
+                                    ? AppColors.neutralSoft
+                                    : AppColors.surface,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: _error != null
+                                      ? AppColors.danger
+                                      : active
+                                      ? AppColors.brand
+                                      : AppColors.border,
+                                  width: active ? 2 : 1,
+                                ),
+                              ),
+                              child: Text(
+                                index < code.length
+                                    ? code[index]
+                                    : active
+                                    ? '│'
+                                    : '',
+                                style: const TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
+        if (_error != null)
+          Semantics(
+            liveRegion: true,
+            child: LocalizedText(
+              _error!,
+              style: const TextStyle(color: AppColors.danger, fontSize: 13),
+            ),
+          ),
         RespondaButton(
           key: const Key('verify_identity_otp_button'),
           label: _verifying ? 'Verifying…' : 'Verify OTP',
@@ -180,10 +289,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               : _resend,
           child: Text(
             _resending
-                ? 'Sending…'
+                ? context.tr('Sending…')
                 : _remaining > 0
-                ? 'Resend in ${_remaining}s'
-                : 'Resend code',
+                ? context.tr(
+                    'Resend code in {seconds}s',
+                    values: {'seconds': _remaining},
+                  )
+                : context.tr('Resend code'),
             style: const TextStyle(color: AppColors.brand),
           ),
         ),

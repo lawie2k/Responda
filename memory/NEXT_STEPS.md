@@ -2,14 +2,14 @@
 tags:
   - responda/memory
   - responda/planning
-updated: 2026-11-05
+updated: 2026-11-07
 ---
 
 # Next steps
 
 2026-11-05 non-ML web scope is implemented; deployment is explicitly skipped.
 Next: run web/docs/non-ml-acceptance.md with MDRRMO and the physical citizen phone.
-Rebuild the phone from the synchronized source; opt in to background browser
+The current release is installed with backend OTP restored; opt in to background browser
 alerts and test actual delivery/notification clicks, logout expiry, correction
 conflicts, photo upload/retry/viewing, and On Site through final completion.
 Keep the API running for push delivery. Confirm photo retention and schedule the
@@ -34,8 +34,8 @@ verified in the browser.
 1. On the updated iPhone release, test a real report through staff validation,
    assignment, response and resolution while My Reports is open. Use the Mac's
    reachable Bonjour `.local` backend origin for the local iPhone build. Keep the backend
-   beta flag enabled for the current no-OTP report test and confirm Live Reports
-   receives the submission. Synchronize app source changes back to the monorepo
+   running via `make run-mobile` for phone access. Complete development OTP
+   sign-in, then confirm Live Reports receives the submission. Synchronize app source changes back to the monorepo
    before Git commits.
 2. Try a newly registered mobile account in Mobile Accounts; Super Admins
    can suspend/restore real citizens and both administrator tiers can monitor.

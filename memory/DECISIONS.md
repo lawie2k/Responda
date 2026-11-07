@@ -2,12 +2,31 @@
 tags:
   - responda/memory
   - responda/decisions
-updated: 2026-11-05
+updated: 2026-11-07
 ---
 
 # Decisions
 
 ## Active decisions
+
+### 2026-11-07 — Restore complete accounts after OTP
+
+- Reuse the profile returned by successful server OTP verification. Route a
+  complete authenticated profile directly to Home, removing onboarding history.
+  Missing name or valid Pantukan barangay requires account details first.
+
+### 2026-11-07 — Use native OTP autofill
+
+- Show six digit boxes backed by one native OTP client with the platform hint so full-code
+  paste and iOS/Android autofill work together. Keep verification explicit via
+  the button or keyboard Done; cancel OTP credential saving. No inbox permission
+  or extra dependency is needed for native keyboard/autofill suggestions.
+
+### 2026-11-07 — Keep OTP UI preview isolated from authentication
+
+- `RESPONDA_OTP_UI_PREVIEW=true` in an explicitly flagged build opens the OTP form without
+  sending or verifying a code. The preview must never create a session or
+  verified account. The flag is opt-in and also supports release UI previews.
 
 ### 2026-11-05 — Complete non-ML operational dashboard features
 

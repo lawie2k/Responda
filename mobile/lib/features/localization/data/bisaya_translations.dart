@@ -413,6 +413,11 @@ const bisayaTranslations = <String, String>{
   'The verification code could not be sent.':
       'Dili mapadala ang verification code.',
   'Enter your OTP': 'Isulod ang imong OTP',
+  'OTP UI preview': 'Preview sa OTP UI',
+  'No code will be sent. Verification is disabled in this preview.': 'Walay code nga ipadala. Dili mahimo ang beripikasyon sa preview nga kini.',
+  'Enter any digits to preview the screen. No code is sent and verification is disabled.': 'Isulod ang bisan unsang numero aron makita ang screen. Walay code nga ipadala ug dili mahimo ang beripikasyon.',
+  'OTP preview only. Verification is disabled.':
+      'Preview ra kini sa OTP. Dili mahimo ang beripikasyon.',
   'That code is incorrect. Please try again.':
       'Sayop ang code. Palihog sulayi pag-usab.',
   'Verifying…': 'Gi-verify…',
@@ -564,4 +569,6 @@ const bisayaTranslations = <String, String>{
   'MDRRMO has recorded the arrival of a response team.':
       'Gitala sa MDRRMO ang pag-abot sa grupo sa pagtubag.',
   'Team on site': 'Naa na sa lugar ang grupo',
+  "Verification code": "Code sa pag-verify",
+  "Resend code in {seconds}s": "Ipadala pag-usab sulod sa {seconds}s",
 };

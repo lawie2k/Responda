@@ -2,10 +2,40 @@
 tags:
   - responda/memory
   - responda/work-log
-updated: 2026-11-05
+updated: 2026-11-07
 ---
 
 # Work log
+
+## 2026-11-07 — Six OTP boxes and returning-account routing
+
+- Replaced the visible single input with exactly six digit boxes while preserving
+  native autofill, full-code paste, numeric filtering and accessibility. Verified
+  returning profiles with complete name/barangay now enter Home without repeating
+  setup; incomplete profiles still enter account details. Sources/tests synced.
+- Flutter analysis and the full existing suite passed (105 tests, one beta skip);
+  four focused tests passed for return routing and both platform input paths.
+  Device SMS autofill remains unverified and this update is not installed yet.
+
+## 2026-11-07 — Clean up OTP entry and enable native autofill
+
+- Added iOS/Android one-time-code hints and AutofillGroup, a clean labeled field,
+  numeric six-digit formatting, keyboard Done verification, resend refocusing,
+  and localized field/countdown labels. Synced sources/tests to Documents copy.
+- Flutter analysis passed; two platform-specific input tests verify full-code
+  delivery, leading-zero preservation and server validation via Done. Remaining
+  existing Flutter tests passed in the full run. Physical incoming-SMS autofill
+  is unverified because the real OTP sender is not configured. No build/install
+  was requested for this UI change.
+
+## 2026-11-07 — Renew expired iPhone release
+
+- Synced the current mobile library to the Documents build copy, rebuilt the
+  signed release against the Mac Bonjour backend origin, and installed over the
+  existing paired iPhone app. Signing profile expires 2026-11-14; local signature
+  verification passed. iOS remote launch is blocked by developer signing/trust;
+  manual trust/verification remains needed. Backend was not running at the check.
+- Verified release build and device installation. No application source changed.
 
 ## 2026-11-04 — Audit system progress against both capstone manuscripts
 
@@ -1360,3 +1390,55 @@ conversation.
 - Deployment and ML remain excluded. Next: rebuild the phone and run the
   documented MDRRMO/browser/device acceptance walkthrough, including real push
   delivery; confirm retention and schedule cleanup before any future deployment.
+
+## 2026-11-07 — Add debug-only OTP UI preview
+
+- Added an opt-in `RESPONDA_OTP_UI_PREVIEW` debug define that bypasses request,
+  resend and verification calls and clearly labels the OTP screen as preview
+  only. Release builds continue through the backend OTP flow.
+- Verification: Flutter analyze and full tests passed; the focused preview test
+  passed with the define enabled. Synced current mobile sources to the Documents
+  build copy; Graphify mobile refresh and project-memory validation passed.
+
+## 2026-11-07 — Fix Home Screen launch for OTP preview
+
+- Replaced the debug installation with an explicitly flagged release preview;
+  preview still cannot verify accounts or create sessions. Installed over the
+  existing iPhone app and device launch succeeded.
+- Flutter analysis, focused preview test, release build and mobile graph refresh
+  passed. Source synced to the Documents build copy.
+
+## 2026-11-07 — Equalize OTP digit boxes
+
+- Moved gaps to the OTP row so all six expanded boxes have equal visible width.
+  Synced the Documents build copy; Flutter analysis and four OTP tests passed.
+  Rebuilt the flagged release preview, installed over the existing iPhone app,
+  and confirmed device launch succeeded.
+
+## 2026-11-07 — Restore backend OTP on the installed app
+
+- Built and installed the release app with OTP preview explicitly disabled;
+  device launch succeeded. Equal-width OTP boxes remain included.
+- Backend/database health passed; development OTP is enabled, real SMS provider
+  remains unconfigured. Nine backend auth tests and eight mobile account/OTP
+  tests passed. Physical phone OTP submission has not been exercised.
+
+## 2026-11-07 — Restore phone access to OTP backend
+
+- Diagnosed Send OTP failure: the running backend listened on loopback only.
+  Restarted using `make run-mobile` to accept LAN requests. Health/database
+  checks pass through the LAN interface; synthetic OTP request returns the
+  expected development challenge. No app rebuild or authentication bypass needed.
+- Backend auth tests and focused mobile account tests passed during this session.
+  User confirmed Safari health and the app OTP screen work after the restart.
+
+## 2026-11-07 — Save OTP and phone connectivity checkpoint
+
+- Saved six equal-width OTP boxes, native autofill, returning-account routing,
+  opt-in UI preview, and the restored backend release installed on the phone.
+  User confirmed OTP screen access after restarting the server with LAN binding.
+- Prior verification: Flutter analysis; full suite (107 passed, two skips),
+  separately enabled preview test; focused mobile account tests; nine backend
+  auth tests; release build/install/launch; Graphify mobile refresh.
+- Real SMS delivery/provider and full phone sign-in remain unverified. Keep
+  backend running via `make run-mobile`; no private identifiers saved.
