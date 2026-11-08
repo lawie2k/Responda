@@ -571,4 +571,5 @@ const bisayaTranslations = <String, String>{
   'Team on site': 'Naa na sa lugar ang grupo',
   "Verification code": "Code sa pag-verify",
   "Resend code in {seconds}s": "Ipadala pag-usab sulod sa {seconds}s",
+  'Info': 'Impormasyon',
 };

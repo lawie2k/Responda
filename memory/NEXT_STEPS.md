@@ -2,10 +2,17 @@
 tags:
   - responda/memory
   - responda/planning
-updated: 2026-11-07
+updated: 2026-11-08
 ---
 
 # Next steps
+
+User narrowed Liquid Glass to iOS navigation and back controls. Centered Call
+and UIKit stock selection are installed; the former custom indicator was removed.
+Review the stock tab indicator, larger call icon, native back actions, call-warning sheets, and tutorial call highlighting
+during the remaining device walkthrough; regular buttons/cards are restored.
+The dark native back-button appearance is reported and remains unfixed; inspect
+the native appearance before choosing its light-theme adjustment.
 
 2026-11-05 non-ML web scope is implemented; deployment is explicitly skipped.
 Next: run web/docs/non-ml-acceptance.md with MDRRMO and the physical citizen phone.

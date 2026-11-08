@@ -1,3 +1,4 @@
+import 'package:responda/core/widgets/responda_glass.dart';
 import 'package:flutter/material.dart';
 
 import 'package:responda/core/theme/app_colors.dart';
@@ -185,21 +186,24 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        InkWell(
-          onTap: onBack,
-          borderRadius: BorderRadius.circular(13),
-          child: Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(13),
-              border: Border.all(color: AppColors.brand),
-            ),
-            child: const Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: AppColors.brand,
-              size: 18,
+        RespondaIosBackButton(
+          onPressed: onBack,
+          fallback: InkWell(
+            onTap: onBack,
+            borderRadius: BorderRadius.circular(13),
+            child: Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(13),
+                border: Border.all(color: AppColors.brand),
+              ),
+              child: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: AppColors.brand,
+                size: 18,
+              ),
             ),
           ),
         ),

@@ -1,3 +1,7 @@
+import 'responda_ios_tab_bar.dart';
+
+import 'responda_glass.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -40,6 +44,9 @@ class RespondaBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (RespondaGlass.enabled(context)) {
+      return _buildIosNavigation(context);
+    }
     return Container(
       height: 84,
       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -53,7 +60,7 @@ class RespondaBottomNavigation extends StatelessWidget {
           _buildNavigationItem(context, _items[1]),
           Expanded(
             child: _CallAction(
-              key: callButtonKey,
+              buttonKey: callButtonKey,
               onTap: () => _handleCall(context),
             ),
           ),
@@ -63,6 +70,26 @@ class RespondaBottomNavigation extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildIosNavigation(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 4),
+    child: RespondaIosTabBar(
+      key: const Key('ios_native_tab_bar'),
+      pageIndex: activeItem.index,
+      labels: [
+        context.tr('Home'),
+        context.tr('My Reports'),
+        '',
+        context.tr('Info'),
+        context.tr('Settings'),
+      ],
+      callAccessibilityLabel: context.tr('Call MDRRMO'),
+      tint: AppColors.brand,
+      onPageSelected: (index) =>
+          onSelected?.call(RespondaNavItem.values[index]),
+      onCall: () => _handleCall(context),
+    ),
+  );
 
   Widget _buildNavigationItem(
     BuildContext context,
@@ -129,7 +156,9 @@ class RespondaBottomNavigation extends StatelessWidget {
 }
 
 class _CallAction extends StatelessWidget {
-  const _CallAction({required this.onTap, super.key});
+  const _CallAction({required this.onTap, this.buttonKey});
+
+  final GlobalKey? buttonKey;
 
   final VoidCallback onTap;
 
@@ -146,22 +175,27 @@ class _CallAction extends StatelessWidget {
             child: Semantics(
               button: true,
               label: context.tr('Call MDRRMO'),
-              child: Material(
-                key: const Key('emergency_call_nav_button'),
-                color: AppColors.brand,
-                elevation: 7,
-                shadowColor: AppColors.brand.withValues(alpha: 0.35),
-                shape: const CircleBorder(),
-                child: InkWell(
-                  onTap: onTap,
-                  customBorder: const CircleBorder(),
-                  child: const SizedBox(
-                    width: 64,
-                    height: 64,
-                    child: Icon(
-                      Icons.phone_rounded,
-                      color: AppColors.surface,
-                      size: 29,
+              child: SizedBox(
+                key: buttonKey,
+                width: 64,
+                height: 64,
+                child: Material(
+                  key: const Key('emergency_call_nav_button'),
+                  color: AppColors.brand,
+                  elevation: 7,
+                  shadowColor: AppColors.brand.withValues(alpha: 0.35),
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    onTap: onTap,
+                    customBorder: const CircleBorder(),
+                    child: const SizedBox(
+                      width: 64,
+                      height: 64,
+                      child: Icon(
+                        Icons.phone_rounded,
+                        color: AppColors.surface,
+                        size: 29,
+                      ),
                     ),
                   ),
                 ),

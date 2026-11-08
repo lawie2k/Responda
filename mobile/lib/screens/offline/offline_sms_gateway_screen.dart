@@ -1,3 +1,4 @@
+import 'package:responda/core/widgets/responda_glass.dart';
 import 'package:flutter/material.dart';
 
 import 'package:responda/core/theme/app_colors.dart';
@@ -92,23 +93,26 @@ class _GatewayHeader extends StatelessWidget {
       height: 50,
       child: Row(
         children: [
-          InkWell(
+          RespondaIosBackButton(
             key: const Key('offline_gateway_back_button'),
-            onTap: () => Navigator.of(context).maybePop(),
-            borderRadius: BorderRadius.circular(14),
-            child: Container(
-              width: 50,
-              height: 50,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.brand, width: 1.2),
-              ),
-              child: const Icon(
-                Icons.chevron_left_rounded,
-                color: AppColors.brand,
-                size: 28,
+            onPressed: () => Navigator.of(context).maybePop(),
+            fallback: InkWell(
+              onTap: () => Navigator.of(context).maybePop(),
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                width: 50,
+                height: 50,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.brand, width: 1.2),
+                ),
+                child: const Icon(
+                  Icons.chevron_left_rounded,
+                  color: AppColors.brand,
+                  size: 28,
+                ),
               ),
             ),
           ),

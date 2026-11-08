@@ -1,3 +1,4 @@
+import 'package:responda/core/widgets/responda_glass.dart';
 import 'package:flutter/material.dart';
 
 import 'package:responda/core/navigation/app_routes.dart';
@@ -111,22 +112,25 @@ class _StatusHeader extends StatelessWidget {
       height: 44,
       child: Row(
         children: [
-          InkWell(
+          RespondaIosBackButton(
             key: const Key('report_status_back_button'),
-            onTap: onBack,
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFCF6F7),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.brand),
-              ),
-              child: const Icon(
-                Icons.chevron_left_rounded,
-                color: AppColors.brand,
-                size: 22,
+            onPressed: onBack,
+            fallback: InkWell(
+              onTap: onBack,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFCF6F7),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.brand),
+                ),
+                child: const Icon(
+                  Icons.chevron_left_rounded,
+                  color: AppColors.brand,
+                  size: 22,
+                ),
               ),
             ),
           ),

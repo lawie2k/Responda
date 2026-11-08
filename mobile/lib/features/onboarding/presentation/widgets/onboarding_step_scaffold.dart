@@ -1,3 +1,4 @@
+import 'package:responda/core/widgets/responda_glass.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -37,21 +38,25 @@ class OnboardingStepScaffold extends StatelessWidget {
                   Row(
                     children: [
                       if (Navigator.of(context).canPop() || onBack != null) ...[
-                        InkWell(
-                          onTap: onBack ?? () => Navigator.of(context).pop(),
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            width: 34,
-                            height: 34,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFCF6F7),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.brand),
-                            ),
-                            child: const Icon(
-                              Icons.chevron_left_rounded,
-                              color: AppColors.brand,
-                              size: 22,
+                        RespondaIosBackButton(
+                          onPressed:
+                              onBack ?? () => Navigator.of(context).pop(),
+                          fallback: InkWell(
+                            onTap: onBack ?? () => Navigator.of(context).pop(),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              width: 34,
+                              height: 34,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFCF6F7),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppColors.brand),
+                              ),
+                              child: const Icon(
+                                Icons.chevron_left_rounded,
+                                color: AppColors.brand,
+                                size: 22,
+                              ),
                             ),
                           ),
                         ),

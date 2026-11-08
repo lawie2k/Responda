@@ -1,3 +1,5 @@
+import 'package:native_liquid_glass/native_liquid_glass.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -64,6 +66,7 @@ class _RespondaAppState extends State<RespondaApp> with WidgetsBindingObserver {
   late final bool _ownsSettingsController;
   late final bool _ownsTestingModeController;
   final _navigatorKey = GlobalKey<NavigatorState>();
+  final _glassObserver = LiquidGlassNavigatorObserver();
   Timer? _accountTimer;
   bool _refreshingAccount = false;
 
@@ -180,6 +183,10 @@ class _RespondaAppState extends State<RespondaApp> with WidgetsBindingObserver {
                   controller: _connectivityController,
                   child: MaterialApp(
                     navigatorKey: _navigatorKey,
+                    navigatorObservers: [
+                      if (NativeLiquidGlassUtils.supportsLiquidGlass)
+                        _glassObserver,
+                    ],
                     title: 'RESPONDA',
                     locale: _languageController.language.frameworkLocale,
                     localizationsDelegates:

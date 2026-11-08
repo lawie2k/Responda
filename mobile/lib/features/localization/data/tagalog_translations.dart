@@ -570,4 +570,5 @@ const tagalogTranslations = <String, String>{
   'Team on site': 'Nasa lugar na ang pangkat',
   "Verification code": "Code ng beripikasyon",
   "Resend code in {seconds}s": "Ipadala muli sa loob ng {seconds}s",
+  'Info': 'Impormasyon',
 };

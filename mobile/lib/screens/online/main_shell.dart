@@ -1,3 +1,4 @@
+import 'package:responda/core/widgets/responda_glass.dart';
 import 'package:flutter/material.dart';
 
 import 'package:responda/core/theme/app_colors.dart';
@@ -91,38 +92,45 @@ class _MainShellState extends State<MainShell> {
         onOutsidePantukanChanged: (_) => _selectItem(RespondaNavItem.home),
       ),
     ];
-    return Stack(
-      key: _tutorialSurfaceKey,
-      children: [
-        Scaffold(
-          body: Material(
-            color: AppColors.background,
-            child: IndexedStack(index: _activeItem.index, children: screens),
-          ),
-          bottomNavigationBar: Material(
-            color: AppColors.surface,
-            child: SafeArea(
-              top: false,
-              child: RespondaBottomNavigation(
-                activeItem: _activeItem,
-                callButtonKey: _callButtonKey,
-                onSelected: _selectItem,
+    return RespondaGlassScope(
+      disabled: _tutorialController.visible,
+      child: Stack(
+        key: _tutorialSurfaceKey,
+        children: [
+          Scaffold(
+            extendBody:
+                RespondaGlass.enabled(context) && !_tutorialController.visible,
+            body: Material(
+              color: AppColors.background,
+              child: IndexedStack(index: _activeItem.index, children: screens),
+            ),
+            bottomNavigationBar: Material(
+              color: _tutorialController.visible
+                  ? AppColors.surface
+                  : RespondaGlass.background(context, AppColors.surface),
+              child: SafeArea(
+                top: false,
+                child: RespondaBottomNavigation(
+                  activeItem: _activeItem,
+                  callButtonKey: _callButtonKey,
+                  onSelected: _selectItem,
+                ),
               ),
             ),
           ),
-        ),
-        if (_tutorialController.visible &&
-            _activeItem == RespondaNavItem.home &&
-            !outsidePantukan)
-          HomeTutorialOverlay(
-            key: ValueKey(_tutorialController.step),
-            step: _tutorialController.step,
-            targetKey: _tutorialTargets[_tutorialController.step],
-            coordinateSpaceKey: _tutorialSurfaceKey,
-            onNext: () => _tutorialController.next(),
-            onSkip: () => _tutorialController.complete(),
-          ),
-      ],
+          if (_tutorialController.visible &&
+              _activeItem == RespondaNavItem.home &&
+              !outsidePantukan)
+            HomeTutorialOverlay(
+              key: ValueKey(_tutorialController.step),
+              step: _tutorialController.step,
+              targetKey: _tutorialTargets[_tutorialController.step],
+              coordinateSpaceKey: _tutorialSurfaceKey,
+              onNext: () => _tutorialController.next(),
+              onSkip: () => _tutorialController.complete(),
+            ),
+        ],
+      ),
     );
   }
 

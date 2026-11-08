@@ -1,3 +1,5 @@
+import 'package:responda/core/widgets/responda_glass.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -84,24 +86,27 @@ class _StepHeader extends StatelessWidget {
             height: 44,
             child: Row(
               children: [
-                InkWell(
-                  onTap: onBack,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    width: 34,
-                    height: 34,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFCF6F7),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.brand),
-                    ),
-                    child: Transform.rotate(
-                      angle: math.pi,
-                      child: SvgPicture.asset(
-                        'assets/icons/chevron.svg',
-                        width: 18,
-                        height: 18,
+                RespondaIosBackButton(
+                  onPressed: onBack,
+                  fallback: InkWell(
+                    onTap: onBack,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFCF6F7),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.brand),
+                      ),
+                      child: Transform.rotate(
+                        angle: math.pi,
+                        child: SvgPicture.asset(
+                          'assets/icons/chevron.svg',
+                          width: 18,
+                          height: 18,
+                        ),
                       ),
                     ),
                   ),

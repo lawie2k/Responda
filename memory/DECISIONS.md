@@ -9,6 +9,24 @@ updated: 2026-11-07
 
 ## Active decisions
 
+### 2026-11-08 — Limit native Liquid Glass to iOS navigation
+
+- User clarified that only the bottom navbar and back buttons should adopt the
+  native iOS design. Restore all other controls/cards to their original styles;
+  do not apply glass globally through button themes.
+- Keep the maroon call action centered between two navigation items on each
+  side in the native UITabBarController, without treating Call as a selected page.
+  Native chevrons replace custom back boxes on current iOS; preserve callbacks,
+  localization, existing fallbacks and the call-warning sheet.
+- Use UIKit's stock selection indicator through a native UITabBarController;
+  remove the Flutter selection rectangle and per-button selection effects.
+  A small Runner platform-view bridge keeps Call centered and rejects page
+  selection for that action. The iPhone Call title is hidden; its accessibility
+  label remains. The call image is 44 points with a 26-point phone glyph.
+  Android and iOS below 26 retain the original Flutter navbar and back controls.
+- Tutorial fallback keeps the same iOS call placement and highlights the actual
+  call-circle bounds. Popup suppression prevents native layers covering sheets.
+
 ### 2026-11-07 — Restore complete accounts after OTP
 
 - Reuse the profile returned by successful server OTP verification. Route a

@@ -2,7 +2,7 @@
 tags:
   - responda/memory
   - responda/status
-updated: 2026-11-07
+updated: 2026-11-08
 ---
 
 # Current state
@@ -338,6 +338,21 @@ updated: 2026-11-07
 
 ## Mobile app
 
+- Per the clarified iOS scope, Liquid Glass is limited to the bottom navigation
+  and back buttons. Regular report buttons, cards, selection rows and settings
+  keep their original appearance. Native iOS navigation uses one glass bar with
+  five equal slots: Home, My Reports, maroon Call, Info and Settings. Native
+  chevron back buttons use 44-point controls. Android and older iOS retain their original controls.
+  Popup suppression and tutorial fallback remain; source checks/full tests passed.
+  UIKit now owns the stock tab selection indicator through the Runner native
+  bridge; the custom Flutter indicator is removed. Call stays centered with no
+  visible title and a retained accessibility label. The native release is installed;
+  the larger 44-point call image with a 26-point phone glyph is installed and launched.
+  Prior checks: 108 Flutter tests passed, native bridge/popup tests passed.
+  User reported a dark native back-button appearance; matching it to the light
+  app theme was discussed but not implemented.
+
+
 - After successful OTP, restored accounts with a name and valid Pantukan barangay
   go directly to Home and clear the onboarding back stack. New or incomplete
   profiles still complete account details; suspension remains server-controlled.
@@ -348,7 +363,7 @@ updated: 2026-11-07
   awaits the production OTP sender. Sources are synced and the release is
   installed; the user confirmed the OTP screen opens after the LAN fix.
 
-- Latest iPhone release: built and installed on 2026-11-07 with preview disabled;
+- Latest iPhone release: Liquid Glass build installed on 2026-11-08 with OTP preview disabled;
   device launch succeeded and Home Screen launch is supported. Backend is running
   with LAN access. Complete sign-in and real incoming-SMS autofill remain to verify.
 

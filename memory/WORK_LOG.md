@@ -2,7 +2,7 @@
 tags:
   - responda/memory
   - responda/work-log
-updated: 2026-11-07
+updated: 2026-11-08
 ---
 
 # Work log
@@ -1442,3 +1442,85 @@ conversation.
   auth tests; release build/install/launch; Graphify mobile refresh.
 - Real SMS delivery/provider and full phone sign-in remain unverified. Keep
   backend running via `make run-mobile`; no private identifiers saved.
+
+## 2026-11-07 — Add native iOS Liquid Glass controls
+
+- Added the native glass dependency and shared adaptive surfaces. Updated primary
+  buttons, button themes, custom action/back/selection controls, and online/offline
+  bottom navigation; retained maroon call action, actions and localized labels.
+- Added popup suppression and tutorial fallback to prevent native overlay bleed.
+  Android and older-iOS controls retain their existing appearance.
+- Flutter analysis and full suite passed (107 tests, two existing flag skips);
+  nine focused call/tutorial/report-edit tests passed after the final tap handling
+  adjustment. Native release compiled; source synchronized to Documents build copy.
+  Mobile Graphify refreshed. Device installation/review in progress.
+
+## 2026-11-08 — Install corrected Liquid Glass release
+
+- Resumed after pause; verified the completed release signature and source/build
+  copy synchronization, installed over the existing iPhone app and launched it.
+- Inspected a temporary Home screenshot: report-action contrast and navigation
+  contrast are corrected; centered maroon call action and glass cards are visible.
+  Deleted the screenshot after review. Full native interaction walkthrough remains
+  pending; prior Flutter checks and release builds passed before the pause.
+
+## 2026-11-08 — Restrict native glass to navbar and back controls
+
+- Applied the clarified scope: restored standard buttons, cards, settings and
+  selection controls; removed the broad glass theme and adaptive card surfaces.
+- Added a native four-item tab bar with a separate maroon call action. Added
+  native chevron back buttons with original-platform fallbacks and preserved
+  call-warning behavior. Shortened the Info tab label with translations.
+- Updated tutorial targeting to the actual call-circle bounds. Flutter analysis
+  and full suite passed (107 tests, two flag skips). Sources synced to Documents;
+  signed releases installed and launched; Home layout checked during iteration.
+  Centered-call and indicator refinements are recorded below.
+
+## 2026-11-08 — Center the iOS navbar call action
+
+- User retained the centered call requirement. The iOS navbar now has five equal
+  slots with native navigation buttons on a shared glass capsule and the maroon
+  call circle in the center. It opens the existing warning sheet without selecting
+  a page. Regular controls remain restored; back controls remain native.
+- Flutter analysis and 16 focused navigation/tutorial/report tests passed. Source
+  synchronized to Documents; centered release built/installed and Home inspected.
+  Follow-up indicator correction is recorded below.
+
+## 2026-11-08 — Stabilize the navbar selection background
+
+- Replaced individual native glass selection backgrounds with one consistently
+  sized animated indicator managed by the active page. Native tab buttons remain
+  plain, with centered Call reserved as an action rather than a selected tab.
+- Added an iOS-layout regression test for all four indicator positions, constant
+  size, a centered call target and unchanged selection after Call. The iOS fallback
+  layout is exercised on the test host without loading native platform views.
+- Flutter analysis and full suite passed (108 tests, two flag skips); signed
+  release built, installed and launched. Mobile graph refreshed and memory/diff
+  checks passed. User confirmed physical tab switching and centered Call; the
+  Info screen screenshot also showed one correct highlight. Temporary screenshot
+  deleted; source synced.
+
+## 2026-11-08 — Adopt stock selection and enlarge the call icon
+
+- Replaced custom selection with UIKit UITabBarController via a focused native
+  platform-view bridge. Center Call opens the existing warning without selecting
+  a page; removed its visible iPhone title and retained its accessibility label.
+- Native bridge tests cover page callbacks, action isolation, invalid indices,
+  and popup visibility. Analysis, full suite (108 passed, two skips), native builds
+  and installation passed before the size adjustment. Android UI stays original.
+- Enlarged the call image to 44 points and white glyph to 26 points; release
+  build, installation and launch passed. Sources synchronized to Documents.
+  Graph refresh and memory/diff checks passed; final appearance awaits user review.
+
+## 2026-11-08 — Save and push native iOS navigation checkpoint
+
+- Saved the final scope: UIKit stock tab selection on iOS 26+, a centered maroon
+  Call action with hidden visible title, retained accessibility label and larger
+  icon, plus native back controls. Regular buttons/cards are restored. Android
+  and older iOS retain the original Flutter navbar and back controls.
+- Sources and tests are synced to the Documents build copy. Latest release built,
+  installed and launched on the phone. Verification already passed: Flutter
+  analysis, full suite (108 tests, two flag skips), native event/popup regression,
+  release build/install/launch, Graphify update and memory/diff checks.
+- Remaining: native back-button dark appearance has not been adjusted; stock
+  native animation and final call-icon appearance remain for user acceptance.

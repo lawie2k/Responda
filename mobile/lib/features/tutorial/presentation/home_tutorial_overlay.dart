@@ -67,8 +67,8 @@ class HomeTutorialOverlay extends StatelessWidget {
           final screenSize = Size(constraints.maxWidth, constraints.maxHeight);
           final spotlight = step == 3
               ? Rect.fromCircle(
-                  center: Offset(targetRect.center.dx, targetRect.top + 12),
-                  radius: 39,
+                  center: targetRect.center,
+                  radius: targetRect.width / 2 + 7,
                 )
               : targetRect.inflate(7);
           const spriteWidth = 104.0;
