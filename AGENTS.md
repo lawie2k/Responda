@@ -23,6 +23,46 @@ disagree, verify the code and update the note.
 - `memory/` — concise Obsidian project memory.
 - `scripts/` — memory and Graphify maintenance.
 
+## Required UI and animation skills
+
+For every UI creation, redesign, refinement, or animation task in Responda,
+use the applicable installed skills below. Read their local `SKILL.md` files
+before acting; do not fetch upstream on every task. These rules apply to both
+the React web dashboard and Flutter mobile app, including work from their
+Documents build mirrors. Announce which skills apply and why.
+
+- **frontend-design** — `/Users/lawie/.codex/skills/frontend-design/SKILL.md`
+  (source: `anthropics/skills`, `skills/frontend-design`). Use for new screens,
+  components, UI implementation, and substantial visual changes.
+- **improve-ui** — `/Users/lawie/.codex/skills/improve-ui/SKILL.md`
+  (source: `ibelick/ui-skills`, `skills/improve-ui`). Use when reviewing or
+  improving existing UI. It audits verified problems and creates selected
+  implementation plans under `design-plans/`; it does not edit product source.
+- **improve-animations** —
+  `/Users/lawie/.codex/skills/improve-animations/SKILL.md`
+  (source: `emilkowalski/skills`, `skills/improve-animations`). Use when adding,
+  changing, or reviewing motion. Read its `AUDIT.md` and `PLAN-TEMPLATE.md`
+  when required. Its audit/planning phase does not modify product source;
+  implementation follows the selected plan and the user's requested scope.
+
+Apply these skills together where their scopes overlap, without forcing a full
+motion audit into a static text/spacing task. Translate web-specific advice
+into Flutter/native equivalents; do not add CSS, React, or browser dependencies
+to Flutter. Preserve native iOS navigation decisions and existing Android
+fallbacks, accessibility, reduced motion, responsiveness, and performance.
+
+The user's exact request, approved Figma design, and established Responda
+design decisions govern the result. The dashboard's restrained maroon civic
+identity remains in effect. Do not invent a new visual identity, introduce
+decorative animation, or override native platform behavior merely to follow
+generic skill examples. Existing Figma skills remain required for Figma work.
+
+Keep audit/planning and implementation phases explicit. Do not represent an
+audit-only skill as having implemented changes. Follow the model-confirmation
+rule before each new user-requested action. If a skill is missing in another
+environment, report it and restore it from the source above; do not silently
+claim it was used. These are local Codex skills, not app runtime dependencies.
+
 ## Model and chat efficiency protocol
 
 ### Ponytail working style

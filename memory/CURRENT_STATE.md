@@ -2,7 +2,7 @@
 tags:
   - responda/memory
   - responda/status
-updated: 2026-11-08
+updated: 2026-11-09
 ---
 
 # Current state
@@ -338,6 +338,45 @@ updated: 2026-11-08
 
 ## Mobile app
 
+- Language and account entry are unnumbered. Sign-in hides progress through
+  privacy/phone/OTP/profile; registration counts privacy (1), phone (2), OTP (3),
+  profile (4). Valid sessions bypass onboarding. The welcome screen has a white
+  background, centered logo on a soft maroon circle and centered heading.
+- Reporting has a slim progress header, adaptive incident choices, wrapping
+  summaries, clearer safety questions and quieter review/GPS/success cards.
+  Native iOS glass back controls have extra clearance above progress;
+  Android/older iOS header spacing is unchanged. Native visual check pending.
+- My Reports (online/offline), Info and Settings now use larger headings/text,
+  restrained bordered surfaces and improved wrapping. Selected report filters
+  are maroon. Info retains the manual content and sprite with a flexible cover.
+  Settings values sit under descriptions; switches use their full touch size.
+- Latest signed release contains these changes, is synced to the Documents build
+  copy, and is installed/launched on the physical iPhone. Analysis and all 114
+  tests passed (two flag skips). Visual acceptance remains pending; reporting,
+  tracking, SMS retry, permissions and account controls retain existing behavior.
+
+- Account-access screen now follows language selection, offering Sign in and
+  Create an account. Both preserve privacy acknowledgement and phone OTP; sign-in
+  uses account-recovery copy, and complete returning profiles still enter Home.
+  Signed-out startup, session invalidation and logout return to this screen;
+  valid saved sessions bypass it. New labels support Tagalog and Bisaya. Existing
+  five-step verification numbering is retained; the access screen is unnumbered.
+  Analysis/full tests and release build passed; installed and launched on the physical iPhone. New onboarding requires signed-out entry; existing account was not reset.
+
+- Normal app updates already restore saved secure sessions independently of app
+  versions. Added upgrade-contract regression coverage using the shipped token
+  key/profile schema: online/offline/503 restoration and 401 invalidation.
+  Session expiry/revocation/suspension remain enforced. Release identity/storage
+  compatibility and real store-update QA are documented in
+  `mobile/docs/app-update-sessions.md`; no new authentication bypass or lifetime
+  extension was added. Store-to-store update behavior remains unverified.
+
+- Scrolling optimization on 2026-11-09: scrolling content no longer extends behind
+  the native bar, hidden tabs pause ticker-driven/animated-image work, and the
+  navbar skips unchanged channel updates. Release installed/launched; 108 Flutter
+  tests passed, plus focused regressions. Instruments capture timed out twice,
+  so no measured performance improvement is claimed; user scrolling check pending.
+
 - Per the clarified iOS scope, Liquid Glass is limited to the bottom navigation
   and back buttons. Regular report buttons, cards, selection rows and settings
   keep their original appearance. Native iOS navigation uses one glass bar with
@@ -600,6 +639,12 @@ updated: 2026-11-08
 - Treat these as historical results; rerun component checks after new changes.
 
 ## Repository and project-memory setup
+
+- Three local Codex skills are installed under `/Users/lawie/.codex/skills/`:
+  `frontend-design`, `improve-ui`, and `improve-animations`. Root `AGENTS.md`
+  requires their applicable use for web/Flutter UI and motion work, preserves
+  Figma and project design decisions, and distinguishes audits from implementation.
+  These are development guidance, not application dependencies.
 
 - Ponytail working guidance is the default in the global local Codex profile
   (`/Users/lawie/.codex/AGENTS.md`) and Responda instructions. It uses the

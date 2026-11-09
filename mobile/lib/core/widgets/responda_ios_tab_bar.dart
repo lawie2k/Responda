@@ -31,6 +31,7 @@ class RespondaIosTabBar extends StatefulWidget {
 class _RespondaIosTabBarState extends State<RespondaIosTabBar> {
   MethodChannel? _channel;
   bool _visible = true;
+  Map<String, Object>? _lastConfiguration;
 
   Map<String, Object> get _configuration => {
     'pageIndex': widget.pageIndex,
@@ -55,7 +56,24 @@ class _RespondaIosTabBarState extends State<RespondaIosTabBar> {
 
   Future<void> _sync() async {
     try {
-      await _channel?.invokeMethod<void>('update', _configuration);
+      final channel = _channel;
+      if (channel == null) return;
+      final configuration = _configuration;
+      final previous = _lastConfiguration;
+      if (previous != null &&
+          previous['pageIndex'] == configuration['pageIndex'] &&
+          previous['visible'] == configuration['visible'] &&
+          previous['tint'] == configuration['tint'] &&
+          previous['callAccessibilityLabel'] ==
+              configuration['callAccessibilityLabel'] &&
+          listEquals(previous['labels'] as List<String>, widget.labels)) {
+        return;
+      }
+      await channel.invokeMethod<void>('update', configuration);
+      _lastConfiguration = {
+        ...configuration,
+        'labels': List<String>.of(widget.labels),
+      };
     } on PlatformException {
       // The native view can disappear while a route is being disposed.
     } on MissingPluginException {
@@ -64,6 +82,7 @@ class _RespondaIosTabBarState extends State<RespondaIosTabBar> {
   }
 
   void _created(int id) {
+    _lastConfiguration = null;
     _channel = MethodChannel('responda/native-tab-bar/$id')
       ..setMethodCallHandler((call) async {
         if (!mounted) return;

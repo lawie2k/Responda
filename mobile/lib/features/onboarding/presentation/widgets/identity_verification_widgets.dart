@@ -18,9 +18,9 @@ class IdentityInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.brandSoft,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -45,8 +45,8 @@ class IdentityInfoCard extends StatelessWidget {
                   message,
                   style: const TextStyle(
                     color: AppColors.textSecondary,
-                    fontSize: 12,
-                    height: 17 / 12,
+                    fontSize: 14,
+                    height: 1.5,
                   ),
                 ),
               ],

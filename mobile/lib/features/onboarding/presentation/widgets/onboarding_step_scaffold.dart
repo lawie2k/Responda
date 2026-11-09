@@ -10,12 +10,14 @@ class OnboardingStepScaffold extends StatelessWidget {
     required this.subtitle,
     required this.children,
     this.totalSteps = 5,
+    this.showProgress = true,
     this.onBack,
     super.key,
   });
 
   final int step;
   final int totalSteps;
+  final bool showProgress;
   final String title;
   final String subtitle;
   final List<Widget> children;
@@ -73,40 +75,45 @@ class OnboardingStepScaffold extends StatelessWidget {
                           'RESPONDA',
                           style: TextStyle(
                             color: AppColors.brand,
-                            fontSize: 18,
+                            fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
-                      LocalizedText(
-                        context.tr(
-                          '{step} of {total}',
-                          values: {'step': step, 'total': totalSteps},
+                      if (showProgress)
+                        LocalizedText(
+                          context.tr(
+                            '{step} of {total}',
+                            values: {'step': step, 'total': totalSteps},
+                          ),
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
                     ],
                   ),
-                  const SizedBox(height: 14),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: step / totalSteps,
-                      minHeight: 7,
-                      backgroundColor: AppColors.neutralSoft,
-                      valueColor: const AlwaysStoppedAnimation(AppColors.brand),
+                  if (showProgress) ...[
+                    const SizedBox(height: 14),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: step / totalSteps,
+                        minHeight: 4,
+                        backgroundColor: AppColors.neutralSoft,
+                        valueColor: const AlwaysStoppedAnimation(
+                          AppColors.brand,
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
+                  ],
+                  const SizedBox(height: 30),
                   LocalizedText(
                     title,
                     style: const TextStyle(
                       color: AppColors.textPrimary,
-                      fontSize: 24,
+                      fontSize: 28,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -115,8 +122,8 @@ class OnboardingStepScaffold extends StatelessWidget {
                     subtitle,
                     style: const TextStyle(
                       color: AppColors.textSecondary,
-                      fontSize: 14,
-                      height: 20 / 14,
+                      fontSize: 15,
+                      height: 1.5,
                     ),
                   ),
                   const SizedBox(height: 20),

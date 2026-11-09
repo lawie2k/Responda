@@ -173,21 +173,27 @@ class _SelectedIncident extends StatelessWidget {
             size: 19,
           ),
           const SizedBox(width: 8),
-          const LocalizedText(
-            'Incident type',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const Spacer(),
-          LocalizedText(
-            incidentType.label,
-            style: const TextStyle(
-              color: AppColors.brand,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const LocalizedText(
+                  'Incident type',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                LocalizedText(
+                  incidentType.label,
+                  style: const TextStyle(
+                    color: AppColors.brand,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -243,7 +249,7 @@ class _HelpfulDetailsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 5, 16, 7),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFFFCF6F7),
         borderRadius: BorderRadius.circular(18),
@@ -295,9 +301,9 @@ class _QuestionChoice extends StatelessWidget {
           question,
           style: const TextStyle(
             color: AppColors.textPrimary,
-            fontSize: 20,
+            fontSize: 17,
             fontWeight: FontWeight.w700,
-            height: 28 / 20,
+            height: 1.4,
           ),
         ),
         const SizedBox(height: 10),
@@ -306,7 +312,7 @@ class _QuestionChoice extends StatelessWidget {
             Expanded(
               child: RespondaButton(
                 label: 'Yes',
-                height: 42,
+                height: 48,
                 style: value == true
                     ? RespondaButtonStyle.primary
                     : RespondaButtonStyle.ghost,
@@ -317,7 +323,7 @@ class _QuestionChoice extends StatelessWidget {
             Expanded(
               child: RespondaButton(
                 label: 'No',
-                height: 42,
+                height: 48,
                 style: value == false
                     ? RespondaButtonStyle.primary
                     : RespondaButtonStyle.ghost,

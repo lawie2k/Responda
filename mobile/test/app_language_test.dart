@@ -1,3 +1,4 @@
+import 'package:responda/features/onboarding/presentation/screens/account_access_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -79,8 +80,8 @@ void main() {
 
     expect(store.code, AppLanguage.filipino.code);
     expect(controller.language, AppLanguage.filipino);
-    expect(find.byType(PrivacyNoticeScreen), findsOneWidget);
-    expect(find.text('2 sa 5'), findsOneWidget);
+    expect(find.byType(AccountAccessScreen), findsOneWidget);
+    expect(find.byKey(const Key('account_sign_in_button')), findsOneWidget);
   });
 
   testWidgets('language continue button resets after returning with Back', (
@@ -103,7 +104,7 @@ void main() {
     await tester.tap(continueButton);
     await tester.pumpAndSettle();
 
-    expect(find.byType(PrivacyNoticeScreen), findsOneWidget);
+    expect(find.byType(AccountAccessScreen), findsOneWidget);
     await tester.tap(find.byIcon(Icons.chevron_left_rounded));
     await tester.pumpAndSettle();
 
@@ -132,31 +133,38 @@ void main() {
     expect(find.text('Continue'), findsNothing);
   });
 
-  testWidgets('resumed privacy step can return to language selection', (
-    tester,
-  ) async {
-    final controller = AppLanguageController(
-      store: _MemoryLanguageStore(AppLanguage.cebuano.code),
-    );
-    await controller.load();
+  testWidgets(
+    'resumed privacy step returns through account access to language',
+    (tester) async {
+      final controller = AppLanguageController(
+        store: _MemoryLanguageStore(AppLanguage.cebuano.code),
+      );
+      await controller.load();
 
-    await tester.pumpWidget(
-      AppLanguageScope(
-        controller: controller,
-        child: MaterialApp(
-          home: const PrivacyNoticeScreen(),
-          routes: {AppRoutes.language: (_) => const LanguageSelectionScreen()},
+      await tester.pumpWidget(
+        AppLanguageScope(
+          controller: controller,
+          child: MaterialApp(
+            home: const PrivacyNoticeScreen(),
+            routes: {
+              AppRoutes.language: (_) => const LanguageSelectionScreen(),
+              AppRoutes.accountAccess: (_) => const AccountAccessScreen(),
+            },
+          ),
         ),
-      ),
-    );
+      );
 
-    expect(find.byIcon(Icons.chevron_left_rounded), findsOneWidget);
-    await tester.tap(find.byIcon(Icons.chevron_left_rounded));
-    await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.chevron_left_rounded), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.chevron_left_rounded));
+      await tester.pumpAndSettle();
 
-    expect(find.byType(LanguageSelectionScreen), findsOneWidget);
-    expect(find.text('Padayon'), findsOneWidget);
-  });
+      expect(find.byType(AccountAccessScreen), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.chevron_left_rounded));
+      await tester.pumpAndSettle();
+      expect(find.byType(LanguageSelectionScreen), findsOneWidget);
+      expect(find.text('Padayon'), findsOneWidget);
+    },
+  );
 
   testWidgets('settings changes and persists the same language', (
     tester,

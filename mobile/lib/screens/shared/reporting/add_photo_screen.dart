@@ -148,8 +148,8 @@ class _SafetyCard extends StatelessWidget {
             'Optional — only take a photo if it is safe to do so.',
             style: TextStyle(
               color: AppColors.textPrimary,
-              fontSize: 13,
-              height: 18 / 13,
+              fontSize: 14,
+              height: 1.5,
             ),
           ),
         ],

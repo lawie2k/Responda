@@ -14,10 +14,12 @@ class OptionalProfileScreen extends StatefulWidget {
   const OptionalProfileScreen({
     required this.phoneNumber,
     required this.privacyNoticeAcceptedAt,
+    this.isSigningIn = false,
     super.key,
   });
 
   final String? phoneNumber;
+  final bool isSigningIn;
   final DateTime privacyNoticeAcceptedAt;
 
   @override
@@ -103,7 +105,9 @@ class _OptionalProfileScreenState extends State<OptionalProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return OnboardingStepScaffold(
-      step: widget.phoneNumber == null ? 3 : 5,
+      step: widget.phoneNumber == null ? 2 : 4,
+      totalSteps: widget.phoneNumber == null ? 2 : 4,
+      showProgress: !widget.isSigningIn,
       title: 'Account details',
       subtitle: 'Add your name and barangay so responders can recognize your account.',
       children: [

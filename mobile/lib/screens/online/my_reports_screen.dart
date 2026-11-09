@@ -448,9 +448,9 @@ class _ReportsHeader extends StatelessWidget {
                 'My Reports',
                 style: TextStyle(
                   color: AppColors.textPrimary,
-                  fontSize: 23,
+                  fontSize: 28,
                   fontWeight: FontWeight.w700,
-                  height: 29 / 23,
+                  height: 1.2,
                 ),
               ),
               SizedBox(height: 2),
@@ -458,8 +458,8 @@ class _ReportsHeader extends StatelessWidget {
                 'Track reports from your account',
                 style: TextStyle(
                   color: AppColors.textSecondary,
-                  fontSize: 12,
-                  height: 16 / 12,
+                  fontSize: 14,
+                  height: 1.4,
                 ),
               ),
             ],
@@ -477,7 +477,7 @@ class _ReportsHeader extends StatelessWidget {
             context.tr('{count} ACTIVE', values: {'count': activeCount}),
             style: const TextStyle(
               color: AppColors.brand,
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -496,7 +496,7 @@ class _FilterTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 42,
+      constraints: const BoxConstraints(minHeight: 52),
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: AppColors.neutralSoft,
@@ -511,22 +511,17 @@ class _FilterTabs extends StatelessWidget {
                 borderRadius: BorderRadius.circular(11),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 160),
-                  height: 34,
+                  constraints: const BoxConstraints(minHeight: 44),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 10,
+                  ),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: item == selected
-                        ? AppColors.surface
+                        ? AppColors.brand
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(11),
-                    boxShadow: item == selected
-                        ? const [
-                            BoxShadow(
-                              color: Color(0x141C1C1E),
-                              blurRadius: 8,
-                              offset: Offset(0, 2),
-                            ),
-                          ]
-                        : null,
                   ),
                   child: LocalizedText(
                     switch (item) {
@@ -536,9 +531,9 @@ class _FilterTabs extends StatelessWidget {
                     },
                     style: TextStyle(
                       color: item == selected
-                          ? AppColors.brand
+                          ? AppColors.surface
                           : AppColors.textSecondary,
-                      fontSize: 11,
+                      fontSize: 14,
                       fontWeight: item == selected
                           ? FontWeight.w600
                           : FontWeight.w500,
@@ -628,13 +623,7 @@ class _ReportCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x121C1C1E),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -646,7 +635,7 @@ class _ReportCard extends StatelessWidget {
                   id,
                   style: const TextStyle(
                     color: AppColors.textSecondary,
-                    fontSize: 12,
+                    fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -663,9 +652,9 @@ class _ReportCard extends StatelessWidget {
             title,
             style: const TextStyle(
               color: AppColors.textPrimary,
-              fontSize: 15,
+              fontSize: 18,
               fontWeight: FontWeight.w600,
-              height: 20 / 15,
+              height: 1.4,
             ),
           ),
           const SizedBox(height: 4),
@@ -673,8 +662,8 @@ class _ReportCard extends StatelessWidget {
             meta,
             style: const TextStyle(
               color: AppColors.textSecondary,
-              fontSize: 12,
-              height: 17 / 12,
+              fontSize: 14,
+              height: 1.5,
             ),
           ),
           const SizedBox(height: 8),
@@ -683,7 +672,7 @@ class _ReportCard extends StatelessWidget {
             onTap: onTap,
             borderRadius: BorderRadius.circular(12),
             child: Container(
-              height: 38,
+              constraints: const BoxConstraints(minHeight: 48),
               padding: const EdgeInsets.symmetric(horizontal: 11),
               decoration: BoxDecoration(
                 color: offline ? AppColors.warningSoft : AppColors.brandSoft,
@@ -696,7 +685,7 @@ class _ReportCard extends StatelessWidget {
                       action,
                       style: TextStyle(
                         color: offline ? AppColors.warning : AppColors.brand,
-                        fontSize: 11,
+                        fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -730,7 +719,7 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 26,
+      constraints: const BoxConstraints(minHeight: 30),
       padding: const EdgeInsets.symmetric(horizontal: 9),
       decoration: BoxDecoration(
         color: background,
@@ -748,7 +737,7 @@ class _StatusBadge extends StatelessWidget {
             label,
             style: TextStyle(
               color: color,
-              fontSize: 9,
+              fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -772,7 +761,7 @@ class _SavedHeader extends StatelessWidget {
             'SAVED OFFLINE',
             style: TextStyle(
               color: AppColors.textSecondary,
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -822,8 +811,8 @@ class _EmptyReports extends StatelessWidget {
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: AppColors.textSecondary,
-              fontSize: 12,
-              height: 17 / 12,
+              fontSize: 14,
+              height: 1.5,
             ),
           ),
         ],

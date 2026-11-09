@@ -157,6 +157,9 @@ void main() {
 
     expect(find.text('Your privacy matters'), findsOneWidget);
     expect(find.text('No ID or face photo required'), findsNothing);
+    await tester.ensureVisible(
+      find.byKey(const Key('privacy_notice_checkbox')),
+    );
     await tester.tap(find.byKey(const Key('privacy_notice_checkbox')));
     await tester.pump();
     final continueButton = find.byKey(

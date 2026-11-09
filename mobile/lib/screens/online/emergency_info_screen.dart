@@ -130,15 +130,15 @@ class _EmergencyHeader extends StatelessWidget {
                 'Emergency Information',
                 style: TextStyle(
                   color: AppColors.textPrimary,
-                  fontSize: 22,
+                  fontSize: 28,
                   fontWeight: FontWeight.w700,
-                  height: 28 / 22,
+                  height: 1.2,
                 ),
               ),
               SizedBox(height: 2),
               LocalizedText(
                 'Offline safety manual',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
               ),
             ],
           ),
@@ -154,85 +154,69 @@ class _ManualCover extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 175,
-      clipBehavior: Clip.antiAlias,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.brand,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(24),
       ),
-      child: Stack(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Positioned.fill(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(18, 14, 96, 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  LocalizedText(
-                    'PANTUKAN MDRRMO',
-                    style: TextStyle(
-                      color: Color(0xFFF2C8CF),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  SizedBox(height: 5),
-                  LocalizedText(
-                    'Emergency Safety Manual',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: AppColors.surface,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      height: 23 / 18,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  LocalizedText(
-                    'Simple guidance to read before, during, and after an emergency.',
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Color(0xFFFBECEF),
-                      fontSize: 12,
-                      height: 15 / 12,
-                    ),
-                  ),
-                  Spacer(),
-                  LocalizedText(
-                    'Keep this guide on your phone for offline use.',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: AppColors.surface,
-                      fontSize: 8,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Positioned.fill(
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Padding(
-                padding: const EdgeInsets.only(right: 5),
-                child: Semantics(
-                  image: true,
-                  label: context.tr(
-                    'RESPONDA responder reading an emergency manual',
-                  ),
-                  child: Image.asset(
-                    'assets/images/emergency_information.gif',
-                    height: 160,
-                    fit: BoxFit.contain,
-                    filterQuality: FilterQuality.none,
-                    gaplessPlayback: true,
+          Row(
+            children: [
+              const Expanded(
+                child: LocalizedText(
+                  'Emergency Safety Manual',
+                  style: TextStyle(
+                    color: AppColors.surface,
+                    fontSize: 24,
+                    height: 1.2,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
+              const SizedBox(width: 12),
+              Semantics(
+                image: true,
+                label: context.tr(
+                  'RESPONDA responder reading an emergency manual',
+                ),
+                child: Image.asset(
+                  'assets/images/emergency_information.gif',
+                  width: 88,
+                  height: 120,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.none,
+                  gaplessPlayback: true,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const LocalizedText(
+            'PANTUKAN MDRRMO',
+            style: TextStyle(
+              color: AppColors.heroText,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const LocalizedText(
+            'Simple guidance to read before, during, and after an emergency.',
+            style: TextStyle(
+              color: AppColors.heroText,
+              fontSize: 15,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const LocalizedText(
+            'Keep this guide on your phone for offline use.',
+            style: TextStyle(
+              color: AppColors.surface,
+              fontSize: 13,
+              height: 1.5,
             ),
           ),
         ],
@@ -262,15 +246,15 @@ class _ContentsCard extends StatelessWidget {
             'CONTENTS',
             style: TextStyle(
               color: AppColors.brand,
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 9),
           for (var index = 0; index < _items.length; index++) ...[
             Container(
-              height: 30,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
+              constraints: const BoxConstraints(minHeight: 44),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
               decoration: BoxDecoration(
                 color: AppColors.background,
                 borderRadius: BorderRadius.circular(9),
@@ -283,7 +267,7 @@ class _ContentsCard extends StatelessWidget {
                       _items[index].$1,
                       style: const TextStyle(
                         color: AppColors.brand,
-                        fontSize: 12,
+                        fontSize: 14,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -293,7 +277,7 @@ class _ContentsCard extends StatelessWidget {
                       _items[index].$2,
                       style: const TextStyle(
                         color: AppColors.textPrimary,
-                        fontSize: 12,
+                        fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -327,19 +311,11 @@ class _ManualSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: background == AppColors.surface
-            ? const [
-                BoxShadow(
-                  color: Color(0x121C1C1E),
-                  blurRadius: 12,
-                  offset: Offset(0, 3),
-                ),
-              ]
-            : null,
+        border: Border(left: BorderSide(color: accent, width: 3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -348,7 +324,7 @@ class _ManualSection extends StatelessWidget {
             children: [
               Container(
                 width: 30,
-                height: 30,
+                constraints: const BoxConstraints(minHeight: 44),
                 decoration: BoxDecoration(
                   color: accent,
                   borderRadius: BorderRadius.circular(10),
@@ -358,7 +334,7 @@ class _ManualSection extends StatelessWidget {
                   number,
                   style: const TextStyle(
                     color: AppColors.surface,
-                    fontSize: 11,
+                    fontSize: 14,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -369,7 +345,7 @@ class _ManualSection extends StatelessWidget {
                   title,
                   style: const TextStyle(
                     color: AppColors.textPrimary,
-                    fontSize: 15,
+                    fontSize: 18,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -381,8 +357,8 @@ class _ManualSection extends StatelessWidget {
             body,
             style: const TextStyle(
               color: AppColors.textPrimary,
-              fontSize: 11,
-              height: 17 / 11,
+              fontSize: 14,
+              height: 1.6,
             ),
           ),
         ],
@@ -444,18 +420,20 @@ class _SectionHeading extends StatelessWidget {
             number,
             style: const TextStyle(
               color: AppColors.surface,
-              fontSize: 11,
+              fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
           ),
         ),
         const SizedBox(width: 9),
-        LocalizedText(
-          title,
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
+        Expanded(
+          child: LocalizedText(
+            title,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],
@@ -478,14 +456,14 @@ class _ContactRow extends StatelessWidget {
           title,
           style: const TextStyle(
             color: AppColors.textPrimary,
-            fontSize: 11,
+            fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 3),
         LocalizedText(
           detail,
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
         ),
       ],
     );
@@ -508,7 +486,7 @@ class _NoticeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(16),
@@ -520,7 +498,7 @@ class _NoticeCard extends StatelessWidget {
             title,
             style: TextStyle(
               color: titleColor,
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -529,8 +507,8 @@ class _NoticeCard extends StatelessWidget {
             body,
             style: const TextStyle(
               color: AppColors.textSecondary,
-              fontSize: 12,
-              height: 18 / 12,
+              fontSize: 14,
+              height: 1.5,
             ),
           ),
         ],
@@ -547,17 +525,11 @@ class _CardShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x121C1C1E),
-            blurRadius: 12,
-            offset: Offset(0, 3),
-          ),
-        ],
+        border: Border.all(color: AppColors.border),
       ),
       child: child,
     );

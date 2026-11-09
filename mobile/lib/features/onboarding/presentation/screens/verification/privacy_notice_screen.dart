@@ -11,7 +11,9 @@ import 'phone_verification_screen.dart';
 import 'optional_profile_screen.dart';
 
 class PrivacyNoticeScreen extends StatefulWidget {
-  const PrivacyNoticeScreen({super.key});
+  const PrivacyNoticeScreen({this.isSigningIn = false, super.key});
+
+  final bool isSigningIn;
 
   @override
   State<PrivacyNoticeScreen> createState() => _PrivacyNoticeScreenState();
@@ -23,10 +25,14 @@ class _PrivacyNoticeScreenState extends State<PrivacyNoticeScreen> {
   @override
   Widget build(BuildContext context) {
     return OnboardingStepScaffold(
-      step: 2,
+      step: 1,
+      totalSteps: 4,
+      showProgress: !widget.isSigningIn,
       onBack: _goBack,
       title: 'Your privacy matters',
-      subtitle: 'Read how RESPONDA uses your information before setting up your account.',
+      subtitle: widget.isSigningIn
+          ? 'Review how RESPONDA uses your information before signing in.'
+          : 'Read how RESPONDA uses your information before setting up your account.',
       children: [
         const IdentityInfoCard(
           icon: Icons.phone_iphone_rounded,
@@ -100,11 +106,13 @@ class _PrivacyNoticeScreenState extends State<PrivacyNoticeScreen> {
       MaterialPageRoute<void>(
         builder: (_) => betaSkipMobileVerification
             ? OptionalProfileScreen(
+                isSigningIn: widget.isSigningIn,
                 phoneNumber: null,
                 privacyNoticeAcceptedAt: DateTime.now(),
               )
             : IdentityVerificationScreen(
                 privacyNoticeAcceptedAt: DateTime.now(),
+                isSigningIn: widget.isSigningIn,
               ),
       ),
     );
@@ -116,6 +124,6 @@ class _PrivacyNoticeScreenState extends State<PrivacyNoticeScreen> {
       navigator.pop();
       return;
     }
-    navigator.pushReplacementNamed(AppRoutes.language);
+    navigator.pushReplacementNamed(AppRoutes.accountAccess);
   }
 }

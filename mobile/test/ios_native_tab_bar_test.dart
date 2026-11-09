@@ -87,6 +87,10 @@ void main() {
         await tester.pumpAndSettle();
         expect(page.value, 3);
         expect(updates.last['pageIndex'], 3);
+        final updateCount = updates.length;
+        page.notifyListeners();
+        await tester.pumpAndSettle();
+        expect(updates.length, updateCount);
         await nativeEvent('onCall');
         await tester.pumpAndSettle();
         expect(calls, 1);

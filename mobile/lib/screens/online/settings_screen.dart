@@ -115,7 +115,7 @@ class _SettingsScreenState extends State<SettingsScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const _SettingsHeader(),
-                const SizedBox(height: 18),
+                const SizedBox(height: 28),
                 const _SectionLabel('ACCOUNT'),
                 const SizedBox(height: 8),
                 _SettingsCard(
@@ -131,7 +131,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                     ),
                   ],
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 28),
                 const _SectionLabel('PREFERENCES'),
                 const SizedBox(height: 8),
                 _SettingsCard(
@@ -171,7 +171,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                     ),
                   ],
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 28),
                 const _SectionLabel('PRIVACY & DATA'),
                 const SizedBox(height: 8),
                 _SettingsCard(
@@ -194,11 +194,11 @@ class _SettingsScreenState extends State<SettingsScreen>
                     ),
                   ],
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 28),
                 const _SectionLabel('ABOUT'),
                 const SizedBox(height: 8),
                 const _AboutCard(),
-                const SizedBox(height: 18),
+                const SizedBox(height: 28),
                 const _SectionLabel('TESTING'),
                 const SizedBox(height: 8),
                 _SettingsCard(
@@ -512,9 +512,9 @@ class _SettingsHeader extends StatelessWidget {
           'Settings',
           style: TextStyle(
             color: AppColors.textPrimary,
-            fontSize: 23,
+            fontSize: 28,
             fontWeight: FontWeight.w700,
-            height: 29 / 23,
+            height: 1.2,
           ),
         ),
         SizedBox(height: 2),
@@ -536,7 +536,7 @@ class _SectionLabel extends StatelessWidget {
         color: AppColors.textSecondary,
         fontSize: 12,
         fontWeight: FontWeight.w700,
-        letterSpacing: .5,
+        height: 1.4,
       ),
     );
   }
@@ -554,13 +554,7 @@ class _SettingsCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x121C1C1E),
-            blurRadius: 12,
-            offset: Offset(0, 3),
-          ),
-        ],
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(children: children),
     );
@@ -592,7 +586,7 @@ class _SettingsTile extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 18),
         child: Row(
           children: [
             _IconBox(icon: icon, color: color),
@@ -607,7 +601,7 @@ class _SettingsTile extends StatelessWidget {
                       color: destructive
                           ? AppColors.danger
                           : AppColors.textPrimary,
-                      fontSize: 13,
+                      fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -616,29 +610,25 @@ class _SettingsTile extends StatelessWidget {
                     subtitle,
                     style: const TextStyle(
                       color: AppColors.textSecondary,
-                      fontSize: 9,
+                      fontSize: 14,
+                      height: 1.4,
                     ),
                   ),
+                  if (value != null) ...[
+                    const SizedBox(height: 8),
+                    LocalizedText(
+                      value!,
+                      style: const TextStyle(
+                        color: AppColors.brand,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
-            if (value != null) ...[
-              const SizedBox(width: 8),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 100),
-                child: LocalizedText(
-                  value!,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.right,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
             const SizedBox(width: 5),
             Icon(
               Icons.chevron_right_rounded,
@@ -799,8 +789,8 @@ class _ClearReportsSheet extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppColors.textSecondary,
-                fontSize: 13,
-                height: 19 / 13,
+                fontSize: 16,
+                height: 1.5,
               ),
             ),
             const SizedBox(height: 18),
@@ -864,8 +854,8 @@ class _TestResetSheet extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppColors.textSecondary,
-                fontSize: 13,
-                height: 19 / 13,
+                fontSize: 16,
+                height: 1.5,
               ),
             ),
             const SizedBox(height: 18),
@@ -993,7 +983,7 @@ class _SwitchTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 18),
       child: Row(
         children: [
           _IconBox(icon: icon),
@@ -1006,7 +996,7 @@ class _SwitchTile extends StatelessWidget {
                   title,
                   style: const TextStyle(
                     color: AppColors.textPrimary,
-                    fontSize: 13,
+                    fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1015,19 +1005,17 @@ class _SwitchTile extends StatelessWidget {
                   subtitle,
                   style: const TextStyle(
                     color: AppColors.textSecondary,
-                    fontSize: 9,
+                    fontSize: 14,
+                    height: 1.4,
                   ),
                 ),
               ],
             ),
           ),
-          Transform.scale(
-            scale: .82,
-            child: Switch(
-              value: value,
-              onChanged: onChanged,
-              activeTrackColor: AppColors.brand,
-            ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeTrackColor: AppColors.brand,
           ),
         ],
       ),
@@ -1075,7 +1063,8 @@ class _AboutCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.brand,
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.border),
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
@@ -1101,22 +1090,25 @@ class _AboutCard extends StatelessWidget {
                 LocalizedText(
                   'RESPONDA',
                   style: TextStyle(
-                    color: AppColors.surface,
-                    fontSize: 15,
+                    color: AppColors.brand,
+                    fontSize: 18,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 SizedBox(height: 2),
                 LocalizedText(
                   'Pantukan MDRRMO',
-                  style: TextStyle(color: Color(0xFFF7DDE1), fontSize: 12),
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
           ),
           const LocalizedText(
             'Version 1.0.0',
-            style: TextStyle(color: Color(0xFFF7DDE1), fontSize: 12),
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
           ),
         ],
       ),

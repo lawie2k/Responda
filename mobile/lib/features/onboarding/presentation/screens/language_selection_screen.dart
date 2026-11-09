@@ -6,7 +6,7 @@ import '../../../../core/localization/app_language_scope.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/responda_button.dart';
 import '../widgets/onboarding_step_scaffold.dart';
-import 'verification/privacy_notice_screen.dart';
+import 'account_access_screen.dart';
 
 class LanguageSelectionScreen extends StatefulWidget {
   const LanguageSelectionScreen({super.key});
@@ -41,7 +41,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
       return;
     }
     await Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const PrivacyNoticeScreen()),
+      MaterialPageRoute<void>(builder: (_) => const AccountAccessScreen()),
     );
     if (mounted) {
       setState(() => _isSaving = false);
@@ -52,6 +52,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
   Widget build(BuildContext context) {
     return OnboardingStepScaffold(
       step: 1,
+      showProgress: false,
       title: 'Choose your language',
       subtitle: 'Choose your language\nPilia ang imong pinulongan\nPiliin ang iyong wika',
       children: [

@@ -79,13 +79,7 @@ class _ReviewReportScreenState extends State<ReviewReportScreen> {
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 12,
-                offset: const Offset(0, 3),
-              ),
-            ],
+            border: Border.all(color: AppColors.border),
           ),
           child: Column(
             children: [

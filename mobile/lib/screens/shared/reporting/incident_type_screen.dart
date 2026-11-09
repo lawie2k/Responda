@@ -72,8 +72,8 @@ class _IncidentTypeScreenState extends State<IncidentTypeScreen> {
           'Choose the incident that best matches the situation.',
           style: TextStyle(
             color: AppColors.textSecondary,
-            fontSize: 14,
-            height: 19 / 14,
+            fontSize: 16,
+            height: 1.4,
           ),
         ),
         for (final choice in _choices)
@@ -129,8 +129,8 @@ class _IncidentChoice extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(15),
       child: Container(
-        height: 58,
-        padding: const EdgeInsets.all(12),
+        constraints: const BoxConstraints(minHeight: 72),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: selected ? AppColors.brandSoft : AppColors.surface,
           borderRadius: BorderRadius.circular(14),
@@ -141,8 +141,8 @@ class _IncidentChoice extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 34,
-              height: 34,
+              width: 40,
+              height: 40,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: const Color(0xFFFCF6F7),
@@ -160,9 +160,9 @@ class _IncidentChoice extends StatelessWidget {
                 label,
                 style: TextStyle(
                   color: selected ? AppColors.brand : AppColors.textPrimary,
-                  fontSize: 14,
+                  fontSize: 16,
                   fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                  height: 19 / 14,
+                  height: 1.4,
                 ),
               ),
             ),

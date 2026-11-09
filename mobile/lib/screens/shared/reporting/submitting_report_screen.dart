@@ -92,7 +92,7 @@ class _SubmittingReportScreenState extends State<SubmittingReportScreen> {
                         height: 84,
                         child: CircularProgressIndicator(
                           color: AppColors.brand,
-                          strokeWidth: 8,
+                          strokeWidth: 4,
                           strokeCap: StrokeCap.round,
                         ),
                       )
@@ -112,9 +112,9 @@ class _SubmittingReportScreenState extends State<SubmittingReportScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: AppColors.textPrimary,
-                        fontSize: 22,
+                        fontSize: 26,
                         fontWeight: FontWeight.w700,
-                        height: 30 / 22,
+                        height: 1.3,
                       ),
                     ),
                     const SizedBox(height: 12),

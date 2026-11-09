@@ -5,7 +5,7 @@ import 'package:responda/core/theme/app_colors.dart';
 import 'package:responda/core/network/responda_api_client.dart';
 import 'package:responda/features/onboarding/domain/account_profile.dart';
 import 'package:responda/features/onboarding/presentation/account_scope.dart';
-import 'package:responda/features/onboarding/presentation/screens/verification/privacy_notice_screen.dart';
+import 'package:responda/features/onboarding/presentation/screens/account_access_screen.dart';
 
 class AccountManagementScreen extends StatelessWidget {
   const AccountManagementScreen({super.key});
@@ -151,7 +151,7 @@ class _SignOutButtonState extends State<_SignOutButton> {
       await AccountScope.maybeOf(context)!.clearLocalSession();
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute<void>(builder: (_) => const PrivacyNoticeScreen()),
+        MaterialPageRoute<void>(builder: (_) => const AccountAccessScreen()),
         (_) => false,
       );
     } catch (_) {

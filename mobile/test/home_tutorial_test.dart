@@ -92,6 +92,19 @@ void main() {
 
     expect(find.byKey(const Key('home_tutorial_sprite')), findsNothing);
     expect(find.text('REPORT AN EMERGENCY'), findsOneWidget);
+    final infoSprite = find.byWidgetPredicate(
+      (widget) =>
+          widget is Image &&
+          widget.image is AssetImage &&
+          (widget.image as AssetImage).assetName ==
+              'assets/images/emergency_information.gif',
+      skipOffstage: false,
+    );
+    expect(infoSprite, findsOneWidget);
+    expect(TickerMode.valuesOf(tester.element(infoSprite)).enabled, isFalse);
+    await tester.tap(find.text('Emergency Info'));
+    await tester.pump();
+    expect(TickerMode.valuesOf(tester.element(infoSprite)).enabled, isTrue);
   });
 }
 

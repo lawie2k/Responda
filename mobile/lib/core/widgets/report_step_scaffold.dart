@@ -26,6 +26,7 @@ class ReportStepScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -42,7 +43,7 @@ class ReportStepScaffold extends StatelessWidget {
                     totalSteps: totalSteps,
                     onBack: onBack ?? () => Navigator.of(context).maybePop(),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 24),
                   ..._withSpacing(children),
                 ],
               ),
@@ -78,66 +79,76 @@ class _StepHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 58,
-      child: Column(
-        children: [
-          SizedBox(
-            height: 44,
-            child: Row(
-              children: [
-                RespondaIosBackButton(
-                  onPressed: onBack,
-                  fallback: InkWell(
-                    onTap: onBack,
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      width: 34,
-                      height: 34,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFCF6F7),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.brand),
-                      ),
-                      child: Transform.rotate(
-                        angle: math.pi,
-                        child: SvgPicture.asset(
-                          'assets/icons/chevron.svg',
-                          width: 18,
-                          height: 18,
-                        ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          // Reserve space for native glass effects outside the button bounds.
+          height: RespondaGlass.enabled(context) ? 64 : 44,
+          child: Row(
+            children: [
+              RespondaIosBackButton(
+                onPressed: onBack,
+                fallback: InkWell(
+                  onTap: onBack,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: 34,
+                    height: 34,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFCF6F7),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.brand),
+                    ),
+                    child: Transform.rotate(
+                      angle: math.pi,
+                      child: SvgPicture.asset(
+                        'assets/icons/chevron.svg',
+                        width: 18,
+                        height: 18,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: LocalizedText(
-                    title,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      height: 28 / 20,
-                    ),
-                  ),
+              ),
+              const SizedBox(width: 10),
+              const Spacer(),
+              LocalizedText(
+                context.tr(
+                  '{step} of {total}',
+                  values: {'step': step, 'total': totalSteps},
                 ),
-              ],
-            ),
+                style: const TextStyle(
+                  color: AppColors.brand,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: step / totalSteps,
-              minHeight: 8,
-              backgroundColor: const Color(0xFFF2F2F4),
-              valueColor: const AlwaysStoppedAnimation(AppColors.brand),
-            ),
+        ),
+        SizedBox(height: RespondaGlass.enabled(context) ? 24 : 16),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: step / totalSteps,
+            minHeight: 4,
+            backgroundColor: const Color(0xFFF2F2F4),
+            valueColor: const AlwaysStoppedAnimation(AppColors.brand),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 24),
+        LocalizedText(
+          title,
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 28,
+            height: 1.2,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
     );
   }
 }

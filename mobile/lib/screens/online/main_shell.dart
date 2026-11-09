@@ -98,11 +98,18 @@ class _MainShellState extends State<MainShell> {
         key: _tutorialSurfaceKey,
         children: [
           Scaffold(
-            extendBody:
-                RespondaGlass.enabled(context) && !_tutorialController.visible,
             body: Material(
               color: AppColors.background,
-              child: IndexedStack(index: _activeItem.index, children: screens),
+              child: IndexedStack(
+                index: _activeItem.index,
+                children: [
+                  for (var index = 0; index < screens.length; index++)
+                    TickerMode(
+                      enabled: index == _activeItem.index,
+                      child: screens[index],
+                    ),
+                ],
+              ),
             ),
             bottomNavigationBar: Material(
               color: _tutorialController.visible

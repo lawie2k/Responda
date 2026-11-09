@@ -22,6 +22,7 @@ class OtpVerificationScreen extends StatefulWidget {
     required this.otpService,
     required this.privacyNoticeAcceptedAt,
     this.previewOnly = false,
+    this.isSigningIn = false,
     super.key,
   });
 
@@ -29,6 +30,7 @@ class OtpVerificationScreen extends StatefulWidget {
   final IdentityOtpService otpService;
   final DateTime privacyNoticeAcceptedAt;
   final bool previewOnly;
+  final bool isSigningIn;
 
   @override
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -101,6 +103,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
           builder: (_) => OptionalProfileScreen(
+            isSigningIn: widget.isSigningIn,
             phoneNumber: widget.phoneNumber,
             privacyNoticeAcceptedAt: widget.privacyNoticeAcceptedAt,
           ),
@@ -153,7 +156,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   @override
   Widget build(BuildContext context) {
     return OnboardingStepScaffold(
-      step: 4,
+      step: 3,
+      totalSteps: 4,
+      showProgress: !widget.isSigningIn,
       title: 'Enter your OTP',
       subtitle: context.tr(
         'Enter the 6-digit code sent to {phone}.',

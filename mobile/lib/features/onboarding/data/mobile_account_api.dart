@@ -14,6 +14,7 @@ abstract interface class SessionTokenStore {
 
 class SecureSessionTokenStore implements SessionTokenStore {
   static const _storage = FlutterSecureStorage();
+  // Preserve this key across releases; migrate credentials before changing it.
   static const _key = 'responda_mobile_session_v1';
 
   @override

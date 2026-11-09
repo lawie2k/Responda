@@ -2,10 +2,22 @@
 tags:
   - responda/memory
   - responda/planning
-updated: 2026-11-08
+updated: 2026-11-09
 ---
 
 # Next steps
+
+Review the latest installed iPhone release: welcome/onboarding (both intents and
+all languages), reporting layout and native back-button/progress clearance,
+My Reports, Info and Settings. Checks/build passed; physical visual acceptance
+remains pending. Preserve the current account unless the user opts to sign out.
+
+Before store publication, follow `mobile/docs/app-update-sessions.md` to test
+previous-build sign-in preservation through TestFlight/Play updates. Finalize
+the Android application identity before the first public release.
+
+Confirm scrolling in the 2026-11-09 optimized phone release. Instruments device
+access timed out twice; obtain a valid hitch/frame trace if lag persists.
 
 User narrowed Liquid Glass to iOS navigation and back controls. Centered Call
 and UIKit stock selection are installed; the former custom indicator was removed.

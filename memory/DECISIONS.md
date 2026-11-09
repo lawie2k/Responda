@@ -2,12 +2,60 @@
 tags:
   - responda/memory
   - responda/decisions
-updated: 2026-11-07
+updated: 2026-11-09
 ---
 
 # Decisions
 
 ## Active decisions
+
+### 2026-11-09 — Separate sign-in from registration progress
+
+- Language and account entry are unnumbered. Registration counts privacy, phone,
+  OTP and required profile as four steps. Sign-in uses the same consent and secure
+  OTP behavior with no step counter/progress, including incomplete-profile recovery.
+- Preserve existing brand palette, font and controls; no new dependency.
+
+
+### 2026-11-09 — Use installed UI and animation skills for Responda UI work
+
+- Installed `frontend-design` from anthropics/skills, `improve-animations` from
+  emilkowalski/skills, and `improve-ui` from ibelick/ui-skills in the local
+  `/Users/lawie/.codex/skills/` directory using the Codex installer.
+- All Responda UI work uses applicable skills: frontend-design for creation,
+  improve-ui for existing-surface audits/plans, and improve-animations for
+  motion audits/plans. Audit-only phases do not edit product source.
+- Preserve approved Figma and existing civic/native platform design choices;
+  adapt web-specific principles to Flutter rather than importing web tooling.
+- Root `AGENTS.md` holds the paths and routing for future component chats and
+  build-mirror work. Installation is local to this machine; other environments
+  must install the same skills. Existing model-confirmation rules still apply.
+
+### 2026-11-09 — Offer account entry after language selection
+
+- Show an unnumbered Sign in/Create an account screen after language choice and
+  on signed-out startup/logout. Preserve the existing numbered privacy/phone OTP
+  flow and its validation. Use the backend OTP result to identify returning users;
+  no password flow or pre-OTP account enumeration is introduced.
+- Returning complete accounts enter Home after verification; incomplete accounts
+  complete required details. Existing valid sessions bypass account entry.
+
+### 2026-11-09 — Preserve sessions across normal app releases
+
+- Reuse stable secure-storage/profile keys and compatible app identity/signing
+  across updates. Version changes must not clear login or restart onboarding for
+  a valid account. Migrate storage schemas rather than silently dropping data.
+- Preserve the existing 30-day session policy and server revocation/suspension.
+  A new backend environment is not automatically trusted with old credentials.
+  Test real store upgrades before publication; local restore tests are simulated.
+
+### 2026-11-09 — Limit work around native glass navigation
+
+- Keep scrolling Flutter content above the stock native bar rather than extending
+  it behind the glass. Pause hidden IndexedStack tabs with TickerMode so animated
+  sprites do not continue on inactive pages. Skip unchanged native state updates.
+- Treat these as reductions in unnecessary work; require a device comparison
+  before claiming the scrolling regression is resolved.
 
 ### 2026-11-08 — Limit native Liquid Glass to iOS navigation
 

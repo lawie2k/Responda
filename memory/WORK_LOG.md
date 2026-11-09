@@ -2,10 +2,23 @@
 tags:
   - responda/memory
   - responda/work-log
-updated: 2026-11-08
+updated: 2026-11-09
 ---
 
 # Work log
+
+## 2026-11-09 — Install and enable UI skills across Responda chats
+
+- Installed the requested frontend-design, improve-animations, and improve-ui
+  skills from their upstream GitHub repositories through the Codex installer.
+- Read skill guidance and supporting audit/plan references. Saved project-wide
+  routing in `AGENTS.md`, local installation status, and the durable decision.
+- Preserve Figma fidelity, civic styling and native navigation; adapt advice to
+  Flutter. Both improvement skills are audit/planning tools, with implementation
+  handled explicitly after planning within the user's authorized scope.
+- Verification: all three local SKILL.md files and their bundled references are
+  present; project-memory validation and diff whitespace checks passed. No
+  application source, dependencies or generated Graphify data changed.
 
 ## 2026-11-07 — Six OTP boxes and returning-account routing
 
@@ -1524,3 +1537,151 @@ conversation.
   release build/install/launch, Graphify update and memory/diff checks.
 - Remaining: native back-button dark appearance has not been adjusted; stock
   native animation and final call-icon appearance remain for user acceptance.
+
+## 2026-11-09 — Reduce scrolling work around native navigation
+
+- User localized lag to scrolling. Disabled body extension behind the glass bar,
+  paused hidden-tab tickers/animated images in both shells, and deduplicated native
+  navbar configuration updates. Retained UIKit stock selection and centered Call.
+- Analysis/full suite passed (108 tests, two flag skips); regressions verify hidden
+  sprite pausing and unchanged-state update suppression. Release built, installed
+  and launched. Graph updated; sources synced to Documents.
+- Both CPU/hitch capture attempts timed out waiting for Instruments device access,
+  including after user unlocked/opened the app. No quantitative cause or speedup
+  established. Physical scrolling acceptance pending.
+
+## 2026-11-09 — Verify update-safe session restoration
+
+- Confirmed version changes do not clear sessions: existing startup restores the
+  secure token and cached profile, preserving valid offline access and enforcing
+  backend rejection. No production authentication behavior change was needed.
+- Added regression coverage with the shipped storage key/profile schema and real
+  secure-store adapter under platform mocks: online, offline, temporary 503 and
+  revoked 401. Added stable-key comments and release/update QA documentation.
+- Flutter analysis and full suite passed (112 tests, two flag skips). Mobile
+  graph refreshed, sources/docs/tests synced to Documents, memory/diff checks
+  passed. No store deployment or physical store-update test was performed.
+
+## 2026-11-09 — Add onboarding sign-in/account-creation entry
+
+- Added AccountAccessScreen after language, with branded Sign in/Create an account
+  choices and localized phone-access copy. Both use privacy consent and existing
+  OTP; returning-account/Home routing remains authoritative after verification.
+- Updated signed-out startup, expired-session and logout destinations, route/back
+  navigation, and Tagalog/Bisaya copy. Valid sessions retain normal Home access.
+- Analysis/full suite passed; new flow tests cover both intents through privacy
+  to phone entry and back, plus language/resume navigation. Native release built;
+  source synced and Graphify updated. Release installed and launched on the physical iPhone without resetting the account; new onboarding interaction on-device remains unverified.
+
+## 2026-11-09 — Restore physical-phone backend reachability
+
+- Diagnosed repeated offline UI: backend was started with `make run`, binding
+  loopback only. Restarted with existing `make run-mobile` on all interfaces.
+- LAN health returned HTTP 200 with database healthy; relaunched iPhone app.
+  Phone requests for health, account and reports subsequently returned HTTP 200.
+  No application source or account data changed.
+
+## 2026-11-09 — Simplify language selection header
+
+- Hid the step count and progress bar only on language selection using the shared
+  scaffold option. Updated the obsolete language-header test expectation. Synced
+  the build copy; analysis passed; remaining full-suite tests passed. No phone build requested.
+
+## 2026-11-09 — Install simplified language-header release
+
+- Built the signed iOS release with the existing local backend origin and
+  installed it over the existing physical-phone app, preserving account data.
+- Build and device installation succeeded; launch command succeeded.
+
+## 2026-11-09 — Redesign account entry and onboarding
+
+- Applied local frontend-design guidance: maroon welcome panel, left-aligned
+  hierarchy, slim registration progress and quieter information cards with
+  readable body copy. Sign-in hides progress; registration starts at 1 of 4.
+- Propagated sign-in intent through OTP/profile without changing authentication.
+  Updated scrolling interactions and progress assertions in flow tests.
+- Flutter analysis and full test suite passed (114 tests, two flag skips).
+  Source/build copy synced and graph refreshed; physical UI review and
+  installation not performed.
+
+## 2026-11-09 — Install redesigned onboarding release
+
+- Signed iOS release build passed; installed over the existing physical-phone app
+  preserving account data. Automatic launch was blocked by the locked phone;
+  manual opening and on-device design acceptance remain pending.
+
+## 2026-11-09 — Restyle welcome screen
+
+- Used frontend-design guidance for a lighter centered logo/heading composition;
+  retained localized text, native back control and both account entry actions.
+- Analysis and all 114 tests passed (two flag skips). Build copy synced and
+  mobile graph refreshed. No phone build or visual device review performed.
+
+## 2026-11-09 — Install lighter welcome-page release
+
+- Signed iOS release built successfully, installed over the existing app and
+  launched on the physical iPhone. Account data preserved; visual acceptance pending.
+
+## 2026-11-09 — Refresh incident-reporting flow UI
+
+- Applied frontend-design guidance to shared report scaffold and incident/location/
+  details/photo/review/submitting/success presentation. Kept existing brand,
+  localization keys, routing, GPS, safety validation, edit actions and delivery.
+- Fixed summary wrapping exposed by larger text. Analysis and all 114 tests
+  passed (two flag skips), including offline flow and reporting/edit checks.
+- Synced build copy and refreshed mobile graph. No release build, installation
+  or physical-device visual review performed.
+
+## 2026-11-09 — Install refreshed reporting release
+
+- Signed iOS release build passed; installed over the existing physical-phone
+  app and launched successfully. Account data preserved. Visual review pending.
+
+## 2026-11-09 — Separate reporting glass back button from progress
+
+- Increased reporting header row/under-button spacing only when native glass is
+  enabled, allowing room for native visual effects outside the button bounds.
+- Analysis and all 114 tests passed (two flag skips). Build copy synced and
+  graph refreshed. No device build/install; native visual acceptance pending.
+
+## 2026-11-09 — Refresh My Reports and Emergency Info
+
+- Used frontend-design guidance for clearer reports hierarchy, maroon selected
+  filters, larger labels/actions, and bordered online/offline cards. Retained
+  polling, pagination, tracking and SMS retry behavior.
+- Rebuilt Info cover to expand with localized text, retaining the responder GIF
+  and manual content; enlarged body text, simplified section surfaces and fixed
+  contact-heading wrapping exposed by increased sizing.
+- Analysis and all 114 tests passed (two flag skips). Source copy synced, graph
+  refreshed. No release build/install or physical visual review performed.
+
+## 2026-11-09 — Install reports/info refresh and back-button clearance
+
+- Signed release build passed; installed over the existing physical iPhone app
+  and launched successfully. Includes latest reports/info styling and native
+  reporting back-button clearance. Account data preserved; visual acceptance pending.
+
+## 2026-11-09 — Refresh Settings presentation
+
+- Applied frontend-design guidance with larger row text/header, bordered groups,
+  full-size switches and stacked values to avoid squeezing translated labels.
+  Kept settings keys, handlers, permission checks, confirmation sheets and testing
+  controls; enlarged confirmation body text and simplified About styling.
+- Analysis and all 114 tests passed (two flag skips). Build copy synced; mobile
+  graph refreshed. No phone build/install or physical visual review performed.
+
+## 2026-11-09 — Install refreshed Settings release
+
+- Signed iOS release built successfully, installed over the existing physical
+  iPhone app and launched. Account data preserved; visual acceptance pending.
+
+## 2026-11-09 — Save and push mobile refresh checkpoint
+
+- Consolidated current mobile state and remaining device acceptance steps. Includes
+  account entry/progress redesign, report flow, reports/info/settings refresh,
+  native back clearance, scrolling work reduction and update-session coverage.
+- Latest analysis/full suite passed (114 tests, two flag skips), signed release
+  installed and launched. Native visual clearance, scrolling improvement and
+  real store-update preservation remain unverified. No backend schema changes.
+- Preserved the pending root UI-skill instructions. Mobile graph current; memory
+  and diff checks passed before committing.

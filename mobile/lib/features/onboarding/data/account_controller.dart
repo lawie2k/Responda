@@ -28,6 +28,7 @@ class SharedPreferencesAccountStore implements AccountStore {
   SharedPreferencesAccountStore({SharedPreferencesAsync? client})
     : _preferences = client;
 
+  // App updates must read existing profiles; schema changes need a migration.
   static const _accountKey = 'responda_account_profile_v1';
 
   final SharedPreferencesAsync? _preferences;

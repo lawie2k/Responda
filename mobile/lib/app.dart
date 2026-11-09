@@ -22,7 +22,7 @@ import 'core/widgets/responda_bottom_navigation.dart';
 import 'features/onboarding/presentation/screens/language_selection_screen.dart';
 import 'features/onboarding/data/account_controller.dart';
 import 'features/onboarding/presentation/account_scope.dart';
-import 'features/onboarding/presentation/screens/verification/privacy_notice_screen.dart';
+import 'features/onboarding/presentation/screens/account_access_screen.dart';
 import 'features/onboarding/presentation/screens/account_suspended_screen.dart';
 import 'features/splash/presentation/screens/splash_screen.dart';
 import 'features/testing/data/testing_mode_controller.dart';
@@ -133,7 +133,7 @@ class _RespondaAppState extends State<RespondaApp> with WidgetsBindingObserver {
         !_accountController.hasAccount &&
         !_accountController.isSuspended) {
       _navigatorKey.currentState?.pushAndRemoveUntil(
-        MaterialPageRoute<void>(builder: (_) => const PrivacyNoticeScreen()),
+        MaterialPageRoute<void>(builder: (_) => const AccountAccessScreen()),
         (_) => false,
       );
     }
@@ -213,12 +213,14 @@ class _RespondaAppState extends State<RespondaApp> with WidgetsBindingObserver {
                             !_languageController.hasSelectedLanguage
                             ? const LanguageSelectionScreen()
                             : !_accountController.hasAccount
-                            ? const PrivacyNoticeScreen()
+                            ? const AccountAccessScreen()
                             : const ConnectivityGate();
                         return SplashScreen(destination: destination);
                       },
                     ),
                     routes: {
+                      AppRoutes.accountAccess: (_) =>
+                          const AccountAccessScreen(),
                       AppRoutes.language: (_) =>
                           const LanguageSelectionScreen(),
                       AppRoutes.home: (_) => const ConnectivityGate(),

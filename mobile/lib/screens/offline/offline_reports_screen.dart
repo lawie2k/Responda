@@ -48,7 +48,7 @@ class _OfflineReportsScreenState extends State<OfflineReportsScreen> {
                             'My Reports',
                             style: TextStyle(
                               color: AppColors.textPrimary,
-                              fontSize: 23,
+                              fontSize: 28,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -57,7 +57,7 @@ class _OfflineReportsScreenState extends State<OfflineReportsScreen> {
                             'Reports saved safely on this device',
                             style: TextStyle(
                               color: AppColors.textSecondary,
-                              fontSize: 11,
+                              fontSize: 14,
                             ),
                           ),
                         ],
@@ -163,7 +163,7 @@ class _EmptyReports extends StatelessWidget {
               'No saved offline reports',
               style: TextStyle(
                 color: AppColors.textPrimary,
-                fontSize: 16,
+                fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -186,13 +186,7 @@ class _SavedReportCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x121C1C1E),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -219,7 +213,7 @@ class _SavedReportCard extends StatelessWidget {
                   'NOT CONFIRMED',
                   style: TextStyle(
                     color: AppColors.warning,
-                    fontSize: 9,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -231,7 +225,7 @@ class _SavedReportCard extends StatelessWidget {
             report.draft.incidentType.label,
             style: const TextStyle(
               color: AppColors.textPrimary,
-              fontSize: 16,
+              fontSize: 18,
               fontWeight: FontWeight.w600,
             ),
           ),

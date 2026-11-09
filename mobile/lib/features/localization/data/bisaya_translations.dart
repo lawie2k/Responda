@@ -572,4 +572,18 @@ const bisayaTranslations = <String, String>{
   "Verification code": "Code sa pag-verify",
   "Resend code in {seconds}s": "Ipadala pag-usab sulod sa {seconds}s",
   'Info': 'Impormasyon',
+  "Welcome to RESPONDA": "Maayong pag-abot sa RESPONDA",
+  "Sign in or create an account to continue.":
+      "Pag-sign in o paghimo og account aron makapadayon.",
+  "Secure access with your mobile number":
+      "Luwas nga pag-access gamit ang imong mobile number",
+  "Use a one-time verification code to access your account.":
+      "Gamit og usa ka verification code aron ma-access ang imong account.",
+  "Sign in": "Pag-sign in",
+  "Create an account": "Paghimo og account",
+  "Already registered? Sign in with the same mobile number to restore your account.": "Naa na kay account? Pag-sign in gamit ang samang mobile number aron mabalik ang imong account.",
+  "Sign in with your number": "Pag-sign in gamit ang imong numero",
+  "Enter the mobile number linked to your account.":
+      "Isulod ang mobile number nga nalambigit sa imong account.",
+  'Review how RESPONDA uses your information before signing in.': 'Basaha kung giunsa paggamit sa RESPONDA ang imong impormasyon sa dili pa mag-sign in.',
 };

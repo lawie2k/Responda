@@ -20,11 +20,13 @@ class IdentityVerificationScreen extends StatefulWidget {
   const IdentityVerificationScreen({
     required this.privacyNoticeAcceptedAt,
     this.otpService,
+    this.isSigningIn = false,
     super.key,
   });
 
   final DateTime privacyNoticeAcceptedAt;
   final IdentityOtpService? otpService;
+  final bool isSigningIn;
 
   @override
   State<IdentityVerificationScreen> createState() =>
@@ -105,6 +107,7 @@ class _IdentityVerificationScreenState
             otpService: service,
             privacyNoticeAcceptedAt: widget.privacyNoticeAcceptedAt,
             previewOnly: _previewOtp,
+            isSigningIn: widget.isSigningIn,
           ),
         ),
       );
@@ -128,10 +131,16 @@ class _IdentityVerificationScreenState
   @override
   Widget build(BuildContext context) {
     return OnboardingStepScaffold(
-      step: 3,
+      step: 2,
+      totalSteps: 4,
+      showProgress: !widget.isSigningIn,
       onBack: _goBack,
-      title: 'Verify your mobile number',
-      subtitle: 'Enter your number to receive an OTP for account access and recovery.',
+      title: widget.isSigningIn
+          ? 'Sign in with your number'
+          : 'Verify your mobile number',
+      subtitle: widget.isSigningIn
+          ? 'Enter the mobile number linked to your account.'
+          : 'Enter your number to receive an OTP for account access and recovery.',
       children: [
         const IdentityInfoCard(
           icon: Icons.phone_iphone_rounded,
@@ -201,7 +210,7 @@ class _IdentityVerificationScreenState
       navigator.pop();
       return;
     }
-    navigator.pushReplacementNamed(AppRoutes.language);
+    navigator.pushReplacementNamed(AppRoutes.accountAccess);
   }
 }
 
